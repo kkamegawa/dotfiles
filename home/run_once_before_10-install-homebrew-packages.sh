@@ -67,7 +67,6 @@ copilot-cli@prerelease
 daisydisk
 devtoys
 discord
-docker
 docker-desktop
 dotnet-sdk
 firefox
