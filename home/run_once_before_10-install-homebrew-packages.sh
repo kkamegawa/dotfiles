@@ -86,23 +86,18 @@ cask_app_is_installed() {
   return "$found"
 }
 
-cask_is_installed() {
+install_cask() {
   cask=$1
-  metadata=$2
 
   if brew list --cask "$cask" >/dev/null 2>&1; then
+    echo "==> Skipping installed cask $cask"
     return 0
   fi
 
-  cask_app_is_installed "$metadata"
-}
-
-install_cask() {
-  cask=$1
   metadata="$(brew info --cask --json=v2 "$cask")"
 
-  if cask_has_auto_updates "$metadata" && cask_is_installed "$cask" "$metadata"; then
-    echo "==> Skipping self-updating cask $cask because it is already installed"
+  if cask_has_auto_updates "$metadata" && cask_app_is_installed "$metadata"; then
+    echo "==> Skipping self-updating cask $cask because its app is already installed"
     return 0
   fi
 
