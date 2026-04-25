@@ -8,6 +8,10 @@ macOS のブートストラップでは、先に Homebrew formula をインス�
 
 dotfiles のセットアップでは、cask をインストール専用として扱います。Homebrew がその cask をインストール済みとして認識している場合はスキップし、ブートストラップ中の `brew install --cask` が暗黙的なアップグレードを始めないようにします。
 
-Homebrew メタデータで `auto_updates` として扱われる cask は、Homebrew がその cask をインストール済みとして認識していない場合でも、cask が宣言しているアプリケーション bundle が `/Applications` または `~/Applications` に存在すればスキップします。
+Homebrew メタデータで `auto_updates` として扱われる cask は、初回の正常なインストールだけを Homebrew 管理のインストールとして扱います。以降の実行では、Homebrew メタデータがインストール済みと記録していればスキップします。Homebrew 以外の方法でインストール済みの場合も、cask が宣言しているアプリケーション bundle が `/Applications`、`~/Applications`、または cask メタデータ内の絶対 `.app` パスに存在すればスキップします。
 
 これにより、新しいマシンでの初回セットアップは維持しつつ、自分で更新機能を持つアプリに対する Homebrew の再処理を避けます。未インストールの cask は、従来どおり `brew install --cask` を実行します。
+
+## cask の sudo 処理
+
+Formula のインストール中は sudo を維持しません。cask のインストールを開始する直前に `sudo -v` を一度だけ実行し、cask の一括処理が続いている間だけ sudo のタイムスタンプを維持します。これにより、cask インストーラーによるパスワードの再入力を避けつつ、ブートストラップ完了後に sudo 維持プロセスを残しません。

@@ -68,6 +68,19 @@ jobs:
         run: |
           chezmoi init --source "$GITHUB_WORKSPACE" --dry-run --verbose
 
+  chezmoi-dry-run-macos:
+    name: chezmoi dry-run (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install chezmoi
+        run: |
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: chezmoi dry-run (macOS)
+        run: |
+          chezmoi init --source "$GITHUB_WORKSPACE" --dry-run --verbose
+
   chezmoi-dry-run-windows:
     name: chezmoi dry-run (Windows)
     runs-on: windows-latest
@@ -112,6 +125,7 @@ jobs:
       - shellcheck
       - yamllint
       - chezmoi-dry-run-linux
+      - chezmoi-dry-run-macos
       - chezmoi-dry-run-windows
       - winget-config-validate
     steps:
@@ -149,6 +163,12 @@ jobs:
                 title: '[ci-failure] lint / chezmoi dry-run (Linux)',
                 files: ['.github/workflows/lint.yml', '.chezmoi.toml.tmpl', 'dot_*', 'private_dot_*'],
                 summary: 'Ubuntu の chezmoi dry-run job が失敗しました。',
+              },
+              {
+                id: 'chezmoi-dry-run-macos',
+                title: '[ci-failure] lint / chezmoi dry-run (macOS)',
+                files: ['.github/workflows/lint.yml', '.chezmoi.toml.tmpl', 'run_once_*', 'dot_*', 'private_dot_*'],
+                summary: 'macOS の chezmoi dry-run job が失敗しました。',
               },
               {
                 id: 'chezmoi-dry-run-windows',

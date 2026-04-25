@@ -1,9 +1,29 @@
-# OS 別除外
+# OS-specific exclusions.
 {{ if ne .chezmoi.os "windows" }}
-PowerShell_profile.ps1
+05-setup-mise-path.ps1
+10-install-packages.ps1
+40-install-volta-packages.ps1
+50-import-vs-settings.ps1
+{{ end }}
+
+{{ if eq .chezmoi.os "windows" }}
+10-install-homebrew-packages.sh
+10-install-packages.sh
+10-setup-git-hooks.sh
+15-install-powershell-modules.sh
+20-install-mise.sh
+20-mise-install.sh
+30-install-uv.sh
+30-setup-1password.sh
+40-install-volta-packages.sh
+{{ end }}
+
+{{ if ne .chezmoi.os "linux" }}
+10-install-packages.sh
 {{ end }}
 
 {{ if ne .chezmoi.os "darwin" }}
+10-install-homebrew-packages.sh
 {{ end }}
 
 {{ if .isDevContainer }}
