@@ -69,7 +69,14 @@ jobs:
           dest="$RUNNER_TEMP/chezmoi-home"
           config="$dest/.config/chezmoi/chezmoi.toml"
           mkdir -p "$(dirname "$config")"
-          chezmoi init --source "$GITHUB_WORKSPACE" --config-path "$config" --destination "$dest" --apply --dry-run --verbose --no-tty
+          chezmoi init \
+            --source "$GITHUB_WORKSPACE" \
+            --config-path "$config" \
+            --destination "$dest" \
+            --apply \
+            --dry-run \
+            --verbose \
+            --no-tty
 
   chezmoi-dry-run-macos:
     name: chezmoi dry-run (macOS)
@@ -85,7 +92,14 @@ jobs:
           dest="$RUNNER_TEMP/chezmoi-home"
           config="$dest/.config/chezmoi/chezmoi.toml"
           mkdir -p "$(dirname "$config")"
-          chezmoi init --source "$GITHUB_WORKSPACE" --config-path "$config" --destination "$dest" --apply --dry-run --verbose --no-tty
+          chezmoi init \
+            --source "$GITHUB_WORKSPACE" \
+            --config-path "$config" \
+            --destination "$dest" \
+            --apply \
+            --dry-run \
+            --verbose \
+            --no-tty
 
   chezmoi-dry-run-windows:
     name: chezmoi dry-run (Windows)
@@ -105,7 +119,20 @@ jobs:
           $dest = Join-Path $env:RUNNER_TEMP 'chezmoi-home'
           $config = Join-Path $dest '.config\chezmoi\chezmoi.toml'
           New-Item -ItemType Directory -Force -Path (Split-Path $config) | Out-Null
-          chezmoi init --source "$env:GITHUB_WORKSPACE" --config-path "$config" --destination "$dest" --apply --dry-run --verbose --no-tty
+          $chezmoiArgs = @(
+            'init'
+            '--source'
+            "$env:GITHUB_WORKSPACE"
+            '--config-path'
+            "$config"
+            '--destination'
+            "$dest"
+            '--apply'
+            '--dry-run'
+            '--verbose'
+            '--no-tty'
+          )
+          chezmoi @chezmoiArgs
 
   winget-config-validate:
     name: winget configure validate
