@@ -45,6 +45,63 @@ properties:
         id: Microsoft.PowerShell
         source: winget
 
+    - resource: PSDscResources/Script
+      id: powershell-modules
+      directives:
+        description: PowerShell modules (Az, Microsoft Entra, Microsoft Graph)
+      settings:
+        GetScript: |
+          $pwsh = (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source
+          if (-not $pwsh) {
+            return @{ Result = 'pwsh-not-installed' }
+          }
+
+          $installed = & $pwsh -NoLogo -NoProfile -Command '
+            $modules = @("Az", "Microsoft.Entra", "Microsoft.Graph")
+            ($modules | Where-Object { Get-Module -ListAvailable -Name $_ }).Count
+          '
+          return @{ Result = "$installed/3" }
+        TestScript: |
+          $pwsh = (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source
+          if (-not $pwsh) {
+            return $false
+          }
+
+          & $pwsh -NoLogo -NoProfile -Command '
+            $modules = @("Az", "Microsoft.Entra", "Microsoft.Graph")
+            foreach ($name in $modules) {
+              if (-not (Get-Module -ListAvailable -Name $name)) {
+                exit 1
+              }
+            }
+          '
+          return $LASTEXITCODE -eq 0
+        SetScript: |
+          $pwsh = (Get-Command pwsh.exe -ErrorAction Stop).Source
+          $moduleInstallScript = @'
+          $ErrorActionPreference = "Stop"
+
+          if (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue) {
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          }
+
+          $modules = @(
+            "Az",
+            "Microsoft.Entra",
+            "Microsoft.Graph"
+          )
+
+          foreach ($name in $modules) {
+            if (Get-Module -ListAvailable -Name $name) {
+              continue
+            }
+
+            Install-Module -Name $name -Repository PSGallery -Scope CurrentUser -Force -AllowClobber
+          }
+          '@
+
+          & $pwsh -NoLogo -NoProfile -Command $moduleInstallScript
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: windows-terminal
       directives:

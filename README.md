@@ -70,6 +70,9 @@ cd ~/dotfiles
 ./install.sh
 ```
 
+macOS と apt ベースの Linux / WSL では、ブートストラップ中に PowerShell 7 と
+`Az` / `Microsoft.Entra` / `Microsoft.Graph` モジュールもセットアップします。
+
 ### Windows
 
 ```powershell
@@ -86,10 +89,13 @@ winget configure -f "$(chezmoi source-path)\..\reference\windows\configuration.d
 gh auth login
 mise install
 
-# 5. APM で Copilot CLI 設定を適用
+# 5. PowerShell モジュール（Az / Microsoft.Entra / Microsoft.Graph）は
+#    winget configure でセットアップ済み
+
+# 6. APM で Copilot CLI 設定を適用
 apm install
 
-# 6. Visual Studio の設定をインポート（手動）
+# 7. Visual Studio の設定をインポート（手動）
 #    Tools > Import and Export Settings > Import selected environment settings
 #    ファイル: ~/.visualstudio/vscode2026insider.vssettings
 ```

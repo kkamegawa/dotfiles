@@ -20,6 +20,7 @@ winget configure validate -f "$(chezmoi source-path)\reference\windows\configura
 | カテゴリ | 内容 |
 |----------|------|
 | シェル・ターミナル | PowerShell 7, Windows Terminal, Windows Terminal Preview, Oh My Posh |
+| PowerShell モジュール | Az, Microsoft Entra, Microsoft Graph |
 | バージョン管理 | Git, GitHub CLI, GitHub Desktop, ghq, Komac |
 | dotfiles・設定管理 | chezmoi, mise, APM, Desired State Configuration, App Installer |
 | 開発ツール | fzf, lastexecrecord, PowerToys, WinGet Studio, MSIX ツール, Edit, GitHub Copilot for CLI (Prerelease) |
@@ -43,6 +44,9 @@ DSC v3 ネイティブ文書（`dsc config set` コマンド用）とは構造�
 
 また、現在の `configuration.dsc.yaml` は WinGet export ベースラインに合わせているため、
 一部のアプリは `msstore` ソースや依存ランタイムを含めて明示的に列挙しています。
+
+PowerShell 7 の導入後に `pwsh` から `Az` / `Microsoft.Entra` / `Microsoft.Graph`
+モジュールを CurrentUser スコープへ追加する Script リソースも含みます。
 
 ---
 
