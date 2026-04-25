@@ -52,10 +52,67 @@ wget
 EOF
 }
 
+cask_has_auto_updates() {
+  printf '%s\n' "$1" | jq -e '.casks[0].auto_updates == true' >/dev/null
+}
+
+cask_app_is_installed() {
+  apps="$(
+    printf '%s\n' "$1" | jq -r '
+      .casks[0].artifacts[]
+      | objects
+      | .app? // empty
+      | if type == "array" then .[0] elif type == "string" then . else empty end
+    '
+  )"
+
+  [ -n "$apps" ] || return 1
+
+  old_ifs=$IFS
+  IFS='
+'
+  found=1
+  for app in $apps; do
+    for app_dir in /Applications "$HOME/Applications"; do
+      if [ -e "$app_dir/$app" ]; then
+        found=0
+        break
+      fi
+    done
+    [ "$found" -ne 0 ] || break
+  done
+  IFS=$old_ifs
+
+  return "$found"
+}
+
+cask_is_installed() {
+  cask=$1
+  metadata=$2
+
+  if brew list --cask "$cask" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  cask_app_is_installed "$metadata"
+}
+
+install_cask() {
+  cask=$1
+  metadata="$(brew info --cask --json=v2 "$cask")"
+
+  if cask_has_auto_updates "$metadata" && cask_is_installed "$cask" "$metadata"; then
+    echo "==> Skipping self-updating cask $cask because it is already installed"
+    return 0
+  fi
+
+  brew install --cask "$cask"
+}
+
 install_casks() {
   while IFS= read -r cask; do
     [ -n "$cask" ] || continue
-    brew install --cask "$cask"
+    install_cask "$cask"
   done <<'EOF'
 1password
 1password-cli
