@@ -2,7 +2,11 @@
 # The .vssettings file has been deployed to ~/.visualstudio/
 # Import manually via: Tools > Import and Export Settings > Import selected environment settings
 
-if (-not $IsWindows) { exit 0 }
+$isWindowsHost = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+if (-not $isWindowsHost) {
+    Write-Warning 'Skipping Visual Studio settings reminder because this host is not Windows.'
+    exit 0
+}
 
 $settingsFile = Join-Path $HOME ".visualstudio\vscode2026insider.vssettings"
 if (Test-Path $settingsFile) {

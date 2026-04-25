@@ -1,20 +1,27 @@
 #!/bin/sh
-# Linux / macOS / WSL ブートストラップスクリプト
-# 使い方: ./install.sh
+# Linux / macOS / WSL bootstrap script.
+# Usage: ./install.sh
 set -e
 
 OS="$(uname -s)"
-echo "==> dotfiles セットアップを開始します (OS: $OS)"
+case "$OS" in
+  Linux|Darwin)
+    ;;
+  *)
+    echo "==> install.sh supports Linux, macOS, and WSL only. Use install.ps1 on Windows." >&2
+    exit 1
+    ;;
+esac
 
-# chezmoi がなければインストール
+echo "==> Starting dotfiles setup (OS: $OS)"
+
 if ! command -v chezmoi >/dev/null 2>&1; then
-  echo "==> chezmoi をインストールします..."
+  echo "==> Installing chezmoi..."
   sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
 fi
 
-# chezmoi init & apply
-echo "==> chezmoi init & apply を実行します..."
+echo "==> Running chezmoi init & apply..."
 chezmoi init --apply kkamegawa
 
-echo "==> セットアップ完了。mise install を実行してください:"
+echo "==> Setup complete. Run mise install next:"
 echo "    cd ~ && mise install"
