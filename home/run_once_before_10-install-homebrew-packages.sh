@@ -134,8 +134,8 @@ path_exists() {
   candidate=$1
 
   case "$candidate" in
-    '~/'*)
-      candidate="$HOME/${candidate#~/}"
+    \~/*)
+      candidate="$HOME/${candidate#\~/}"
       ;;
   esac
 
@@ -153,7 +153,7 @@ cask_app_is_installed() {
   found=1
   for app in $apps; do
     case "$app" in
-      /*|'~/'*)
+      /*|\~/*)
         if path_exists "$app"; then
           found=0
         fi
