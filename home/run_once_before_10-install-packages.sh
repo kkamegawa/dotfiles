@@ -1,7 +1,7 @@
 #!/bin/sh
 # run_once_before_10-install-packages.sh
-# パッケージマネージャー（Homebrew / apt）で基本パッケージをインストール
-# chezmoi が初回実行時のみ実行する
+# Install base packages with apt on Linux / WSL.
+# chezmoi runs this script only once.
 
 set -e
 
@@ -42,19 +42,8 @@ install_powershell_apt() {
 
 OS="$(uname -s)"
 
-if [ "$OS" = "Darwin" ]; then
-  # macOS — Homebrew
-  if ! command -v brew >/dev/null 2>&1; then
-    echo "==> Homebrew をインストールします..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  fi
-  brew install git curl fzf gh gitleaks
-  if ! command -v pwsh >/dev/null 2>&1; then
-    brew install --cask powershell
-  fi
-
-elif [ "$OS" = "Linux" ]; then
-  # Linux / WSL — apt
+if [ "$OS" = "Linux" ]; then
+  # Linux / WSL - apt
   if command -v apt-get >/dev/null 2>&1; then
     sudo apt-get update -qq
     sudo apt-get install -y --no-install-recommends \
