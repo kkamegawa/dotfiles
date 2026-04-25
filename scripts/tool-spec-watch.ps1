@@ -79,7 +79,7 @@ function Get-MajorVersion {
     return [int]$match.Groups[1].Value
 }
 
-function Get-MatchedKeywords {
+function Get-MatchedKeyword {
     param(
         [AllowNull()]
         [string]$Text,
@@ -88,9 +88,9 @@ function Get-MatchedKeywords {
         [string[]]$Keywords
     )
 
-    $matches = [System.Collections.Generic.List[string]]::new()
+    $keywordMatches = [System.Collections.Generic.List[string]]::new()
     if ([string]::IsNullOrWhiteSpace($Text)) {
-        return $matches.ToArray()
+        return $keywordMatches.ToArray()
     }
 
     $normalized = $Text.ToLowerInvariant()
@@ -100,11 +100,11 @@ function Get-MatchedKeywords {
         }
 
         if ($normalized.Contains($keyword.ToLowerInvariant())) {
-            $matches.Add($keyword)
+            $keywordMatches.Add($keyword)
         }
     }
 
-    return ($matches | Select-Object -Unique)
+    return ($keywordMatches | Select-Object -Unique)
 }
 
 function Get-ObjectValue {
@@ -233,7 +233,7 @@ function Get-GitHubReleaseInfo {
     }
 }
 
-function New-Finding {
+function ConvertTo-Finding {
     param(
         [Parameter(Mandatory = $true)]
         [pscustomobject]$Tool,
@@ -332,7 +332,7 @@ foreach ($tool in @($config.tools)) {
             }
 
             $keywords = @($defaultKeywords + @(Get-OptionalPropertyValue -InputObject $tool -PropertyName 'keywords' -DefaultValue @())) | Select-Object -Unique
-            $matchedKeywords = @(Get-MatchedKeywords -Text ([string]$release.Body) -Keywords $keywords)
+            $matchedKeywords = @(Get-MatchedKeyword -Text ([string]$release.Body) -Keywords $keywords)
             if ($matchedKeywords.Count -gt 0) {
                 $reasons.Add("リリースノートに注目キーワードが含まれています。($($matchedKeywords -join ', '))")
             }
@@ -342,7 +342,7 @@ foreach ($tool in @($config.tools)) {
             }
 
             if ($reasons.Count -gt 0) {
-                $findings.Add((New-Finding `
+                $findings.Add((ConvertTo-Finding `
                     -Tool $tool `
                     -Signal 'upstream release change' `
                     -Baseline $knownVersion `
@@ -372,7 +372,7 @@ foreach ($tool in @($config.tools)) {
             }
 
             if ($reasons.Count -gt 0) {
-                $findings.Add((New-Finding `
+                $findings.Add((ConvertTo-Finding `
                     -Tool $tool `
                     -Signal 'documentation update' `
                     -Baseline $knownDocumentDate `
@@ -401,7 +401,7 @@ foreach ($tool in @($config.tools)) {
             }
 
             if ($reasons.Count -gt 0) {
-                $findings.Add((New-Finding `
+                $findings.Add((ConvertTo-Finding `
                     -Tool $tool `
                     -Signal 'schema change' `
                     -Baseline ($baselineValues -join '; ') `
