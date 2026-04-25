@@ -21,3 +21,10 @@ id_ed25519
 .env
 .env.local
 secrets.yaml
+
+# profiles
+
+bash_profile
+bashrc
+__pycache__/
+*.pyc
