@@ -27,7 +27,12 @@ if (-not (Get-Command chezmoi -ErrorAction SilentlyContinue)) {
 }
 
 Write-Output '==> Running chezmoi init & apply...'
-chezmoi init --apply kkamegawa
+$scriptRoot = $PSScriptRoot
+if (Test-Path (Join-Path $scriptRoot '.chezmoiroot')) {
+  chezmoi init --apply --source $scriptRoot
+} else {
+  chezmoi init --apply kkamegawa
+}
 
 $dscFile = "$(chezmoi source-path)\reference\windows\configuration.dsc.yaml"
 if (Test-Path $dscFile) {

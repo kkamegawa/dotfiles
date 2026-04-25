@@ -4,6 +4,10 @@
 set -e
 
 OS="$(uname -s)"
+SCRIPT_DIR=$(
+  CDPATH= cd -- "$(dirname -- "$0")" && pwd
+)
+
 case "$OS" in
   Linux|Darwin)
     ;;
@@ -23,7 +27,11 @@ if ! command -v chezmoi >/dev/null 2>&1; then
 fi
 
 echo "==> Running chezmoi init & apply..."
-chezmoi init --apply kkamegawa
+if [ -f "$SCRIPT_DIR/.chezmoiroot" ]; then
+  chezmoi init --apply --source "$SCRIPT_DIR"
+else
+  chezmoi init --apply kkamegawa
+fi
 
 echo "==> Setup complete. Run mise install next:"
 echo "    cd ~ && mise install"
