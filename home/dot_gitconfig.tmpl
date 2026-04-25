@@ -15,7 +15,7 @@
 {{ else if .isWSL }}
   program = /mnt/c/Users/{{ .windowsUser }}/AppData/Local/1Password/app/8/op-ssh-sign-wsl.exe
 {{ else if .isWindows }}
-  program = C:/Users/{{ .windowsUser }}/AppData/Local/1Password/app/8/op-ssh-sign.exe
+  program = {{ .chezmoi.homeDir }}/AppData/Local/1Password/app/8/op-ssh-sign.exe
 {{ else if .isLinux }}
   program = /opt/1Password/op-ssh-sign
 {{ end }}
