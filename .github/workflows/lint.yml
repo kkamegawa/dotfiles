@@ -91,6 +91,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate WinGet configuration
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           winget configure validate `
