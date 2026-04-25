@@ -18,6 +18,8 @@ echo "==> Starting dotfiles setup (OS: $OS)"
 if ! command -v chezmoi >/dev/null 2>&1; then
   echo "==> Installing chezmoi..."
   sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+  PATH="$HOME/.local/bin:$PATH"
+  export PATH
 fi
 
 echo "==> Running chezmoi init & apply..."

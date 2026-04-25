@@ -19,6 +19,10 @@ stop_sudo_keepalive() {
 }
 
 start_sudo_keepalive() {
+  if [ -n "$SUDO_KEEPALIVE_PID" ]; then
+    return 0
+  fi
+
   if [ "$(id -u)" -eq 0 ]; then
     return 0
   fi
@@ -147,35 +151,36 @@ cask_app_is_installed() {
 
   [ -n "$apps" ] || return 1
 
-  old_ifs=$IFS
-  IFS='
-'
-  found=1
-  for app in $apps; do
+  while IFS= read -r app; do
     case "$app" in
       /*|\~/*)
         if path_exists "$app"; then
-          found=0
+          return 0
         fi
         ;;
       *)
         for app_dir in /Applications "$HOME/Applications"; do
           if [ -e "$app_dir/$app" ]; then
-            found=0
-            break
+            return 0
           fi
         done
         ;;
     esac
-    [ "$found" -ne 0 ] || break
-  done
-  IFS=$old_ifs
+  done <<EOF
+$apps
+EOF
 
-  return "$found"
+  return 1
 }
 
 install_cask() {
   cask=$1
+
+  if brew list --cask "$cask" >/dev/null 2>&1; then
+    echo "==> Skipping installed cask $cask"
+    return 0
+  fi
+
   metadata="$(brew info --cask --json=v2 "$cask")"
 
   if cask_has_auto_updates "$metadata"; then
@@ -190,17 +195,11 @@ install_cask() {
     fi
   fi
 
-  if brew list --cask "$cask" >/dev/null 2>&1; then
-    echo "==> Skipping installed cask $cask"
-    return 0
-  fi
-
+  start_sudo_keepalive
   brew install --cask "$cask"
 }
 
 install_casks() {
-  start_sudo_keepalive
-
   while IFS= read -r cask; do
     [ -n "$cask" ] || continue
     install_cask "$cask"
