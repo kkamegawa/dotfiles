@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard"
+  ],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "matchManagers": ["mise"],
+      "automerge": false,
+      "groupName": "mise tools"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "automerge": true,
+      "groupName": "GitHub Actions"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["\\.mise\\.toml$"],
+      "matchStrings": [
+        "node\\s*=\\s*\"(?<currentValue>[^\"]+)\"",
+        "python\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "node",
+      "datasourceTemplate": "node-version"
+    }
+  ]
+}

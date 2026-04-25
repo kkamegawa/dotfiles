@@ -1,0 +1,216 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: '.'
+          severity: warning
+
+  psscriptanalyzer:
+    name: PSScriptAnalyzer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+          $results = Get-ChildItem -Recurse -Filter '*.ps1' |
+            Invoke-ScriptAnalyzer -Severity Warning,Error
+          if ($results) {
+            $results | Format-Table -AutoSize
+            exit 1
+          }
+          Write-Host "PSScriptAnalyzer: 問題なし"
+
+  yamllint:
+    name: yamllint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run yamllint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_data: |
+            extends: default
+            rules:
+              line-length:
+                max: 120
+              comments:
+                min-spaces-from-content: 1
+
+  chezmoi-dry-run-linux:
+    name: chezmoi dry-run (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install chezmoi
+        run: |
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: chezmoi dry-run (Linux)
+        run: |
+          chezmoi init --source "$GITHUB_WORKSPACE" --dry-run --verbose
+
+  chezmoi-dry-run-windows:
+    name: chezmoi dry-run (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install chezmoi
+        shell: pwsh
+        run: |
+          $binDir = Join-Path $env:RUNNER_TEMP 'chezmoi-bin'
+          New-Item -ItemType Directory -Force -Path $binDir | Out-Null
+          iex "&{$(irm 'https://get.chezmoi.io/ps1')} -b '$binDir'"
+          $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: chezmoi dry-run (Windows)
+        shell: pwsh
+        run: |
+          chezmoi init --source "$env:GITHUB_WORKSPACE" --dry-run --verbose
+
+  winget-config-validate:
+    name: winget configure validate
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate WinGet configuration
+        shell: pwsh
+        run: |
+          winget configure validate `
+            -f "$env:GITHUB_WORKSPACE\reference\windows\configuration.dsc.yaml" `
+            --disable-interactivity `
+            --verbose
+
+  create-failure-issues:
+    name: Create failure issues
+    runs-on: ubuntu-latest
+    if: >-
+      ${{
+        always() &&
+        github.event_name == 'push' &&
+        github.ref == 'refs/heads/main'
+      }}
+    needs:
+      - shellcheck
+      - yamllint
+      - chezmoi-dry-run-linux
+      - chezmoi-dry-run-windows
+      - winget-config-validate
+    steps:
+      - name: Upsert failure issues
+        uses: actions/github-script@v7
+        env:
+          NEEDS_CONTEXT: ${{ toJson(needs) }}
+        with:
+          script: |
+            const needs = JSON.parse(process.env.NEEDS_CONTEXT);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const jobs = [
+              {
+                id: 'shellcheck',
+                title: '[ci-failure] lint / shellcheck',
+                files: ['.github/workflows/lint.yml', '*.sh'],
+                summary: 'Ubuntu の ShellCheck job が失敗しました。',
+              },
+              {
+                id: 'yamllint',
+                title: '[ci-failure] lint / yamllint',
+                files: ['.github/workflows/lint.yml', '*.yml', '*.yaml'],
+                summary: 'Ubuntu の yamllint job が失敗しました。',
+              },
+              {
+                id: 'chezmoi-dry-run-linux',
+                title: '[ci-failure] lint / chezmoi dry-run (Linux)',
+                files: ['.github/workflows/lint.yml', '.chezmoi.toml.tmpl', 'dot_*', 'private_dot_*'],
+                summary: 'Ubuntu の chezmoi dry-run job が失敗しました。',
+              },
+              {
+                id: 'chezmoi-dry-run-windows',
+                title: '[ci-failure] lint / chezmoi dry-run (Windows)',
+                files: ['.github/workflows/lint.yml', '.chezmoi.toml.tmpl', 'PowerShell_profile.ps1.tmpl', 'dot_*'],
+                summary: 'Windows の chezmoi dry-run job が失敗しました。',
+              },
+              {
+                id: 'winget-config-validate',
+                title: '[ci-failure] lint / winget configure validate',
+                files: ['.github/workflows/lint.yml', 'reference/windows/configuration.dsc.yaml'],
+                summary: 'Windows の winget configure validate job が失敗しました。',
+              },
+            ];
+
+            for (const job of jobs) {
+              const result = needs[job.id]?.result;
+              if (result !== 'failure') {
+                continue;
+              }
+
+              const body = [
+                `<!-- lint-failure:${job.id} -->`,
+                '## 概要',
+                '',
+                `- 対象 job: \`${job.id}\``,
+                `- 結果: \`${result}\``,
+                `- 実行 run: ${runUrl}`,
+                '',
+                '## 内容',
+                '',
+                job.summary,
+                '',
+                '## 確認対象',
+                '',
+                ...job.files.map((file) => `- \`${file}\``),
+                '',
+                '## 対応手順',
+                '',
+                '1. Actions の該当 run ログを確認する。',
+                '2. 関連ファイルを修正する。',
+                '3. 修正後に CI が通ることを確認する。',
+              ].join('\n');
+
+              const { data: issues } = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                per_page: 100,
+              });
+
+              const existing = issues.find((issue) => issue.title === job.title);
+
+              if (existing) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existing.number,
+                  body,
+                });
+                core.info(`Updated issue #${existing.number}: ${job.title}`);
+                continue;
+              }
+
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: job.title,
+                body,
+              });
+
+              core.info(`Created issue #${created.data.number}: ${job.title}`);
+            }

@@ -1,0 +1,40 @@
+{
+  // エディタ基本設定
+  "editor.fontFamily": "'HackGen Console NF', 'Cascadia Code NF', 'Consolas', monospace",
+  "editor.fontSize": 14,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.formatOnSave": true,
+  "editor.rulers": [120],
+  "editor.bracketPairColorization.enabled": true,
+  "editor.minimap.enabled": false,
+
+  // ターミナル
+{{ if .isWindows }}
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.fontFamily": "'HackGen Console NF', 'Cascadia Code NF'",
+{{ else if .isMac }}
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.fontFamily": "'HackGen Console NF', 'Cascadia Code NF'",
+{{ else }}
+  "terminal.integrated.defaultProfile.linux": "zsh",
+  "terminal.integrated.fontFamily": "'HackGen Console NF', 'Cascadia Code NF'",
+{{ end }}
+
+  // ファイル
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.eol": "{{ if .isWindows }}\\r\\n{{ else }}\\n{{ end }}",
+
+  // Git
+  "git.autofetch": true,
+  "git.confirmSync": false,
+
+  // 拡張機能: EditorConfig
+  "editorconfig.generateAuto": false,
+
+  // 拡張機能: GitHub Copilot
+  "github.copilot.enable": {
+    "*": true
+  }
+}

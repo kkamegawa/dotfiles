@@ -1,0 +1,26 @@
+{{ if .isMac }}
+# 1Password SSH エージェント（macOS）
+Host *
+  IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+{{ else if .isWSL }}
+# 1Password SSH エージェント（WSL — Windows 側の npiperelay 経由）
+Host *
+  IdentityAgent "~/.1password/agent.sock"
+{{ else if .isLinux }}
+# 1Password SSH エージェント（Linux）
+Host *
+  IdentityAgent "~/.config/1Password/ssh/agent.sock"
+{{ end }}
+
+# GitHub
+Host github.com
+  HostName     github.com
+  User         git
+  IdentityFile ~/.ssh/id_ed25519
+  ServerAliveInterval 60
+
+# デフォルト設定
+Host *
+  AddKeysToAgent  yes
+  ServerAliveInterval 120
+  ServerAliveCountMax 3

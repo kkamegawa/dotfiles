@@ -1,0 +1,34 @@
+# PowerShell $PROFILE — Windows 向け対話シェル設定
+
+# mise shims を PATH に追加（非対話シェルでも有効）
+$miseShims = "$env:LOCALAPPDATA\mise\shims"
+if (Test-Path $miseShims) {
+  $env:PATH = "$miseShims;$env:PATH"
+}
+
+# mise activate（対話 PowerShell）
+if (Get-Command mise -ErrorAction SilentlyContinue) {
+  mise activate pwsh | Out-String | Invoke-Expression
+}
+
+# Oh My Posh
+if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
+  $ompConfig = "$HOME/.config/oh-my-posh/mytheme.omp.json"
+  if (Test-Path $ompConfig) {
+    oh-my-posh init pwsh --config $ompConfig | Invoke-Expression
+  } else {
+    oh-my-posh init pwsh | Invoke-Expression
+  }
+}
+
+# エイリアス
+Set-Alias -Name g   -Value git
+Set-Alias -Name ll  -Value Get-ChildItem
+
+# PSReadLine
+if (Get-Module -ListAvailable -Name PSReadLine) {
+  Set-PSReadLineOption -EditMode Windows
+  Set-PSReadLineOption -HistorySearchCursorMovesToEnd
+  Set-PSReadLineKeyHandler -Key UpArrow   -Function HistorySearchBackward
+  Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
+}

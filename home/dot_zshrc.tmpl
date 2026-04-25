@@ -1,0 +1,43 @@
+# ~/.zshrc — 対話 zsh 設定
+# 非対話シェルの PATH は ~/.profile で管理
+
+# ~/.profile を source（非対話シェルでも PATH が揃うよう）
+[ -f "$HOME/.profile" ] && source "$HOME/.profile"
+
+# mise activate（対話シェルでは shims の代わりに activate を使う）
+{{ if or .isLinux .isMac }}
+if command -v mise &>/dev/null; then
+  eval "$(mise activate zsh)"
+fi
+{{ end }}
+
+# Oh My Posh
+{{ if .isMac }}
+if command -v oh-my-posh &>/dev/null; then
+  _omp_config="$HOME/.config/oh-my-posh/mytheme.omp.json"
+  if [[ -f "$_omp_config" ]]; then
+    eval "$(oh-my-posh init zsh --config "$_omp_config")"
+  else
+    eval "$(oh-my-posh init zsh)"
+  fi
+fi
+{{ end }}
+
+# fzf
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+# エイリアス
+alias ls='ls --color=auto'
+alias ll='ls -lah'
+alias grep='grep --color=auto'
+
+# 補完
+autoload -Uz compinit && compinit -C
+
+# ヒストリ
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=50000
+SAVEHIST=50000
+setopt SHARE_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE

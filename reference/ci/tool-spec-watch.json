@@ -1,0 +1,113 @@
+{
+  "defaults": {
+    "keywords": [
+      "breaking change",
+      "breaking changes",
+      "deprecat",
+      "migration",
+      "removed",
+      "renamed"
+    ]
+  },
+  "tools": [
+    {
+      "id": "chezmoi",
+      "displayName": "chezmoi",
+      "kind": "github-release",
+      "repo": "twpayne/chezmoi",
+      "knownVersion": "v2.70.2",
+      "impactFiles": [
+        "README.md",
+        "docs\\architecture.md",
+        "docs\\operations.md",
+        "install.ps1",
+        "install.sh",
+        ".chezmoi.toml.tmpl"
+      ]
+    },
+    {
+      "id": "mise",
+      "displayName": "mise",
+      "kind": "github-release",
+      "repo": "jdx/mise",
+      "knownVersion": "v2026.4.20",
+      "impactFiles": [
+        ".mise.toml",
+        "dot_config\\mise\\config.toml.tmpl",
+        "docs\\architecture.md",
+        "docs\\operations.md",
+        "run_once_before_20-install-mise.sh",
+        "run_once_after_05-setup-mise-path.ps1",
+        "run_once_after_20-mise-install.sh"
+      ]
+    },
+    {
+      "id": "uv",
+      "displayName": "uv",
+      "kind": "github-release",
+      "repo": "astral-sh/uv",
+      "knownVersion": "0.11.7",
+      "impactFiles": [
+        ".mise.toml",
+        "README.md",
+        "docs\\architecture.md",
+        "docs\\operations.md",
+        "run_once_before_30-install-uv.sh"
+      ]
+    },
+    {
+      "id": "apm",
+      "displayName": "APM",
+      "kind": "github-release",
+      "repo": "github/apm",
+      "knownVersion": "v2.6.4",
+      "alertOnAnyVersionChange": true,
+      "impactFiles": [
+        "apm.yml",
+        "README.md",
+        "docs\\operations.md"
+      ]
+    },
+    {
+      "id": "winget-configuration-docs",
+      "displayName": "Microsoft DSC / WinGet Configuration docs",
+      "kind": "web-page",
+      "url": "https://learn.microsoft.com/windows/package-manager/configuration/",
+      "knownDocumentDate": "2024-11-21T00:00:00Z",
+      "documentDatePattern": "name=\"ms\\.date\" content=\"([^\"]+)\"",
+      "impactFiles": [
+        "README.md",
+        "docs\\architecture.md",
+        "docs\\windows.md",
+        "install.ps1",
+        "reference\\windows\\configuration.dsc.yaml"
+      ],
+      "notes": "Microsoft Learn の更新時は本文差分と関連する schema バージョン表記を確認する。"
+    },
+    {
+      "id": "winget-configuration-schema",
+      "displayName": "WinGet Configuration schema 0.2",
+      "kind": "json-url",
+      "url": "https://aka.ms/configuration-dsc-schema/0.2",
+      "checks": [
+        {
+          "name": "$id",
+          "path": "$id",
+          "expected": "https://aka.ms/schemas/dsc/configuration.schema.0.2.json"
+        },
+        {
+          "name": "configurationVersion.default",
+          "path": "properties.properties.properties.configurationVersion.default",
+          "expected": "0.2.0"
+        }
+      ],
+      "impactFiles": [
+        "README.md",
+        "docs\\architecture.md",
+        "docs\\windows.md",
+        "install.ps1",
+        "reference\\windows\\configuration.dsc.yaml"
+      ]
+    }
+  ]
+}

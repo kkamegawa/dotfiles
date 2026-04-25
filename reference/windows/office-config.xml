@@ -1,0 +1,36 @@
+<!--
+  Office Deployment Tool（ODT）設定ファイル
+  https://learn.microsoft.com/deployoffice/office-deployment-tool-configuration-options
+
+  使用方法:
+    1. ODT をダウンロード: https://www.microsoft.com/download/details.aspx?id=49117
+    2. setup.exe /configure office-config.xml
+
+  注意:
+    - Microsoft 365 管理センターでライセンス割り当て後に実行する
+    - OfficeClientEdition は環境に合わせて 32 / 64 を選択（通常 64）
+    - ExcludeApp で不要なアプリを除外できる
+-->
+<Configuration>
+  <Add OfficeClientEdition="64" Channel="Current">
+    <Product ID="O365ProPlusRetail">
+      <Language ID="ja-jp" />
+      <Language ID="en-us" />
+      <!-- 不要なアプリを除外する場合は以下のコメントを外す -->
+      <!-- <ExcludeApp ID="Access" /> -->
+      <!-- <ExcludeApp ID="Publisher" /> -->
+    </Product>
+  </Add>
+
+  <!-- 自動更新を有効にする -->
+  <Updates Enabled="TRUE" Channel="Current" />
+
+  <!-- ユーザーへの表示設定 -->
+  <Display Level="Full" AcceptEULA="TRUE" />
+
+  <!-- テレメトリを最小化 -->
+  <Property Name="PinIconsToTaskbar" Value="FALSE" />
+
+  <!-- ログ設定 -->
+  <Logging Level="Standard" Path="%temp%\OfficeSetup" />
+</Configuration>

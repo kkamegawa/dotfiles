@@ -1,0 +1,11 @@
+# OS 別除外
+{{ if ne .chezmoi.os "windows" }}
+PowerShell_profile.ps1
+{{ end }}
+
+{{ if ne .chezmoi.os "darwin" }}
+{{ end }}
+
+{{ if .isDevContainer }}
+private_dot_ssh
+{{ end }}

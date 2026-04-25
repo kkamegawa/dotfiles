@@ -1,0 +1,75 @@
+name: Tool spec watch
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'
+    - cron: '0 0 15 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  tool-spec-watch:
+    name: Detect upstream tool changes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run tool spec watch
+        id: watch
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          .\scripts\tool-spec-watch.ps1 `
+            -ConfigPath '.\reference\ci\tool-spec-watch.json' `
+            -FindingsPath '.\artifacts\tool-spec-findings.json'
+
+      - name: Upsert issues for findings
+        if: steps.watch.outputs.has_findings == 'true'
+        uses: actions/github-script@v7
+        env:
+          FINDINGS_PATH: artifacts/tool-spec-findings.json
+        with:
+          script: |
+            const fs = require('fs');
+
+            const findings = JSON.parse(fs.readFileSync(process.env.FINDINGS_PATH, 'utf8'));
+
+            for (const finding of findings) {
+              const { data: issues } = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                per_page: 100,
+              });
+
+              const existing = issues.find((issue) => issue.title === finding.issueTitle);
+
+              if (existing) {
+                if (existing.body !== finding.issueBody) {
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: existing.number,
+                    body: finding.issueBody,
+                  });
+                  core.info(`Updated issue #${existing.number}: ${finding.issueTitle}`);
+                } else {
+                  core.info(`Existing issue already up to date: #${existing.number}`);
+                }
+                continue;
+              }
+
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: finding.issueTitle,
+                body: finding.issueBody,
+              });
+
+              core.info(`Created issue #${created.data.number}: ${finding.issueTitle}`);
+            }

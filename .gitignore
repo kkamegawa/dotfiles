@@ -1,0 +1,23 @@
+# chezmoi が生成するキャッシュ
+.chezmoi.*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# エディタ
+.vscode/
+*.suo
+*.user
+.idea/
+
+# シークレット（念のため）
+*.pem
+*.key
+id_rsa
+id_ed25519
+*.pfx
+.env
+.env.local
+secrets.yaml

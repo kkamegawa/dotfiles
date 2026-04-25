@@ -1,0 +1,49 @@
+[user]
+  name  = Kazushi Kamegawa
+  email = kkamegawa@users.noreply.github.com
+  signingkey = {{ .chezmoi.homeDir }}/.ssh/id_ed25519.pub
+
+[commit]
+  gpgsign = {{ not .isDevContainer }}
+
+[gpg]
+  format = ssh
+
+[gpg "ssh"]
+{{ if .isMac }}
+  program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+{{ else if .isWSL }}
+  program = /mnt/c/Users/{{ .windowsUser }}/AppData/Local/1Password/app/8/op-ssh-sign-wsl.exe
+{{ else if .isWindows }}
+  program = C:/Users/{{ .windowsUser }}/AppData/Local/1Password/app/8/op-ssh-sign.exe
+{{ else if .isLinux }}
+  program = /opt/1Password/op-ssh-sign
+{{ end }}
+
+[core]
+  autocrlf = {{ if .isWindows }}true{{ else }}input{{ end }}
+  safecrlf = warn
+  hooksPath = ~/.config/git/hooks
+
+[init]
+  defaultBranch = main
+
+[pull]
+  rebase = true
+
+[fetch]
+  prune = true
+
+[rebase]
+  autoStash = true
+
+[diff]
+  colorMoved = default
+
+[alias]
+  lg  = log --oneline --graph --decorate --all
+  st  = status -sb
+  co  = checkout
+  br  = branch
+  cm  = commit -m
+  psh = push --set-upstream origin HEAD

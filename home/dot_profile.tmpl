@@ -1,0 +1,48 @@
+#!/bin/sh
+# ~/.profile — POSIX 互換の共通環境変数
+# 非対話シェル（IDE, スクリプト, CI）でも PATH が揃うよう、
+# すべてのシェル起動ファイルからここを source する。
+
+# 多重読み込み防止
+[ -n "$__DOTFILES_PROFILE_LOADED" ] && return
+export __DOTFILES_PROFILE_LOADED=1
+
+# Homebrew (macOS / Linux)
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+
+# mise shims（非対話シェル向け PATH 注入）
+if [ -d "$HOME/.local/share/mise/shims" ]; then
+  export PATH="$HOME/.local/share/mise/shims:$PATH"
+fi
+
+# uv
+if [ -d "$HOME/.local/bin" ]; then
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+
+# Go
+if [ -d "$HOME/go/bin" ]; then
+  export PATH="$HOME/go/bin:$PATH"
+fi
+export GOPATH="$HOME/go"
+
+# Cargo (Rust)
+if [ -d "$HOME/.cargo/bin" ]; then
+  export PATH="$HOME/.cargo/bin:$PATH"
+fi
+
+# XDG
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+
+# エディタ
+export EDITOR="${EDITOR:-vim}"
+export VISUAL="${VISUAL:-$EDITOR}"
+
+# 言語
+export LANG="${LANG:-ja_JP.UTF-8}"

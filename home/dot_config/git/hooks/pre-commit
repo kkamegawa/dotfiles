@@ -1,0 +1,18 @@
+#!/bin/sh
+# pre-commit フック: gitleaks でシークレットをスキャン
+#
+# セットアップ:
+#   chezmoi apply 後に run_once_after_10-setup-git-hooks.sh が
+#   git config core.hooksPath ~/.config/git/hooks を実行する
+
+set -e
+
+# gitleaks がインストールされていない場合はスキップ（警告のみ）
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "⚠️  gitleaks が見つかりません。インストールを推奨します:" >&2
+  echo "    mise use -g gitleaks   # または brew install gitleaks" >&2
+  exit 0
+fi
+
+# ステージングエリアをスキャン
+gitleaks protect --staged --redact --no-git -v

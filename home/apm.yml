@@ -1,0 +1,11 @@
+name: dotfiles
+version: 1.0.0
+dependencies:
+  apm:
+    # GitHub Copilot CLI 向け設定（別リポジトリで管理）
+    # apm install で Copilot CLI のカスタム指示・フック・スキル・MCP サーバーが適用される
+    - kkamegawa/copilot-settings
+  volta:
+    # Volta-managed global npm packages
+    # Install with: run_once_after_40-install-volta-packages.sh / .ps1
+    - "@microsoft/workiq"
