@@ -13,8 +13,11 @@ echo "==> PowerShell モジュールをインストールします..."
 pwsh -NoLogo -NoProfile -Command '
 $ErrorActionPreference = "Stop"
 
-if (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue) {
-  Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+$psGallery = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+$previousInstallationPolicy = $null
+
+if ($psGallery) {
+  $previousInstallationPolicy = $psGallery.InstallationPolicy
 }
 
 $modules = @(
@@ -23,13 +26,24 @@ $modules = @(
   "Microsoft.Graph"
 )
 
-foreach ($name in $modules) {
-  if (Get-Module -ListAvailable -Name $name) {
-    Write-Host "==> $name は既にインストール済みです"
-    continue
+try {
+  if ($psGallery -and $previousInstallationPolicy -ne "Trusted") {
+    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
   }
 
-  Write-Host "==> $name をインストールします..."
-  Install-Module -Name $name -Repository PSGallery -Scope CurrentUser -Force -AllowClobber
+  foreach ($name in $modules) {
+    if (Get-Module -ListAvailable -Name $name) {
+      Write-Host "==> $name は既にインストール済みです"
+      continue
+    }
+
+    Write-Host "==> $name をインストールします..."
+    Install-Module -Name $name -Repository PSGallery -Scope CurrentUser -Force -AllowClobber
+  }
+}
+finally {
+  if ($psGallery -and $previousInstallationPolicy -and $previousInstallationPolicy -ne "Trusted") {
+    Set-PSRepository -Name PSGallery -InstallationPolicy $previousInstallationPolicy
+  }
 }
 '

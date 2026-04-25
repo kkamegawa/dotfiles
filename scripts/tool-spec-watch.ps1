@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [string]$ConfigPath,
@@ -428,7 +428,7 @@ Write-StepSummaryLine -Line ''
 
 if ($findings.Count -eq 0) {
     Write-StepSummaryLine -Line 'No actionable upstream changes detected.'
-    Write-Host 'No actionable upstream changes detected.'
+    Write-Output 'No actionable upstream changes detected.'
     exit 0
 }
 
@@ -439,4 +439,4 @@ foreach ($finding in $findings) {
     Write-StepSummaryLine -Line "| $($finding.displayName) | $($finding.signal) | $($finding.current) | $($finding.baseline) |"
 }
 
-Write-Host "Detected $($findings.Count) actionable upstream change(s)."
+Write-Output "Detected $($findings.Count) actionable upstream change(s)."
