@@ -5,7 +5,7 @@ set -e
 
 OS="$(uname -s)"
 SCRIPT_DIR=$(
-  CDPATH= cd -- "$(dirname -- "$0")" && pwd
+  CDPATH='' cd -- "$(dirname -- "$0")" && pwd
 )
 
 case "$OS" in
