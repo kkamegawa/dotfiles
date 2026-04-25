@@ -45,6 +45,126 @@ properties:
         id: Microsoft.PowerShell
         source: winget
 
+    - resource: PSDscResources/Script
+      id: powershell-modules
+      directives:
+        description: PowerShell modules (Az, Microsoft Entra, Microsoft Graph)
+      settings:
+        GetScript: |
+          function Resolve-PwshPath {
+            $candidates = @(
+              (Join-Path $env:ProgramFiles 'PowerShell\7\pwsh.exe'),
+              (Join-Path ${env:ProgramFiles(x86)} 'PowerShell\7\pwsh.exe')
+            )
+
+            foreach ($candidate in $candidates) {
+              if ($candidate -and (Test-Path $candidate)) {
+                return $candidate
+              }
+            }
+
+            return (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source
+          }
+
+          $pwsh = Resolve-PwshPath
+          if (-not $pwsh) {
+            return @{ Result = 'pwsh-not-installed' }
+          }
+
+          $installed = & $pwsh -NoLogo -NoProfile -Command '
+            $modules = @("Az", "Microsoft.Entra", "Microsoft.Graph")
+            ($modules | Where-Object { Get-Module -ListAvailable -Name $_ }).Count
+          '
+          return @{ Result = "$installed/3" }
+        TestScript: |
+          function Resolve-PwshPath {
+            $candidates = @(
+              (Join-Path $env:ProgramFiles 'PowerShell\7\pwsh.exe'),
+              (Join-Path ${env:ProgramFiles(x86)} 'PowerShell\7\pwsh.exe')
+            )
+
+            foreach ($candidate in $candidates) {
+              if ($candidate -and (Test-Path $candidate)) {
+                return $candidate
+              }
+            }
+
+            return (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source
+          }
+
+          $pwsh = Resolve-PwshPath
+          if (-not $pwsh) {
+            return $false
+          }
+
+          & $pwsh -NoLogo -NoProfile -Command '
+            $modules = @("Az", "Microsoft.Entra", "Microsoft.Graph")
+            foreach ($name in $modules) {
+              if (-not (Get-Module -ListAvailable -Name $name)) {
+                exit 1
+              }
+            }
+          '
+          return $LASTEXITCODE -eq 0
+        SetScript: |
+          function Resolve-PwshPath {
+            $candidates = @(
+              (Join-Path $env:ProgramFiles 'PowerShell\7\pwsh.exe'),
+              (Join-Path ${env:ProgramFiles(x86)} 'PowerShell\7\pwsh.exe')
+            )
+
+            foreach ($candidate in $candidates) {
+              if ($candidate -and (Test-Path $candidate)) {
+                return $candidate
+              }
+            }
+
+            return (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source
+          }
+
+          $pwsh = Resolve-PwshPath
+          if (-not $pwsh) {
+            throw 'pwsh.exe was not found after installing PowerShell 7.'
+          }
+
+          $moduleInstallScript = @'
+          $ErrorActionPreference = "Stop"
+
+          $psGallery = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+          $previousInstallationPolicy = $null
+
+          if ($psGallery) {
+            $previousInstallationPolicy = $psGallery.InstallationPolicy
+          }
+
+          $modules = @(
+            "Az",
+            "Microsoft.Entra",
+            "Microsoft.Graph"
+          )
+
+          try {
+            if ($psGallery -and $previousInstallationPolicy -ne "Trusted") {
+              Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+            }
+
+            foreach ($name in $modules) {
+              if (Get-Module -ListAvailable -Name $name) {
+                continue
+              }
+
+              Install-Module -Name $name -Repository PSGallery -Scope CurrentUser -Force -AllowClobber
+            }
+          }
+          finally {
+            if ($psGallery -and $previousInstallationPolicy -and $previousInstallationPolicy -ne "Trusted") {
+              Set-PSRepository -Name PSGallery -InstallationPolicy $previousInstallationPolicy
+            }
+          }
+          '@
+
+          & $pwsh -NoLogo -NoProfile -Command $moduleInstallScript
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: windows-terminal
       directives:
@@ -500,10 +620,16 @@ properties:
         securityContext: elevated
       settings:
         GetScript: |
-          $val = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name AllowDevelopmentWithoutDevLicense -ErrorAction SilentlyContinue
+          $val = Get-ItemPropertyValue `
+            -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' `
+            -Name AllowDevelopmentWithoutDevLicense `
+            -ErrorAction SilentlyContinue
           return @{ Result = "$val" }
         TestScript: |
-          $val = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name AllowDevelopmentWithoutDevLicense -ErrorAction SilentlyContinue
+          $val = Get-ItemPropertyValue `
+            -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' `
+            -Name AllowDevelopmentWithoutDevLicense `
+            -ErrorAction SilentlyContinue
           return $val -eq 1
         SetScript: |
           $regPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
@@ -541,7 +667,9 @@ properties:
           New-Item -ItemType Directory -Force -Path $tmp | Out-Null
           $tag = (Invoke-RestMethod "https://api.github.com/repos/githubnext/monaspace/releases/latest").tag_name
           $zip = Join-Path $tmp "monaspace.zip"
-          Invoke-WebRequest -Uri "https://github.com/githubnext/monaspace/releases/download/$tag/monaspace-$tag.zip" -OutFile $zip
+          Invoke-WebRequest `
+            -Uri "https://github.com/githubnext/monaspace/releases/download/$tag/monaspace-$tag.zip" `
+            -OutFile $zip
           Expand-Archive -Path $zip -DestinationPath $tmp -Force
           $fontDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
           New-Item -ItemType Directory -Force -Path $fontDir | Out-Null
@@ -567,7 +695,9 @@ properties:
           $tmp = Join-Path $env:TEMP "plemonjp"
           New-Item -ItemType Directory -Force -Path $tmp | Out-Null
           $release = Invoke-RestMethod "https://api.github.com/repos/yuru7/PlemolJP/releases/latest"
-          $asset = $release.assets | Where-Object { $_.name -match "PlemolJP_Console_NF_.*\.zip" } | Select-Object -First 1
+          $asset = $release.assets |
+            Where-Object { $_.name -match "PlemolJP_Console_NF_.*\.zip" } |
+            Select-Object -First 1
           $zip = Join-Path $tmp "plemonjp.zip"
           Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zip
           Expand-Archive -Path $zip -DestinationPath $tmp -Force

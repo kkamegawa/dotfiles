@@ -1,4 +1,4 @@
-# Windows: run_once_before_10-install-packages.ps1
+﻿# Windows: run_once_before_10-install-packages.ps1
 # winget でブートストラップに必要な最小パッケージをインストール
 # chezmoi が Windows で初回実行時のみ実行する
 
@@ -15,9 +15,9 @@ foreach ($id in $packages) {
   $installed = winget list --id $id --accept-source-agreements 2>&1 |
                Where-Object { $_ -match $id }
   if (-not $installed) {
-    Write-Host "==> $id をインストールします..."
+    Write-Output "==> $id をインストールします..."
     winget install --id $id --accept-package-agreements --accept-source-agreements
   } else {
-    Write-Host "==> $id は既にインストール済みです"
+    Write-Output "==> $id は既にインストール済みです"
   }
 }
