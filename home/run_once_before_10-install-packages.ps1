@@ -16,7 +16,8 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
 }
 
 $packages = @(
-  'ZedFreeman.Gitleaks'
+  'Gitleaks.Gitleaks'
+  'jdx.mise'
   'junegunn.fzf'
 )
 

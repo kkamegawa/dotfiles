@@ -29,7 +29,7 @@ if (-not (Get-Command chezmoi -ErrorAction SilentlyContinue)) {
 Write-Output '==> Running chezmoi init & apply...'
 $scriptRoot = $PSScriptRoot
 if (Test-Path (Join-Path $scriptRoot '.chezmoiroot')) {
-  chezmoi init --apply --source $scriptRoot
+  chezmoi init --apply $scriptRoot
 } else {
   chezmoi init --apply kkamegawa
 }

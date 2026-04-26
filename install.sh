@@ -28,7 +28,7 @@ fi
 
 echo "==> Running chezmoi init & apply..."
 if [ -f "$SCRIPT_DIR/.chezmoiroot" ]; then
-  chezmoi init --apply --source "$SCRIPT_DIR"
+  chezmoi init --apply "$SCRIPT_DIR"
 else
   chezmoi init --apply kkamegawa
 fi
