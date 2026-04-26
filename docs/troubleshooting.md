@@ -47,7 +47,11 @@ sudo apt-get install -y build-essential libssl-dev
 
 ### `error: gpg failed to sign the data`
 
-1Password SSH エージェントが起動していない可能性があります。
+1Password SSH エージェントが起動していないか、`op-ssh-sign` 実行ファイルが想定パスに存在しない可能性があります。
+
+この dotfiles では `chezmoi apply` 実行時に `op-ssh-sign` の存在を確認し、見つからない環境では `commit.gpgsign = false` を生成してコミット署名を自動で無効化します。
+
+1Password をインストールまたは修復した後は、再度 `chezmoi apply` を実行してください。
 
 **macOS**:
 ```sh

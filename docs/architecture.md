@@ -39,6 +39,7 @@
 ### 1Password（シークレット・SSH署名）
 
 - SSH キーを 1Password に保存し、SSH エージェント経由でコミット署名・認証を行う
+- `op-ssh-sign` 実行ファイルが見つかる環境でのみ Git コミット署名を有効化する
 - Dev Container のみ `commit.gpgsign = false`（コンテナからエージェントへの経路が複雑なため）
 
 ### APM（AI エージェント設定）
