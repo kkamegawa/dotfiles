@@ -36,6 +36,9 @@
   autocrlf = {{ if .isWindows }}true{{ else }}input{{ end }}
   safecrlf = warn
   hooksPath = ~/.config/git/hooks
+{{- if .isWindows }}
+  fsmonitor = true
+{{- end }}
 
 [init]
   defaultBranch = main
