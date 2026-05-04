@@ -139,6 +139,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install PSDscResources
+        shell: pwsh
+        run: Install-Module -Name PSDscResources -Force -Scope CurrentUser
       - name: Validate WinGet configuration
         if: runner.os == 'Windows'
         shell: pwsh

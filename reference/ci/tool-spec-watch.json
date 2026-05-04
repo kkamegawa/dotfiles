@@ -46,7 +46,7 @@
       "displayName": "uv",
       "kind": "github-release",
       "repo": "astral-sh/uv",
-      "knownVersion": "0.11.7",
+      "knownVersion": "0.11.8",
       "impactFiles": [
         ".mise.toml",
         "README.md",
