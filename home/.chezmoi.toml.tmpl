@@ -1,15 +1,16 @@
 {{- $isWSL := and (eq .chezmoi.os "linux") (contains "microsoft" (lower (default "" .chezmoi.kernel.osrelease))) -}}
 {{- $isDevContainer := or (env "REMOTE_CONTAINERS" | not | not) (env "CODESPACES" | not | not) (env "DEVCONTAINER" | not | not) -}}
+{{- $windowsUser := "" -}}
+{{- if and (eq .chezmoi.os "linux") $isWSL -}}
+{{- $windowsUser = promptStringOnce . "windowsUser" "Windows ユーザー名 (1Password WSL 連携用)" -}}
+{{- end -}}
 
 [data]
-  isLinux     = {{ eq .chezmoi.os "linux" }}
-  isMac       = {{ eq .chezmoi.os "darwin" }}
-  isWindows   = {{ eq .chezmoi.os "windows" }}
-  isWSL       = {{ $isWSL }}
+  isLinux        = {{ eq .chezmoi.os "linux" }}
+  isMac          = {{ eq .chezmoi.os "darwin" }}
+  isWindows      = {{ eq .chezmoi.os "windows" }}
+  isWSL          = {{ $isWSL }}
   isDevContainer = {{ $isDevContainer }}
-
 {{- if and (eq .chezmoi.os "linux") $isWSL }}
-{{- $windowsUser := promptStringOnce . "windowsUser" "Windows ユーザー名 (1Password WSL 連携用)" }}
-[data]
-  windowsUser = {{ $windowsUser | quote }}
+  windowsUser    = {{ $windowsUser | quote }}
 {{- end }}
