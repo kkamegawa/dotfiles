@@ -30,7 +30,7 @@
       "displayName": "mise",
       "kind": "github-release",
       "repo": "jdx/mise",
-      "knownVersion": "v2026.4.20",
+      "knownVersion": "v2026.5.8",
       "impactFiles": [
         ".mise.toml",
         "dot_config\\mise\\config.toml.tmpl",
