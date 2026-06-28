@@ -1,6 +1,8 @@
 [tools]
 node    = "lts"
 python  = "3.12"
+"npm:@openai/codex" = "latest"
+"npm:@vscode/vsce" = "latest"
 
 [settings]
 experimental = true
