@@ -40,7 +40,8 @@ foreach ($path in $directories) {
   }
 }
 
-function Ensure-DirectoryLink {
+function Set-DirectoryLink {
+  [CmdletBinding(SupportsShouldProcess = $true)]
   param(
     [Parameter(Mandatory = $true)] [string] $Target,
     [Parameter(Mandatory = $true)] [string] $LinkPath
@@ -57,10 +58,12 @@ function Ensure-DirectoryLink {
           return
         }
       } catch {
-        # If target resolution fails, recreate link below.
+        Write-Verbose "Failed to resolve existing link target for $LinkPath; recreating link."
       }
 
-      Remove-Item -LiteralPath $LinkPath -Force
+      if ($PSCmdlet.ShouldProcess($LinkPath, 'Remove existing reparse point')) {
+        Remove-Item -LiteralPath $LinkPath -Force
+      }
     } elseif ($item.PSIsContainer) {
       $children = Get-ChildItem -LiteralPath $LinkPath -Force
       if ($children.Count -gt 0) {
@@ -68,7 +71,9 @@ function Ensure-DirectoryLink {
         return
       }
 
-      Remove-Item -LiteralPath $LinkPath -Force
+      if ($PSCmdlet.ShouldProcess($LinkPath, 'Remove empty directory before linking')) {
+        Remove-Item -LiteralPath $LinkPath -Force
+      }
     } else {
       Write-Warning "Skip linking $LinkPath because it is not a directory"
       return
@@ -76,13 +81,17 @@ function Ensure-DirectoryLink {
   }
 
   try {
-    New-Item -ItemType SymbolicLink -Path $LinkPath -Target $Target -Force | Out-Null
+    if ($PSCmdlet.ShouldProcess($LinkPath, "Create symbolic link to $Target")) {
+      New-Item -ItemType SymbolicLink -Path $LinkPath -Target $Target -Force | Out-Null
+    }
   } catch {
-    New-Item -ItemType Junction -Path $LinkPath -Target $Target -Force | Out-Null
+    if ($PSCmdlet.ShouldProcess($LinkPath, "Create junction to $Target")) {
+      New-Item -ItemType Junction -Path $LinkPath -Target $Target -Force | Out-Null
+    }
   }
 
   Write-Output "==> Linked $LinkPath -> $Target"
 }
 
-Ensure-DirectoryLink -Target $env:APM_AGENTS_DIR -LinkPath "$HOME/.github/agents"
-Ensure-DirectoryLink -Target $env:APM_SKILLS_DIR -LinkPath "$HOME/.copilot/skills"
+Set-DirectoryLink -Target $env:APM_AGENTS_DIR -LinkPath "$HOME/.github/agents"
+Set-DirectoryLink -Target $env:APM_SKILLS_DIR -LinkPath "$HOME/.copilot/skills"

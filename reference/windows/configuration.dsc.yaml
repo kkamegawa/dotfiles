@@ -238,7 +238,7 @@ properties:
       directives:
         description: GitHub Copilot App
       settings:
-        id: GitHub.CopilotApp 
+        id: GitHub.CopilotApp
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -490,7 +490,7 @@ properties:
         source: msstore
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: coreutrils
+      id: coreutils
       directives:
         description: Core Utilities
       settings:
@@ -560,14 +560,6 @@ properties:
         description: FFmpeg
       settings:
         id: Gyan.FFmpeg
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: edit
-      directives:
-        description: Microsoft Edit（テキストエディタ）
-      settings:
-        id: Microsoft.Edit
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
