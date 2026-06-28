@@ -67,7 +67,7 @@ function Set-DirectoryLink {
     } elseif ($item.PSIsContainer) {
       $children = Get-ChildItem -LiteralPath $LinkPath -Force
       if ($children.Count -gt 0) {
-        Write-Output "==> Skip linking $LinkPath because the directory is not empty"
+        Write-Warning "==> Skip linking $LinkPath because the directory is not empty"
         return
       }
 
