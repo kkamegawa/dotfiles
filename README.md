@@ -22,7 +22,7 @@ Windows / Linux（サーバー）/ macOS / WSL / Dev Container を一つのリ�
 | Python パッケージ実行 | [uv](https://docs.astral.sh/uv/) |
 | シークレット管理 | [1Password](https://1password.com/) |
 | AI エージェント設定 | [APM](https://github.com/github/apm)（別リポジトリ参照） |
-| JS ランタイム管理 | [Volta](https://volta.sh/) |
+| JS ランタイム管理 | [mise](https://mise.jdx.dev/) |
 
 ## 管理対象設定ファイル
 
@@ -35,6 +35,8 @@ Windows / Linux（サーバー）/ macOS / WSL / Dev Container を一つのリ�
 | `dot_config/git/hooks/` | `~/.config/git/hooks/` | Git グローバルフック |
 | `dot_config/Code/User/` | `~/.config/Code/User/` | VS Code ユーザー設定 |
 | `dot_codex/config.toml` | `~/.codex/config.toml` | OpenAI Codex CLI 設定 |
+| `run_once_after_60-setup-apm-profile.sh` | `~/.config/apm/{skills,agents}` | APM スキル/エージェント管理ディレクトリ作成とリンク設定（Linux/macOS/WSL） |
+| `run_once_after_60-setup-apm-profile.ps1` | `%USERPROFILE%/.config/apm/{skills,agents}` | APM スキル/エージェント管理ディレクトリ作成とリンク設定（Windows） |
 | `dot_wslconfig` | `~/.wslconfig` | WSL2 メモリ・CPU 設定（Windows のみ） |
 | `dot_lastexecrecord/config.json` | `~/.lastexecrecord/config.json` | lastexecrecord スケジュール設定 |
 | `dot_gitconfig.tmpl` | `~/.gitconfig` | Git グローバル設定 |
@@ -50,7 +52,7 @@ dotfile/
 │   ├── dot_visualstudio/          # ~/.visualstudio/ (Visual Studio settings export)
 │   ├── private_dot_ssh/           # ~/.ssh/ (SSH config, excluded in Dev Containers)
 │   ├── run_once_before_*/         # Bootstrap scripts (packages, mise, uv)
-│   ├── run_once_after_*/          # Post-apply scripts (git hooks, 1Password, volta, VS settings)
+│   ├── run_once_after_*/          # Post-apply scripts (git hooks, 1Password, APM, VS settings)
 │   └── dot_*, *.tmpl              # Dotfiles and chezmoi templates
 ├── docs/                          # Architecture and operation guides
 ├── reference/                     # Reference configs (Windows DSC, etc.)
@@ -70,8 +72,9 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-macOS と apt ベースの Linux / WSL では、ブートストラップ中に PowerShell 7 と
+apt ベースの Linux / WSL では、ブートストラップ中に PowerShell 7 と
 `Az` / `Microsoft.Entra` / `Microsoft.Graph` モジュールもセットアップします。
+macOS の PowerShell 7 は Intune で管理します。
 
 ### Windows
 
@@ -94,6 +97,9 @@ mise install
 
 # 6. APM で Copilot CLI 設定を適用
 apm install
+
+# 6.1 APM 管理先を確認（skills/agents はユーザープロファイル配下）
+Get-ChildItem "$HOME/.config/apm"
 
 # 7. Visual Studio の設定をインポート（手動）
 #    Tools > Import and Export Settings > Import selected environment settings

@@ -21,6 +21,11 @@
 - `.mise.toml` のロックファイルで再現性を確保
 - 参照リポジトリ（torumakabe/dotfiles）では mise を使用しており、同様の方針を採用
 - **uv との分担**: mise = バージョン管理（Node.js, Python インタープリタ）、uv = Python パッケージ・ツール実行
+- **npm バックエンド**: `npm:<package>` 形式でグローバル npm CLI ツールを管理（例: `@openai/codex`）
+  - Node.js が mise 管理下にある環境で `mise install` と同時にインストール
+- **PowerShell（pwsh）連携**: `mise activate pwsh` を `$PROFILE` に記述し対話セッションで有効化
+  - PATH への追加は OS ごとに分岐（Windows: `%LOCALAPPDATA%\mise\shims`、Linux/macOS: `~/.local/bin` と `~/.local/share/mise/shims`）
+  - 既に PATH に含まれる場合は重複追加しない
 
 ### uv（Python パッケージ管理）
 
@@ -42,10 +47,27 @@
 - `op-ssh-sign` 実行ファイルが見つかる環境でのみ Git コミット署名を有効化する
 - Dev Container のみ `commit.gpgsign = false`（コンテナからエージェントへの経路が複雑なため）
 
+### AI ツール カスタムインストラクション
+
+ユーザーレベルのカスタムインストラクションは chezmoi で各ツールの設定ディレクトリに配布します。
+
+| ファイル（chezmoi ソース） | デプロイ先 | 読み込むツール |
+|---------------------------|-----------|---------------|
+| `home/dot_github/copilot-instructions.md` | `~/.github/copilot-instructions.md` | GitHub Copilot CLI / Copilot Chat |
+| `home/dot_codex/AGENTS.md` | `~/.codex/AGENTS.md` | Codex CLI (`@openai/codex`) |
+| `home/dot_claude/CLAUDE.md` | `~/.claude/CLAUDE.md` | Claude Code |
+
+プロジェクト固有の指示（`AGENTS.md` / `.github/copilot-instructions.md`）はリポジトリ側で管理し、
+ここでは全プロジェクト共通のユーザーレベル指示のみを dotfiles に含めます。
+
 ### APM（AI エージェント設定）
 
 - Copilot CLI 向けのカスタム指示・フック・スキル・MCP サーバーは別リポジトリで管理
 - `apm.yml` に依存関係を宣言し `apm install` で適用
+- スキル・エージェントはユーザープロファイル配下で一元管理
+  - `~/.config/apm/skills`
+  - `~/.config/apm/agents`
+- 互換性のため `~/.copilot/skills` と `~/.github/agents` は上記ディレクトリへのリンクとして作成
 
 ### GitHub Actions（仕様変更ウォッチ）
 

@@ -39,6 +39,28 @@ mise use python@3.13
 mise ls
 ```
 
+### npm バックエンド（グローバル CLI ツール）
+
+`mise.toml` の `[tools]` セクションに `"npm:<package>" = "latest"` と記述することで
+グローバル npm CLI ツールを mise で一元管理できます。
+
+```sh
+# npm ツールも含めて一括インストール
+mise install
+
+# npm ツールのみ更新
+mise upgrade "npm:@openai/codex"
+
+# 管理中のツール一覧（npm ツール含む）
+mise ls
+```
+
+現在管理中の npm ツール:
+
+| パッケージ | 用途 |
+|------------|------|
+| `@openai/codex` | OpenAI Codex CLI |
+
 ---
 
 ## uv の日常操作
@@ -92,6 +114,16 @@ apm update
 # 適用済み設定を確認
 apm list
 ```
+
+APM のユーザープロファイル管理では、スキル・エージェントを次のディレクトリに配置します。
+
+- `~/.config/apm/skills`
+- `~/.config/apm/agents`
+
+互換性のため、次のパスは上記ディレクトリへのリンクとして作成されます。
+
+- `~/.copilot/skills` -> `~/.config/apm/skills`
+- `~/.github/agents` -> `~/.config/apm/agents`
 
 ---
 

@@ -1,9 +1,42 @@
 # PowerShell $PROFILE — Windows 向け対話シェル設定
 
-# mise shims を PATH に追加（非対話シェルでも有効）
-$miseShims = "$env:LOCALAPPDATA\mise\shims"
-if (Test-Path $miseShims) {
-  $env:PATH = "$miseShims;$env:PATH"
+# mise のバイナリ／shims を PATH に追加（未登録の場合のみ・OS 別）
+if ($IsWindows) {
+  $misePaths = @(
+    "$env:LOCALAPPDATA\mise\shims"
+  )
+} else {
+  # Linux / macOS (pwsh)
+  $misePaths = @(
+    "$HOME/.local/bin",
+    "$HOME/.local/share/mise/shims"
+  )
+}
+
+$pathSep     = [IO.Path]::PathSeparator
+$currentPaths = $env:PATH -split $pathSep
+
+foreach ($p in $misePaths) {
+  if ((Test-Path $p) -and ($currentPaths -notcontains $p)) {
+    $env:PATH = "$p$pathSep$env:PATH"
+  }
+}
+
+# APM profile-managed directories
+if (-not $env:XDG_CONFIG_HOME -or [string]::IsNullOrWhiteSpace($env:XDG_CONFIG_HOME)) {
+  $env:XDG_CONFIG_HOME = "$HOME/.config"
+}
+
+if (-not $env:APM_PROFILE_HOME -or [string]::IsNullOrWhiteSpace($env:APM_PROFILE_HOME)) {
+  $env:APM_PROFILE_HOME = "$($env:XDG_CONFIG_HOME)/apm"
+}
+
+if (-not $env:APM_AGENTS_DIR -or [string]::IsNullOrWhiteSpace($env:APM_AGENTS_DIR)) {
+  $env:APM_AGENTS_DIR = "$($env:APM_PROFILE_HOME)/agents"
+}
+
+if (-not $env:APM_SKILLS_DIR -or [string]::IsNullOrWhiteSpace($env:APM_SKILLS_DIR)) {
+  $env:APM_SKILLS_DIR = "$($env:APM_PROFILE_HOME)/skills"
 }
 
 # mise activate（対話 PowerShell）
