@@ -2,7 +2,6 @@
 {{ if ne .chezmoi.os "windows" }}
 05-setup-mise-path.ps1
 10-install-packages.ps1
-40-install-volta-packages.ps1
 50-import-vs-settings.ps1
 {{ end }}
 
@@ -15,7 +14,6 @@
 20-mise-install.sh
 30-install-uv.sh
 30-setup-1password.sh
-40-install-volta-packages.sh
 {{ end }}
 
 {{ if ne .chezmoi.os "linux" }}

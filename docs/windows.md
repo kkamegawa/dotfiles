@@ -28,7 +28,7 @@ winget configure validate -f "$(chezmoi source-path)\reference\windows\configura
 | .NET / Windows 開発 | .NET SDK 8 (LTS), .NET SDK Preview, .NET デスクトップランタイム 8, Web Deploy, Windows SDK 10.0.26100 / 10.0.28000 |
 | データベース接続 | ODBC Driver 17 / 18 for SQL Server, Microsoft OLE DB Driver for SQL Server |
 | エディタ・IDE | VS Code, VS Code Insiders, Visual Studio Enterprise Insiders, JetBrains Toolbox |
-| Azure・クラウド | Azure CLI, azd, AzCopy, Functions Core Tools, Storage Explorer, Bicep, Foundry Local, AI Shell, Global Secure Access |
+| Azure・クラウド | Azure CLI, azd, AzCopy, Functions Core Tools, Storage Explorer, Bicep, AI Shell, Global Secure Access |
 | コンテナ・仮想化 | Docker Desktop, WSL, Ubuntu |
 | セキュリティ | 1Password, 1Password CLI |
 | 生産性・コミュニケーション | Microsoft 365, OneDrive, Teams, Copilot Keyboard, Discord |

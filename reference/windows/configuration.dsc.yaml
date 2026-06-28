@@ -11,7 +11,7 @@
 #   - Microsoft.Office はベースライン同期のため WinGet DSC に含める。
 #     追加の Office 構成は reference/windows/office-config.xml の ODT で調整する
 #   - Microsoft Store 由来のアプリは source: msstore で管理する
-#   - GoLang.Go / Rustlang.Rust.MSVC / Volta.Volta はエクスポート済みの
+#   - GoLang.Go / Rustlang.Rust.MSVC はエクスポート済みの
 #     開発環境ベースラインに合わせて有効化している
 #   - Windows オプション機能（OpenSSH, Hyper-V, 開発者モード）は PSDscResources/Script で管理
 #   - フォントは JetBrains Mono Nerd Font を winget、他は GitHub Releases から管理

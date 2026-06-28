@@ -22,7 +22,7 @@ Windows / Linux（サーバー）/ macOS / WSL / Dev Container を一つのリ�
 | Python パッケージ実行 | [uv](https://docs.astral.sh/uv/) |
 | シークレット管理 | [1Password](https://1password.com/) |
 | AI エージェント設定 | [APM](https://github.com/github/apm)（別リポジトリ参照） |
-| JS ランタイム管理 | [Volta](https://volta.sh/) |
+| JS ランタイム管理 | [mise](https://mise.jdx.dev/) |
 
 ## 管理対象設定ファイル
 
@@ -52,7 +52,7 @@ dotfile/
 │   ├── dot_visualstudio/          # ~/.visualstudio/ (Visual Studio settings export)
 │   ├── private_dot_ssh/           # ~/.ssh/ (SSH config, excluded in Dev Containers)
 │   ├── run_once_before_*/         # Bootstrap scripts (packages, mise, uv)
-│   ├── run_once_after_*/          # Post-apply scripts (git hooks, 1Password, volta, VS settings)
+│   ├── run_once_after_*/          # Post-apply scripts (git hooks, 1Password, APM, VS settings)
 │   └── dot_*, *.tmpl              # Dotfiles and chezmoi templates
 ├── docs/                          # Architecture and operation guides
 ├── reference/                     # Reference configs (Windows DSC, etc.)
@@ -72,8 +72,9 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-macOS と apt ベースの Linux / WSL では、ブートストラップ中に PowerShell 7 と
+apt ベースの Linux / WSL では、ブートストラップ中に PowerShell 7 と
 `Az` / `Microsoft.Entra` / `Microsoft.Graph` モジュールもセットアップします。
+macOS の PowerShell 7 は Intune で管理します。
 
 ### Windows
 

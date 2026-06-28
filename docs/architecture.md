@@ -23,7 +23,6 @@
 - **uv との分担**: mise = バージョン管理（Node.js, Python インタープリタ）、uv = Python パッケージ・ツール実行
 - **npm バックエンド**: `npm:<package>` 形式でグローバル npm CLI ツールを管理（例: `@openai/codex`）
   - Node.js が mise 管理下にある環境で `mise install` と同時にインストール
-  - Volta は `@microsoft/workiq` など APM 連携ツールに限定し、汎用 CLI は mise に集約
 - **PowerShell（pwsh）連携**: `mise activate pwsh` を `$PROFILE` に記述し対話セッションで有効化
   - PATH への追加は OS ごとに分岐（Windows: `%LOCALAPPDATA%\mise\shims`、Linux/macOS: `~/.local/bin` と `~/.local/share/mise/shims`）
   - 既に PATH に含まれる場合は重複追加しない
