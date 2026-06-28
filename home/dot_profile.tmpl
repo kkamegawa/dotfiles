@@ -40,6 +40,11 @@ export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
+# APM profile-managed directories
+export APM_PROFILE_HOME="${APM_PROFILE_HOME:-$XDG_CONFIG_HOME/apm}"
+export APM_AGENTS_DIR="${APM_AGENTS_DIR:-$APM_PROFILE_HOME/agents}"
+export APM_SKILLS_DIR="${APM_SKILLS_DIR:-$APM_PROFILE_HOME/skills}"
+
 # エディタ
 export EDITOR="${EDITOR:-vim}"
 export VISUAL="${VISUAL:-$EDITOR}"

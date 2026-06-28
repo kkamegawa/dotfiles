@@ -174,6 +174,14 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: intelligent-terminal
+      directives:
+        description: Intelligent Terminal
+      settings:
+        id: Microsoft.IntelligentTerminal
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: windows-terminal-preview
       directives:
         description: Windows Terminal Preview
@@ -223,6 +231,14 @@ properties:
         allowPrerelease: true
       settings:
         id: GitHub.Copilot.Prerelease
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: github-copilot-app
+      directives:
+        description: GitHub Copilot App
+      settings:
+        id: GitHub.CopilotApp 
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -449,6 +465,46 @@ properties:
         id: Microsoft.GlobalSecureAccessClient
         source: winget
 
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: claude
+      directives:
+        description: Claude Code（Anthropic 製 AI コーディング支援）
+      settings:
+        id: Anthropic.Claude
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: claude-code-cli
+      directives:
+        description: Claude Code CLI（Anthropic 製 AI コーディング支援）
+      settings:
+        id: Anthropic.ClaudeCode
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: codex
+      directives:
+        description: Codex（OpenAI 製 AI コーディング支援）
+      settings:
+        id: 9N8CJ4W95TBZ
+        source: msstore
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: coreutrils
+      directives:
+        description: Core Utilities
+      settings:
+        id: Microsoft.Coreutils
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: microsoft-scout
+      directives:
+        description: Microsoft Scout（AI 支援）
+      settings:
+        id:  Microsoft.ScoutAgent
+        source: winget
+
     # -------------------------------------------------------------------------
     # コンテナ・仮想化
     # -------------------------------------------------------------------------
@@ -507,6 +563,14 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: edit
+      directives:
+        description: Microsoft Edit（テキストエディタ）
+      settings:
+        id: Microsoft.Edit
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: winscp
       directives:
         description: WinSCP（SFTP/FTP クライアント）
@@ -552,14 +616,6 @@ properties:
         description: Microsoft Edge Dev
       settings:
         id: Microsoft.Edge.Dev
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: edge-canary
-      directives:
-        description: Microsoft Edge Canary
-      settings:
-        id: Microsoft.Edge.Canary
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -753,21 +809,13 @@ properties:
     # -------------------------------------------------------------------------
     # 追加の開発ツール
     # -------------------------------------------------------------------------
-    # Go / Volta / Rust はエクスポート済みベースラインと合わせて有効化している
+    # Go / Rust はエクスポート済みベースラインと合わせて有効化している
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: golang
       directives:
         description: Go 言語
       settings:
         id: GoLang.Go
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: volta
-      directives:
-        description: Volta（Node.js バージョン管理）
-      settings:
-        id: Volta.Volta
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
