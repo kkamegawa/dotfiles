@@ -502,7 +502,7 @@ properties:
       directives:
         description: Microsoft Scout（AI 支援）
       settings:
-        id:  Microsoft.ScoutAgent
+        id: Microsoft.ScoutAgent
         source: winget
 
     # -------------------------------------------------------------------------
