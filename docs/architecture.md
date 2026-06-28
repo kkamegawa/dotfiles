@@ -57,6 +57,7 @@
 | `home/dot_codex/AGENTS.md` | `~/.codex/AGENTS.md` | Codex CLI (`@openai/codex`) |
 | `home/dot_codex/config.toml.tmpl` | `~/.codex/config.toml` | Codex CLI config |
 | `home/dot_claude/CLAUDE.md` | `~/.claude/CLAUDE.md` | Claude Code |
+| `home/dot_claude/settings.json.tmpl` | `~/.claude/settings.json` | Claude Code settings |
 
 プロジェクト固有の指示（`AGENTS.md` / `.github/copilot-instructions.md`）はリポジトリ側で管理し、
 ここでは全プロジェクト共通のユーザーレベル指示のみを dotfiles に含めます。
