@@ -1,0 +1,88 @@
+{{- $homeDir := .chezmoi.homeDir -}}
+{{- if eq .chezmoi.os "windows" -}}
+{{- $homeDir = env "USERPROFILE" -}}
+{{- end -}}
+
+{{- $cacheRoot := "" -}}
+{{- $pathSep := "/" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+{{- $cacheRoot = printf "%s/Library/Caches/codex-dev" $homeDir -}}
+{{- else if eq .chezmoi.os "windows" -}}
+{{- $cacheRoot = printf "%s\\AppData\\Local\\codex-dev" $homeDir -}}
+{{- $pathSep = "\\" -}}
+{{- else -}}
+{{- $cacheRoot = printf "%s/.cache/codex-dev" $homeDir -}}
+{{- end -}}
+
+# Codex local development config.toml
+
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+sandbox_mode = "workspace-write"
+
+# Avoid loading arbitrary shell startup scripts into agent commands.
+allow_login_shell = false
+
+# Cached search does not grant spawned commands unrestricted web access.
+web_search = "cached"
+
+[sandbox_workspace_write]
+network_access = true
+
+# Dedicated dependency/tool cache root.
+# Do not add the complete home directory here.
+writable_roots = [
+  {{ $cacheRoot | quote }},
+]
+
+# Allow only package registries and local development endpoints.
+[features.network_proxy]
+enabled = true
+allow_local_binding = false
+allow_upstream_proxy = true
+
+[features.network_proxy.domains]
+"**.nuget.org" = "allow"
+"registry.npmjs.org" = "allow"
+"registry.yarnpkg.com" = "allow"
+
+# Azure Artifacts package feeds.
+"pkgs.dev.azure.com" = "allow"
+"*.pkgs.visualstudio.com" = "allow"
+
+# Optional: private packages hosted by GitHub Packages.
+"nuget.pkg.github.com" = "allow"
+"npm.pkg.github.com" = "allow"
+
+# Permit local development servers and local integration tests.
+"localhost" = "allow"
+"127.0.0.1" = "allow"
+"::1" = "allow"
+
+# Keep common secret-bearing environment variables out of child processes.
+[shell_environment_policy]
+inherit = "all"
+exclude = [
+  "AZURE_*",
+  "AWS_*",
+  "GITHUB_*",
+  "VSS_NUGET_EXTERNAL_FEED_ENDPOINTS",
+]
+
+# Keep .NET and JavaScript package-manager caches outside the repository,
+# but inside the dedicated writable cache root.
+[shell_environment_policy.set]
+DOTNET_CLI_HOME = {{ printf "%s%sdotnet-cli" $cacheRoot $pathSep | quote }}
+NUGET_PACKAGES = {{ printf "%s%snuget-packages" $cacheRoot $pathSep | quote }}
+NUGET_HTTP_CACHE_PATH = {{ printf "%s%snuget-http-cache" $cacheRoot $pathSep | quote }}
+npm_config_cache = {{ printf "%s%snpm-cache" $cacheRoot $pathSep | quote }}
+pnpm_config_store_dir = {{ printf "%s%spnpm-store" $cacheRoot $pathSep | quote }}
+YARN_CACHE_FOLDER = {{ printf "%s%syarn-cache" $cacheRoot $pathSep | quote }}
+
+{{- if eq .chezmoi.os "windows" }}
+# Preferred native Windows sandbox.
+# Change only to "unelevated" when corporate policy or setup prevents elevated mode.
+[windows]
+sandbox = "elevated"
+sandbox_private_desktop = true
+{{- end }}
