@@ -55,6 +55,7 @@
 |---------------------------|-----------|---------------|
 | `home/dot_github/copilot-instructions.md` | `~/.github/copilot-instructions.md` | GitHub Copilot CLI / Copilot Chat |
 | `home/dot_codex/AGENTS.md` | `~/.codex/AGENTS.md` | Codex CLI (`@openai/codex`) |
+| `home/dot_codex/config.toml.tmpl` | `~/.codex/config.toml` | Codex CLI config |
 | `home/dot_claude/CLAUDE.md` | `~/.claude/CLAUDE.md` | Claude Code |
 
 プロジェクト固有の指示（`AGENTS.md` / `.github/copilot-instructions.md`）はリポジトリ側で管理し、
