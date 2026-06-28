@@ -1,2 +1,4 @@
 [tools]
+# Repo-local tools only. Add user-wide npm CLI tools to home/.mise.toml,
+# which chezmoi deploys as ~/.mise.toml on each machine.
 node = "lts"

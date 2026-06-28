@@ -41,8 +41,9 @@ mise ls
 
 ### npm バックエンド（グローバル CLI ツール）
 
-`mise.toml` の `[tools]` セクションに `"npm:<package>" = "latest"` と記述することで
-グローバル npm CLI ツールを mise で一元管理できます。
+このリポジトリでは、グローバル npm CLI ツールは `home/.mise.toml` の `[tools]` セクションに
+`"npm:<package>" = "latest"` と記述して管理します。
+`home/.mise.toml` は chezmoi により各マシンの `~/.mise.toml` として展開されます。
 
 ```sh
 # npm ツールも含めて一括インストール
@@ -57,9 +58,10 @@ mise ls
 
 現在管理中の npm ツール:
 
-| パッケージ | 用途 |
-|------------|------|
-| `@openai/codex` | OpenAI Codex CLI |
+| パッケージ         | 用途                       |
+| ------------------ | -------------------------- |
+| `@openai/codex`    | OpenAI Codex CLI           |
+| `@vscode/vsce`     | VS Code Extension Manager  |
 
 ---
 
