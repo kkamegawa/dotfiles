@@ -1,11 +1,13 @@
 # OS-specific exclusions.
 {{ if ne .chezmoi.os "windows" }}
+60-setup-apm-profile.ps1
 05-setup-mise-path.ps1
 10-install-packages.ps1
 50-import-vs-settings.ps1
 {{ end }}
 
 {{ if eq .chezmoi.os "windows" }}
+60-setup-apm-profile.sh
 10-install-homebrew-packages.sh
 10-install-packages.sh
 10-setup-git-hooks.sh
