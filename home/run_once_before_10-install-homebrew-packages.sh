@@ -58,13 +58,12 @@ install_formulae() {
   done <<'EOF'
 ansible
 ansible-lint
-azure-cli
+gitleaks
 azure/azd/azd
 azure/bicep/bicep
 azure/functions/azure-functions-core-tools@4
 cmake
 curl
-docker-completion
 docker-squash
 gh
 git
@@ -72,8 +71,10 @@ git-lfs
 hashicorp/tap/packer
 jq
 komac
+microsoft/apm/apm
 micro
 oh-my-posh
+playwright-cli
 starship
 termscp
 uv
@@ -173,6 +174,12 @@ EOF
 install_cask() {
   cask=$1
 
+  case "$cask" in
+    azure-cli-preview)
+      brew tap azure/azure-cli
+      ;;
+  esac
+
   if brew list --cask "$cask" >/dev/null 2>&1; then
     echo "==> Skipping installed cask $cask"
     return 0
@@ -207,6 +214,7 @@ install_casks() {
 1password
 1password-cli
 adobe-creative-cloud
+azure-cli-preview
 bing-wallpaper
 blender
 cleanshot
@@ -250,6 +258,7 @@ microsoft-edge
 microsoft-edge@beta
 microsoft-edge@dev
 microsoft-openjdk
+microsoft-openjdk@17
 microsoft-openjdk@21
 spotify
 visual-studio-code
