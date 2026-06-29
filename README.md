@@ -77,6 +77,10 @@ apt ベースの Linux / WSL では、ブートストラップ中に PowerShell 
 `Az` / `Microsoft.Entra` / `Microsoft.Graph` モジュールもセットアップします。
 macOS の PowerShell 7 は Intune で管理します。
 
+macOS では `home/run_once_before_10-install-homebrew-packages.sh` が Homebrew パッケージを管理します。
+Azure CLI は Microsoft Learn の preview 手順に合わせて `azure/azure-cli` tap の
+`azure-cli-preview` cask を使用し、Docker は `docker-desktop` cask を使用します。
+
 ### Windows
 
 ```powershell
@@ -110,6 +114,7 @@ Get-ChildItem "$HOME/.config/apm"
 ## ドキュメント
 
 - [アーキテクチャと設計判断](docs/architecture.md)
+- [Homebrew パッケージ管理](docs/homebrew_ja.md)
 - [日常操作ガイド](docs/operations.md)
 - [Windows 固有の設定](docs/windows.md)
 - [トラブルシューティング](docs/troubleshooting.md)
