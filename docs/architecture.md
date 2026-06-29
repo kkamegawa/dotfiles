@@ -11,7 +11,7 @@
 ### chezmoi（設定ファイル配布）
 
 - テンプレートエンジン（Go template）でOS・環境ごとの差分を吸収
-- `run_once_*` / `run_onchange_*` スクリプトによる冪等なブートストラップ
+- `run_once_*` / `run_onchange_*` / `run_after_*` スクリプトによる冪等なブートストラップ
 - `private_dot_` プレフィックスで機密ファイルのパーミッション（600）を自動設定
 - 1Password / Bitwarden 等のシークレットマネージャーとネイティブ連携
 

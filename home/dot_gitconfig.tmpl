@@ -77,11 +77,11 @@
   helper =
   helper = {{ $ghCredHelper }}
 
-{{- if .isMac }}
+{{- if .isMac -}}
 [credential]
   helper =
-  helper = /usr/local/share/gcm-core/git-credential-manager
+  helper = manager
 
 [credential "https://dev.azure.com"]
   useHttpPath = true
-{{- end }}
+{{- end -}}

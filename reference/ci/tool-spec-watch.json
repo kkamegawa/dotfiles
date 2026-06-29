@@ -38,7 +38,9 @@
         "docs\\operations.md",
         "run_once_before_20-install-mise.sh",
         "run_once_after_05-setup-mise-path.ps1",
-        "run_once_after_20-mise-install.sh"
+        "run_once_after_20-mise-install.sh",
+        "run_after_20-mise-upgrade.ps1",
+        "run_after_20-mise-upgrade.sh"
       ]
     },
     {

@@ -19,6 +19,9 @@ chezmoi diff
 chezmoi add ~/.zshrc
 ```
 
+`chezmoi update` / `chezmoi apply` 実行時は `run_after_20-mise-upgrade.*` が動き、
+`mise install` と `mise upgrade` もあわせて実行されます。
+
 ---
 
 ## mise の日常操作
