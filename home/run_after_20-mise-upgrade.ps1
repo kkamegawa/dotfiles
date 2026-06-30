@@ -4,6 +4,47 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+function Update-DotnetGlobalTools {
+  if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+    Write-Warning 'Skipping dotnet global tool update because dotnet was not found in PATH.'
+    return
+  }
+
+  $managedTools = @(
+    'dotnet-ef',
+    'csharpier',
+    'docfx',
+    'dotnet-counters',
+    'git-credential-manager',
+    'ilspycmd',
+    'microsoft.dotnet-scaffold',
+    'microsoft.dataapibuilder',
+    'microsoft.openapi.kiota',
+    'microsoft.sqlpackage',
+    'microsoft.web.librarymanager.cli',
+    'nbgv',
+    'microsoft.playwright.cli',
+    'terminalguidesigner',
+    'upgrade-assistant',
+    'dotnet-outdated-tool'
+  )
+
+  Write-Output '==> Ensuring managed dotnet global tools...'
+  foreach ($toolName in $managedTools) {
+    $installed = dotnet tool list -g 2>$null | Select-String -Pattern "^$([regex]::Escape($toolName))\s" -SimpleMatch:$false
+    if ($installed) {
+      Write-Output "==> Updating dotnet global tool: $toolName"
+      dotnet tool update --global $toolName
+    }
+    else {
+      Write-Output "==> Installing dotnet global tool: $toolName"
+      dotnet tool install --global $toolName
+    }
+  }
+}
+
+Update-DotnetGlobalTools
+
 $isWindowsHost = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
 if (-not $isWindowsHost) {
   Write-Warning 'Skipping mise upgrade because this host is not Windows.'

@@ -66,6 +66,21 @@ mise ls
 | `@openai/codex`    | OpenAI Codex CLI           |
 | `@vscode/vsce`     | VS Code Extension Manager  |
 
+### dotnet global tool の管理
+
+このリポジトリでは、dotnet global tool も `home/run_after_20-mise-upgrade.*` で一覧管理しています。
+`chezmoi apply` / `chezmoi update` 実行時に、一覧にあるツールを順に確認し、未導入なら `dotnet tool install --global`、導入済みなら `dotnet tool update --global` します。
+
+現在管理中の dotnet global tool:
+
+| ツール名               | 用途 |
+| ---------------------- | ---- |
+| `dotnet-ef`            | EF Core CLI |
+| `csharpier`            | C# formatter |
+| `dotnet-outdated-tool` | .NET パッケージ更新確認ツール |
+
+追加・削除したい場合は、`home/run_after_20-mise-upgrade.ps1` または `home/run_after_20-mise-upgrade.sh` 内の管理対象一覧を更新してください。
+
 ---
 
 ## uv の日常操作
