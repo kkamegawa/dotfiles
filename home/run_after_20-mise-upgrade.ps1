@@ -4,7 +4,10 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-function Update-DotnetGlobalTools {
+function Update-DotnetGlobalToolSet {
+  [CmdletBinding(SupportsShouldProcess)]
+  param()
+
   if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     Write-Warning 'Skipping dotnet global tool update because dotnet was not found in PATH.'
     return
@@ -34,16 +37,20 @@ function Update-DotnetGlobalTools {
     $installed = dotnet tool list -g 2>$null | Select-String -Pattern "^$([regex]::Escape($toolName))\s" -SimpleMatch:$false
     if ($installed) {
       Write-Output "==> Updating dotnet global tool: $toolName"
-      dotnet tool update --global $toolName
+      if ($PSCmdlet.ShouldProcess($toolName, 'Update dotnet global tool')) {
+        dotnet tool update --global $toolName
+      }
     }
     else {
       Write-Output "==> Installing dotnet global tool: $toolName"
-      dotnet tool install --global $toolName
+      if ($PSCmdlet.ShouldProcess($toolName, 'Install dotnet global tool')) {
+        dotnet tool install --global $toolName
+      }
     }
   }
 }
 
-Update-DotnetGlobalTools
+Update-DotnetGlobalToolSet
 
 $isWindowsHost = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
 if (-not $isWindowsHost) {
