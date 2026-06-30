@@ -90,8 +90,13 @@
       "Bash(git filter-branch:*)",
       "Bash(cat .env:*)",
       "Bash(printenv:*)",
+    {{- if $isWindows }}
+      "Bash(curl:*)",
+      "Bash(wget:*)"
+    {{- else }}
       "Bash(curl:* | bash)",
       "Bash(wget:* | bash)"
+    {{- end }}
     ]
   },
   "hooks": {
