@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-const PIPE_TO_SHELL = /\|\s*(bash|sh|zsh|fish|ksh|dash)\b/;
+const PIPE_TO_SHELL = /\|\s*(?:(?:\S*[\\/])?env\s+(?:-\S+\s+)*)?(?:\S*[\\/])?(bash|sh|zsh|fish|ksh|dash)(?:\.exe)?\b/i;
 
 function main() {
   try {
@@ -14,7 +14,7 @@ function main() {
     const command = data.tool_input?.command ?? '';
 
     if (toolName === 'Bash' && PIPE_TO_SHELL.test(command)) {
-      process.stderr.write(`Blocked: piping to shell is not allowed: ${command}\n`);
+      process.stderr.write('Blocked: piping command output directly to a shell is not allowed.\n');
       process.exit(2);
     }
 
