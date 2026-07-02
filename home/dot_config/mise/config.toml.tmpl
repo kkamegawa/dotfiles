@@ -15,5 +15,7 @@ python = ['3.13', '3.11', '3.12']
 # mise 管理の Python を uv のデフォルト Python として使う
 # NOTE: 二重波括弧は mise 自身のテンプレート構文であり、chezmoi の Go テンプレートではない。
 # chezmoi にリテラルとして出力させるためエスケープしている。
-UV_PYTHON = "{{ "{{" }} mise exec python -- python --version | head -c 20 {{ "}}" }}"
+# `tools.python.path` は mise が公式に提供するテンプレート変数で、シェルコマンドの
+# パイプ（head 等）を使わないため Windows でも壊れない。
+UV_PYTHON = { value = "{{ "{{" }} tools.python.path {{ "}}" }}", tools = true }
 
