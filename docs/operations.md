@@ -65,7 +65,7 @@ mise ls
 | ------------------ | -------------------------- |
 | `@vscode/vsce`     | VS Code Extension Manager  |
 
-Codex CLI / Claude Code CLI は WinGet（`reference/windows/configuration.dsc.yaml`）で管理します。npm バックエンドは使用しません。
+Windows 環境では、Codex CLI / Claude Code CLI は WinGet（`reference/windows/configuration.dsc.yaml`）で管理します。npm バックエンドは使用しません（macOS/Linux/WSL は本セクションの npm バックエンド管理の対象です）。
 
 ### dotnet global tool の管理
 

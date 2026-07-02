@@ -23,7 +23,7 @@
 - **uv との分担**: mise = バージョン管理（Node.js, Python インタープリタ）、uv = Python パッケージ・ツール実行
 - **npm バックエンド**: `npm:<package>` 形式でグローバル npm CLI ツールを管理（例: `@vscode/vsce`）
   - Node.js が mise 管理下にある環境で `mise install` と同時にインストール
-  - Codex CLI / Claude Code CLI は WinGet（`reference/windows/configuration.dsc.yaml`）で管理し、npm バックエンドは使用しない
+  - Windows 環境では Codex CLI / Claude Code CLI を WinGet（`reference/windows/configuration.dsc.yaml`）で管理し、npm バックエンドは使用しない（macOS/Linux/WSL は npm バックエンドで管理）
 - **PowerShell（pwsh）連携**: `mise activate pwsh` を `$PROFILE` に記述し対話セッションで有効化
   - PATH への追加は OS ごとに分岐（Windows: `%LOCALAPPDATA%\mise\shims`、Linux/macOS: `~/.local/bin` と `~/.local/share/mise/shims`）
   - 既に PATH に含まれる場合は重複追加しない
