@@ -19,6 +19,9 @@ chezmoi diff
 chezmoi add ~/.zshrc
 ```
 
+`chezmoi update` / `chezmoi apply` 実行時は `run_after_20-mise-upgrade.*` が動き、
+`mise install` と `mise upgrade` もあわせて実行されます。
+
 ---
 
 ## mise の日常操作
@@ -38,6 +41,46 @@ mise use python@3.13
 # 現在のツールバージョン確認
 mise ls
 ```
+
+### npm バックエンド（グローバル CLI ツール）
+
+このリポジトリでは、グローバル npm CLI ツールは `home/.mise.toml` の `[tools]` セクションに
+`"npm:<package>" = "latest"` と記述して管理します。
+`home/.mise.toml` は chezmoi により各マシンの `~/.mise.toml` として展開されます。
+
+```sh
+# npm ツールも含めて一括インストール
+mise install
+
+# npm ツールのみ更新
+mise upgrade "npm:@vscode/vsce"
+
+# 管理中のツール一覧（npm ツール含む）
+mise ls
+```
+
+現在管理中の npm ツール:
+
+| パッケージ         | 用途                       |
+| ------------------ | -------------------------- |
+| `@vscode/vsce`     | VS Code Extension Manager  |
+
+Codex CLI / Claude Code CLI は WinGet（`reference/windows/configuration.dsc.yaml`）で管理します。npm バックエンドは使用しません。
+
+### dotnet global tool の管理
+
+このリポジトリでは、dotnet global tool も `home/run_after_20-mise-upgrade.*` で一覧管理しています。
+`chezmoi apply` / `chezmoi update` 実行時に、一覧にあるツールを順に確認し、未導入なら `dotnet tool install --global`、導入済みなら `dotnet tool update --global` します。
+
+現在管理中の dotnet global tool:
+
+| ツール名               | 用途 |
+| ---------------------- | ---- |
+| `dotnet-ef`            | EF Core CLI |
+| `csharpier`            | C# formatter |
+| `dotnet-outdated-tool` | .NET パッケージ更新確認ツール |
+
+追加・削除したい場合は、`home/run_after_20-mise-upgrade.ps1` または `home/run_after_20-mise-upgrade.sh` 内の管理対象一覧を更新してください。
 
 ---
 
@@ -92,6 +135,16 @@ apm update
 # 適用済み設定を確認
 apm list
 ```
+
+APM のユーザープロファイル管理では、スキル・エージェントを次のディレクトリに配置します。
+
+- `~/.config/apm/skills`
+- `~/.config/apm/agents`
+
+互換性のため、次のパスは上記ディレクトリへのリンクとして作成されます。
+
+- `~/.copilot/skills` -> `~/.config/apm/skills`
+- `~/.github/agents` -> `~/.config/apm/agents`
 
 ---
 

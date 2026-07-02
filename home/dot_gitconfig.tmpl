@@ -1,3 +1,9 @@
+{{- $ghCredHelper := "!gh auth git-credential" -}}
+{{- if .isWindows -}}
+{{- $ghCredHelper = "!'C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe' auth git-credential" -}}
+{{- else if .isWSL -}}
+{{- $ghCredHelper = "!'/mnt/c/Program Files/GitHub CLI/gh.exe' auth git-credential" -}}
+{{- end -}}
 {{- $sshSignProgram := "" -}}
 {{- if .isMac -}}
 {{- $sshSignProgram = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign" -}}
@@ -62,3 +68,20 @@
   br  = branch
   cm  = commit -m
   psh = push --set-upstream origin HEAD
+
+[credential "https://github.com"]
+  helper =
+  helper = {{ $ghCredHelper }}
+
+[credential "https://gist.github.com"]
+  helper =
+  helper = {{ $ghCredHelper }}
+
+{{- if .isMac -}}
+[credential]
+  helper =
+  helper = manager
+
+[credential "https://dev.azure.com"]
+  useHttpPath = true
+{{- end -}}

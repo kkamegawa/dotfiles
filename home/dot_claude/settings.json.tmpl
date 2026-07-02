@@ -1,0 +1,183 @@
+{{- $isWindows := eq .chezmoi.os "windows" -}}
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+{{- if $isWindows }}
+      "Bash(where:*)",
+      "Bash(Get-Command:*)",
+      "Bash(Get-ChildItem:*)",
+      "Bash(Get-Content:*)",
+      "Bash(Select-String:*)",
+{{- else }}
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(rg:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(which:*)",
+{{- end }}
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote -v)",
+      "Bash(git switch:*)",
+      "Bash(git checkout -b:*)",
+      "Bash(git add:*)",
+      "Bash(git stash:*)",
+      "Bash(git commit:*)",
+      "Bash(dotnet --info)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet format:*)",
+      "Bash(dotnet add package:*)",
+      "Bash(node -v)",
+      "Bash(npm ci)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx prettier:*)",
+      "Bash(npx eslint:*)",
+      "Bash(pwsh -v)",
+      "Bash(pwsh -File:*)",
+      "Bash(pwsh -Command:*)",
+      "Bash(Invoke-Pester:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh release:*)",
+      "Bash(gh issue:*)",
+      "Bash(az repos:*)",
+      "Bash(az boards:*)",
+      "Bash(az pipelines:*)",
+      "Bash(dotnet ef database update:*)",
+      "Bash(npm publish:*)",
+      "Bash(dotnet nuget push:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(./secrets/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Edit(~/.claude/settings.json)",
+      "Edit(.github/workflows/**)",
+      "Bash(rm -rf:*)",
+      "Bash(rm -r:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean -f:*)",
+      "Bash(git clean -fd:*)",
+      "Bash(git branch -D:*)",
+      "Bash(git rebase:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(cat .env:*)",
+      "Bash(printenv:*)"
+    {{- if $isWindows }},
+      "Bash(curl:*)",
+      "Bash(wget:*)"
+    {{- end }}
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["__CLAUDE_HOME__/hooks/guard.mjs"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["__CLAUDE_HOME__/hooks/format.mjs"],
+            "timeout": 30,
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "failIfUnavailable": false,
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "codeload.github.com",
+        "raw.githubusercontent.com",
+        "objects.githubusercontent.com",
+        "dev.azure.com",
+        "*.visualstudio.com",
+        "pkgs.dev.azure.com",
+        "registry.npmjs.org",
+        "npmjs.com",
+        "api.nuget.org",
+        "*.nuget.org",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "dotnetcli.azureedge.net",
+        "dotnetcli.blob.core.windows.net",
+        "aka.ms",
+        "dotnet.microsoft.com"
+      ]
+    },
+    "filesystem": {
+      "allowWrite": [
+        "~/.dotnet",
+        "~/.nuget",
+        "~/.npm",
+        "~/.cache"
+      ]
+    },
+    "credentials": {
+      "files": [
+        { "path": "~/.aws", "mode": "deny" },
+        { "path": "~/.ssh", "mode": "deny" },
+        { "path": "~/.azure", "mode": "deny" }
+      ],
+      "envVars": [
+        { "name": "GITHUB_TOKEN", "mode": "deny" },
+        { "name": "GH_TOKEN", "mode": "deny" },
+        { "name": "NPM_TOKEN", "mode": "deny" },
+        { "name": "AZURE_DEVOPS_EXT_PAT", "mode": "deny" },
+        { "name": "NUGET_API_KEY", "mode": "deny" }
+      ]
+    },
+    "excludedCommands": [
+      "docker",
+      "az",
+      "gh",
+      "cmd.exe"
+    ]
+  }
+}

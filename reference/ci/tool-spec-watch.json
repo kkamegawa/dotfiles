@@ -30,7 +30,7 @@
       "displayName": "mise",
       "kind": "github-release",
       "repo": "jdx/mise",
-      "knownVersion": "v2026.4.20",
+      "knownVersion": "v2026.5.8",
       "impactFiles": [
         ".mise.toml",
         "dot_config\\mise\\config.toml.tmpl",
@@ -38,7 +38,9 @@
         "docs\\operations.md",
         "run_once_before_20-install-mise.sh",
         "run_once_after_05-setup-mise-path.ps1",
-        "run_once_after_20-mise-install.sh"
+        "run_once_after_20-mise-install.sh",
+        "run_after_20-mise-upgrade.ps1",
+        "run_after_20-mise-upgrade.sh"
       ]
     },
     {

@@ -28,3 +28,11 @@ bash_profile
 bashrc
 __pycache__/
 *.pyc
+
+# APM が管理するフォルダー
+.config/apm/
+.copilot/skills/
+.github/agents/
+home/dot_config/apm/
+home/dot_copilot/skills/
+home/dot_github/agents/

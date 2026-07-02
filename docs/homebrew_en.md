@@ -12,6 +12,15 @@ For casks marked `auto_updates` in Homebrew metadata, the bootstrap treats the f
 
 This keeps first-time setup behavior intact for new machines while avoiding repeated Homebrew work for apps that manage their own updates. Casks that are missing continue to use the normal `brew install --cask` path.
 
+## Azure CLI preview cask
+
+On macOS, this repository installs Azure CLI with the preview Homebrew cask flow from Microsoft Learn instead of the Homebrew core formula.
+
+- Tap: `azure/azure-cli`
+- Cask: `azure-cli-preview`
+
+The bootstrap does not install the `azure-cli` formula during the preview phase, which avoids conflicts with the cask-based installation model.
+
 ## Sudo handling for casks
 
 Formula installation does not keep sudo alive. Immediately before cask installation starts, the bootstrap runs `sudo -v` once and keeps that sudo timestamp active only while the cask batch is running. This avoids repeated password prompts from cask installers without leaving a long-lived sudo keepalive process after the bootstrap finishes.

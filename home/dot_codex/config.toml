@@ -1,5 +1,0 @@
-[features]
-multi_agent = true
-
-[windows]
-sandbox = "elevated"

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Install macOS packages managed directly by Homebrew.
-# Node.js and Python runtimes are intentionally excluded; use Volta and uv instead.
+# Node.js and Python runtimes are intentionally excluded; use mise and uv instead.
 
 set -e
 
@@ -58,13 +58,12 @@ install_formulae() {
   done <<'EOF'
 ansible
 ansible-lint
-azure-cli
+gitleaks
 azure/azd/azd
 azure/bicep/bicep
 azure/functions/azure-functions-core-tools@4
 cmake
 curl
-docker-completion
 docker-squash
 gh
 git
@@ -72,14 +71,13 @@ git-lfs
 hashicorp/tap/packer
 jq
 komac
+microsoft/apm/apm
 micro
-microsoft/foundrylocal/foundrylocal
 oh-my-posh
-powershell
+playwright-cli
 starship
 termscp
 uv
-volta
 wget
 EOF
 }
@@ -176,12 +174,21 @@ EOF
 install_cask() {
   cask=$1
 
+  case "$cask" in
+    azure-cli-preview)
+      brew tap azure/azure-cli
+      ;;
+  esac
+
   if brew list --cask "$cask" >/dev/null 2>&1; then
     echo "==> Skipping installed cask $cask"
     return 0
   fi
 
-  metadata="$(brew info --cask --json=v2 "$cask")"
+  if ! metadata="$(brew info --cask --json=v2 "$cask" 2>/dev/null)"; then
+    echo "==> Skipping unavailable cask $cask"
+    return 0
+  fi
 
   if cask_has_auto_updates "$metadata"; then
     if cask_is_recorded_installed "$metadata"; then
@@ -207,10 +214,12 @@ install_casks() {
 1password
 1password-cli
 adobe-creative-cloud
+azure-cli-preview
 bing-wallpaper
 blender
 cleanshot
 copilot-cli@prerelease
+github-copilot-app
 daisydisk
 devtoys
 discord
@@ -232,6 +241,11 @@ ghostty
 git-credential-manager
 github
 github-copilot-for-xcode
+chatgpt
+claude
+claude-code
+codex
+codex-cli
 google-chrome
 intune-company-portal
 iterm2
@@ -245,6 +259,7 @@ microsoft-edge@beta
 microsoft-edge@dev
 microsoft-openjdk
 microsoft-openjdk@17
+microsoft-openjdk@21
 spotify
 visual-studio-code
 visual-studio-code@insiders
