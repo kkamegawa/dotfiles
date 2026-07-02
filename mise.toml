@@ -1,4 +1,5 @@
 [tools]
-# Repo-local tools only. Add user-wide npm CLI tools to home/.mise.toml,
-# which chezmoi deploys as ~/.mise.toml on each machine.
+# Repo-local tools only. Add user-wide npm CLI tools to
+# home/dot_config/mise/config.toml.tmpl, which chezmoi deploys as
+# ~/.config/mise/config.toml on each machine.
 node = "lts"

@@ -9,4 +9,11 @@ env_file = '.env'
 node = "lts"
 npm = "latest"
 python = ['3.13', '3.11', '3.12']
+"npm:@vscode/vsce" = "latest"
+
+[env]
+# mise 管理の Python を uv のデフォルト Python として使う
+# NOTE: 二重波括弧は mise 自身のテンプレート構文であり、chezmoi の Go テンプレートではない。
+# chezmoi にリテラルとして出力させるためエスケープしている。
+UV_PYTHON = "{{ "{{" }} mise exec python -- python --version | head -c 20 {{ "}}" }}"
 

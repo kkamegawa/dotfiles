@@ -21,8 +21,10 @@
 - `.mise.toml` のロックファイルで再現性を確保
 - 参照リポジトリ（torumakabe/dotfiles）では mise を使用しており、同様の方針を採用
 - **uv との分担**: mise = バージョン管理（Node.js, Python インタープリタ）、uv = Python パッケージ・ツール実行
-- **npm バックエンド**: `npm:<package>` 形式でグローバル npm CLI ツールを管理（例: `@openai/codex`）
+- **npm バックエンド**: `npm:<package>` 形式でグローバル npm CLI ツールを管理（例: `@vscode/vsce`）
   - Node.js が mise 管理下にある環境で `mise install` と同時にインストール
+  - 設定は `home/dot_config/mise/config.toml.tmpl`（`~/.config/mise/config.toml` として展開）に記述
+  - Codex CLI / Claude Code CLI は npm バックエンドでは管理しない（後述の「Codex CLI / Claude Code CLI の管理」参照）
 - **PowerShell（pwsh）連携**: `mise activate pwsh` を `$PROFILE` に記述し対話セッションで有効化
   - PATH への追加は OS ごとに分岐（Windows: `%LOCALAPPDATA%\mise\shims`、Linux/macOS: `~/.local/bin` と `~/.local/share/mise/shims`）
   - 既に PATH に含まれる場合は重複追加しない
@@ -41,6 +43,16 @@
   （`WindowsOptionalFeature` は Windows Server 向けのため）
 - **フォント**: JetBrains Mono Nerd Font は winget、Monaspace / PlemolJP Console NF / Noto Sans JP は GitHub Releases から管理
 
+### Codex CLI / Claude Code CLI の管理
+
+Codex CLI（OpenAI）・Claude Code CLI（Anthropic）は npm バックエンドでは管理せず、OS ネイティブのパッケージ管理に一元化する。
+
+- **Windows**: WinGet（`reference/windows/configuration.dsc.yaml`）
+- **macOS**: Homebrew cask（`claude` / `claude-code` / `codex` / `codex-cli`、`home/run_once_before_10-install-homebrew-packages.sh`）
+- **Linux / WSL**: `home/run_once_before_10-install-packages.sh`（Ubuntu/Debian のみ自動化。他ディストリビューションは手動インストール）
+  - Claude Code CLI: 公式 apt リポジトリ（`downloads.claude.ai`）経由で `apt install claude-code`
+  - Codex CLI: apt パッケージが存在しないため、OpenAI 公式スタンドアロンインストーラー（`curl -fsSL https://chatgpt.com/codex/install.sh | sh`）を使用
+
 ### 1Password（シークレット・SSH署名）
 
 - SSH キーを 1Password に保存し、SSH エージェント経由でコミット署名・認証を行う
@@ -54,7 +66,7 @@
 | ファイル（chezmoi ソース） | デプロイ先 | 読み込むツール |
 |---------------------------|-----------|---------------|
 | `home/dot_github/copilot-instructions.md` | `~/.github/copilot-instructions.md` | GitHub Copilot CLI / Copilot Chat |
-| `home/dot_codex/AGENTS.md` | `~/.codex/AGENTS.md` | Codex CLI (`@openai/codex`) |
+| `home/dot_codex/AGENTS.md` | `~/.codex/AGENTS.md` | Codex CLI |
 | `home/dot_codex/config.toml.tmpl` | `~/.codex/config.toml` | Codex CLI config |
 | `home/dot_claude/CLAUDE.md` | `~/.claude/CLAUDE.md` | Claude Code |
 | `home/dot_claude/settings.json.tmpl` | `~/.claude/settings.json` | Claude Code settings |
