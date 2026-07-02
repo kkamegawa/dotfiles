@@ -226,6 +226,22 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: claude-code
+      directives:
+        description: Claude Code CLI
+      settings:
+        id: Anthropic.ClaudeCode
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: codex-cli
+      directives:
+        description: OpenAI Codex CLI
+      settings:
+        id: OpenAI.Codex
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: ghq
       directives:
         description: ghq（リポジトリ管理）
