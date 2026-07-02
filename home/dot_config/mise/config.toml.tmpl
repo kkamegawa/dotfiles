@@ -9,4 +9,9 @@ env_file = '.env'
 node = "lts"
 npm = "latest"
 python = ['3.13', '3.11', '3.12']
+"npm:@vscode/vsce" = "latest"
+
+[env]
+# mise 管理の Python を uv のデフォルト Python として使う
+UV_PYTHON = "{{ mise exec python -- python --version | head -c 20 }}"
 

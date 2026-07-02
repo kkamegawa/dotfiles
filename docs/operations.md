@@ -44,9 +44,9 @@ mise ls
 
 ### npm バックエンド（グローバル CLI ツール）
 
-このリポジトリでは、グローバル npm CLI ツールは `home/.mise.toml` の `[tools]` セクションに
-`"npm:<package>" = "latest"` と記述して管理します。
-`home/.mise.toml` は chezmoi により各マシンの `~/.mise.toml` として展開されます。
+このリポジトリでは、グローバル npm CLI ツールは `home/dot_config/mise/config.toml.tmpl` の
+`[tools]` セクションに `"npm:<package>" = "latest"` と記述して管理します。
+このファイルは chezmoi により各マシンの `~/.config/mise/config.toml` として展開されます。
 
 ```sh
 # npm ツールも含めて一括インストール
@@ -65,7 +65,23 @@ mise ls
 | ------------------ | -------------------------- |
 | `@vscode/vsce`     | VS Code Extension Manager  |
 
-Windows 環境では、Codex CLI / Claude Code CLI は WinGet（`reference/windows/configuration.dsc.yaml`）で管理します。npm バックエンドは使用しません（macOS/Linux/WSL は本セクションの npm バックエンド管理の対象です）。
+### Codex CLI / Claude Code CLI の管理
+
+Codex CLI（OpenAI）・Claude Code CLI（Anthropic）は npm バックエンドでは管理せず、OS ごとに次の方法で管理します。
+
+| OS | Claude Code CLI | Codex CLI |
+| --- | --- | --- |
+| Windows | WinGet（`reference/windows/configuration.dsc.yaml`） | WinGet（`reference/windows/configuration.dsc.yaml`） |
+| macOS | Homebrew cask（`home/run_once_before_10-install-homebrew-packages.sh`） | Homebrew cask（`home/run_once_before_10-install-homebrew-packages.sh`） |
+| Linux / WSL | apt 公式リポジトリ（`home/run_once_before_10-install-packages.sh`） | 公式スタンドアロンインストーラー（`home/run_once_before_10-install-packages.sh`） |
+
+```sh
+# 更新（Linux/WSL・apt 管理の Claude Code CLI）
+sudo apt update && sudo apt upgrade claude-code
+
+# 更新（Linux/WSL・スタンドアロンインストーラー管理の Codex CLI）
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+```
 
 ### dotnet global tool の管理
 
