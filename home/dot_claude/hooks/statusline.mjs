@@ -24,7 +24,7 @@ function main() {
 
     const data = JSON.parse(raw);
     const model = data.model?.display_name ?? 'Claude';
-    const pct = Math.round(data.context_window?.used_percentage ?? 0);
+    const pct = Math.max(0, Math.min(100, Math.round(+data.context_window?.used_percentage || 0)));
     const cwd = data.cwd ?? '';
     const sessionId = data.session_id ?? 'unknown';
 
