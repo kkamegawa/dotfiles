@@ -1,16 +1,31 @@
-#:include ClaudeHookCommon.cs
+using System.Text.Json.Nodes;
 
-var input = ClaudeHookCommon.ReadInput();
-var sessionId = ClaudeHookCommon.GetSessionId(input);
+// PostCompact hook (.NET 10 file-based program)
+// Saves compact_summary for recovery and clears the 60%-warning marker.
 
-if (string.IsNullOrWhiteSpace(sessionId))
+try
 {
-    return;
+    var input = await Console.In.ReadToEndAsync();
+    var data = JsonNode.Parse(input.Length > 0 ? input : "{}");
+    var sessionId = data?["session_id"]?.GetValue<string>() ?? "unknown";
+    var summary = data?["compact_summary"]?.GetValue<string>() ?? string.Empty;
+
+    var stateDir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        ".claude", "hooks-state");
+    Directory.CreateDirectory(stateDir);
+
+    if (!string.IsNullOrWhiteSpace(summary))
+    {
+        await File.WriteAllTextAsync(
+            Path.Combine(stateDir, $"{sessionId}.summary"), summary);
+    }
+
+    var warnFile = Path.Combine(stateDir, $"{sessionId}.warned");
+    if (File.Exists(warnFile))
+        File.Delete(warnFile);
 }
-
-var markerDirectory = ClaudeHookCommon.TempDirectory("claude-compacted");
-Directory.CreateDirectory(markerDirectory);
-ClaudeHookCommon.WriteText(Path.Combine(markerDirectory, sessionId), DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
-
-var warnedDirectory = ClaudeHookCommon.TempDirectory("claude-compact-warned");
-ClaudeHookCommon.DeleteIfExists(Path.Combine(warnedDirectory, sessionId));
+catch
+{
+    // Never block the user's flow
+}

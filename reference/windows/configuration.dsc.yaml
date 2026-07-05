@@ -490,6 +490,14 @@ properties:
         source: msstore
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: codex-cli
+      directives:
+        description: Codex CLI（OpenAI 製 AI コーディング支援）
+      settings:
+        id: OpenAI.Codex
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: coreutils
       directives:
         description: Core Utilities

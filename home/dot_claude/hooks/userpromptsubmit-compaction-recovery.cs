@@ -1,37 +1,40 @@
-#:include ClaudeHookCommon.cs
+using System.Text.Json.Nodes;
 
-var input = ClaudeHookCommon.ReadInput();
-var sessionId = ClaudeHookCommon.GetSessionId(input);
+// UserPromptSubmit hook: compaction recovery (.NET 10 file-based program)
+// If a compact_summary was saved by the PostCompact hook, inject it as
+// additionalContext so Claude knows the prior session state.
 
-if (string.IsNullOrWhiteSpace(sessionId))
+try
 {
-    return;
-}
+    var input = await Console.In.ReadToEndAsync();
+    var data = JsonNode.Parse(input.Length > 0 ? input : "{}");
+    var sessionId = data?["session_id"]?.GetValue<string>() ?? "unknown";
 
-var markerDirectory = ClaudeHookCommon.TempDirectory("claude-compacted");
-var markerPath = Path.Combine(markerDirectory, sessionId);
+    var stateDir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        ".claude", "hooks-state");
+    var summaryFile = Path.Combine(stateDir, $"{sessionId}.summary");
 
-if (!ClaudeHookCommon.FileExists(markerPath))
-{
-    return;
-}
+    if (!File.Exists(summaryFile))
+        return;
 
-ClaudeHookCommon.DeleteIfExists(markerPath);
+    var summary = await File.ReadAllTextAsync(summaryFile);
 
-var planDirectory = ClaudeHookCommon.TempDirectory("claude-active-plan");
-var planPointerPath = Path.Combine(planDirectory, sessionId);
-var planFile = string.Empty;
-
-if (ClaudeHookCommon.FileExists(planPointerPath))
-{
-    planFile = ClaudeHookCommon.ReadTextIfExists(planPointerPath).Trim();
-    if (!string.IsNullOrWhiteSpace(planFile) && !ClaudeHookCommon.FileExists(planFile))
+    var output = new JsonObject
     {
-        planFile = string.Empty;
-    }
+        ["hookSpecificOutput"] = new JsonObject
+        {
+            ["hookEventName"] = "UserPromptSubmit",
+            ["additionalContext"] =
+                "[Post-compact recovery] The context window was compacted. " +
+                $"Summary of the previous session:\n{summary}"
+        }
+    };
+    Console.Write(output.ToJsonString());
+
+    File.Delete(summaryFile); // One-shot: inject once then discard
 }
-
-var stateFile = Path.Combine(ClaudeHookCommon.TempDirectory("claude-compact-state"), $"{sessionId}.md");
-var context = ClaudeHookCommon.BuildRecoveryContext(planFile, ClaudeHookCommon.FileExists(stateFile) ? stateFile : string.Empty);
-
-ClaudeHookCommon.WriteHookSpecificContext("UserPromptSubmit", context);
+catch
+{
+    // Never block the user's flow
+}
