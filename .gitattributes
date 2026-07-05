@@ -5,10 +5,10 @@
 *.sh text eol=lf
 *.mjs text eol=lf
 
-# C# source files: LF in repo, checkout as-is on each platform
+# C# source files: normalize to LF and enforce LF in the working tree
 *.cs text eol=lf
 
-# PowerShell: keep CRLF (matches .editorconfig)
+# PowerShell: normalize to LF in the repo, enforce CRLF in the working tree (matches .editorconfig)
 *.ps1 text eol=crlf
 *.psm1 text eol=crlf
 *.psd1 text eol=crlf
