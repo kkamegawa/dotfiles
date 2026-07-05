@@ -11,7 +11,8 @@
 - `Microsoft.Entra*`
 - `Microsoft.Graph*`
 
-アプリは PowerShell モジュールのメタデータから各モジュールの場所を取得するため、Windows と macOS の標準ユーザーモジュール配置で動作します。
+アプリは `PSModulePath` と一般的な PowerShell モジュール配置を走査し、バージョンフォルダー名からインストール済みバージョンを検出します。
+そのため、Windows と macOS の標準ユーザーモジュール配置で動作します。
 
 ## macOS での実行
 
@@ -37,5 +38,4 @@ mise run clean-old-pwsh-modules
 
 - .NET SDK 10 以降
 - PowerShell 7
-- PowerShellGet 互換の `Get-InstalledModule` と `Uninstall-Module` コマンド
-
+- PowerShellGet 互換の `Uninstall-Module` コマンド

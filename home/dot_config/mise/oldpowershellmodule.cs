@@ -166,7 +166,7 @@ static void RemoveStaleVersionFolders(string moduleName, IReadOnlyList<Installed
         .Select(location => Path.GetFullPath(location!))
         .Select(Path.GetDirectoryName)
         .Where(root => !string.IsNullOrWhiteSpace(root))
-        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Distinct(GetPathComparer())
         .ToList();
 
     foreach (var moduleRoot in moduleRoots)
@@ -227,17 +227,19 @@ static async Task<CommandResult> RunPowerShellAsync(string powershell, string sc
     process.StartInfo.UseShellExecute = false;
 
     process.Start();
-    var output = await process.StandardOutput.ReadToEndAsync();
-    var error = await process.StandardError.ReadToEndAsync();
-    await process.WaitForExitAsync();
+    var outputTask = process.StandardOutput.ReadToEndAsync();
+    var errorTask = process.StandardError.ReadToEndAsync();
+    var exitTask = process.WaitForExitAsync();
 
-    return new CommandResult(process.ExitCode, output, error);
+    await Task.WhenAll(outputTask, errorTask, exitTask);
+
+    return new CommandResult(process.ExitCode, await outputTask, await errorTask);
 }
 
 static string? ResolvePowerShellExecutable()
 {
     var candidates = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-        ? ["pwsh.exe", "pwsh", "powershell.exe"]
+        ? ["pwsh.exe", "pwsh"]
         : new[] { "pwsh" };
 
     foreach (var candidate in candidates)
@@ -270,7 +272,19 @@ static bool CanStart(string fileName)
         }
 
         process.WaitForExit(5000);
-        return process.HasExited && process.ExitCode == 0;
+        if (!process.HasExited)
+        {
+            process.Kill(entireProcessTree: true);
+            return false;
+        }
+
+        if (process.ExitCode != 0)
+        {
+            return false;
+        }
+
+        var versionText = process.StandardOutput.ReadToEnd().Trim();
+        return Version.TryParse(versionText, out var version) && version.Major >= 7;
     }
     catch
     {
@@ -288,6 +302,11 @@ static bool IsChildPath(string parentPath, string childPath)
 static string ToPowerShellSingleQuotedString(string value)
 {
     return $"'{value.Replace("'", "''")}'";
+}
+
+static StringComparer GetPathComparer()
+{
+    return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 }
 
 static bool WildcardMatches(string value, string pattern)

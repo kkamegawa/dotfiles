@@ -11,7 +11,8 @@ The task keeps the latest installed version and removes older versions for modul
 - `Microsoft.Entra*`
 - `Microsoft.Graph*`
 
-The app uses PowerShell module metadata to find each module location, so it works with the standard user module locations on both Windows and macOS.
+The app scans `PSModulePath` plus common PowerShell module directories, then detects installed versions from version folder names.
+This works with the standard user module locations on both Windows and macOS.
 
 ## Run on macOS
 
@@ -37,5 +38,4 @@ mise run clean-old-pwsh-modules
 
 - .NET SDK 10 or later
 - PowerShell 7
-- PowerShellGet-compatible `Get-InstalledModule` and `Uninstall-Module` commands
-
+- A PowerShellGet-compatible `Uninstall-Module` command
