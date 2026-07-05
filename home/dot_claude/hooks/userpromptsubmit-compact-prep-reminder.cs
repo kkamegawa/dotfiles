@@ -24,7 +24,7 @@ try
         {
             ["hookEventName"] = "UserPromptSubmit",
             ["additionalContext"] =
-                "⚠️ Context window usage has reached 60% or more. " +
+                "Context window usage has reached 60% or more. " +
                 "Consider running /compact soon to avoid losing context."
         }
     };
