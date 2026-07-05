@@ -1,0 +1,20 @@
+# Default: auto-detect text and normalize to LF in repo
+* text=auto
+
+# Shell scripts must stay LF to avoid shebang and syntax errors
+*.sh text eol=lf
+*.mjs text eol=lf
+
+# C# source files: LF in repo, checkout as-is on each platform
+*.cs text eol=lf
+
+# PowerShell: keep CRLF (matches .editorconfig)
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
+*.psd1 text eol=crlf
+
+# Binary files: do not modify
+*.png binary
+*.jpg binary
+*.ico binary
+*.zip binary
