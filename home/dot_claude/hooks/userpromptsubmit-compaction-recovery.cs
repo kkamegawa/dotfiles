@@ -19,7 +19,6 @@ try
         return;
 
     var summary = await File.ReadAllTextAsync(summaryFile);
-    File.Delete(summaryFile); // One-shot: inject once then discard
 
     var output = new JsonObject
     {
@@ -32,6 +31,8 @@ try
         }
     };
     Console.Write(output.ToJsonString());
+
+    File.Delete(summaryFile); // One-shot: inject once then discard
 }
 catch
 {
