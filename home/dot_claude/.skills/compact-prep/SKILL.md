@@ -12,7 +12,7 @@ allowed-tools: Read Write Bash(~/.claude/scripts/get-session-id.sh *) Bash(mkdir
 # compact-prep
 
 Claude Code の `/compact` 前に、圧縮サマリーへ残りにくい作業状態を
-`${TMPDIR}/claude-compact-state/${SESSION_ID}.md` へ保存する。
+`${TMPDIR:-/tmp}/claude-compact-state/${SESSION_ID}.md` へ保存する。
 
 ## Strict procedure profile
 
