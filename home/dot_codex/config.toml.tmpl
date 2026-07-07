@@ -40,6 +40,10 @@ extends = ":workspace"
 {{ printf "%s/.config/NuGet" $homeDir | quote }} = "read"
 {{ printf "%s/.nuget/NuGet" $homeDir | quote }} = "read"
 {{ printf "%s/.nuget/plugins/netcore" $homeDir | quote }} = "read"
+{{- else }}
+{{ printf "%s/.config/NuGet" $homeDir | quote }} = "read"
+{{ printf "%s/.nuget/NuGet" $homeDir | quote }} = "read"
+{{ printf "%s/.nuget/plugins/netcore" $homeDir | quote }} = "read"
 {{- end }}
 
 [permissions.dotnet-dev.network]
