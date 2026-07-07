@@ -18,7 +18,7 @@
 
 approval_policy = "on-request"
 approvals_reviewer = "auto_review"
-sandbox_mode = "workspace-write"
+default_permissions = "dotnet-dev"
 
 # Avoid loading arbitrary shell startup scripts into agent commands.
 allow_login_shell = false
@@ -26,16 +26,44 @@ allow_login_shell = false
 # Cached search does not grant spawned commands unrestricted web access.
 web_search = "cached"
 
-[sandbox_workspace_write]
-network_access = true
+# Workspace editing with read-only user NuGet config access.
+[permissions.dotnet-dev]
+description = "Workspace build with read-only NuGet config and scoped package registry access."
+extends = ":workspace"
 
-# Dedicated dependency/tool cache root.
-# Do not add the complete home directory here.
-writable_roots = [
-  {{ $cacheRoot | quote }},
-]
+[permissions.dotnet-dev.filesystem]
+{{ $cacheRoot | quote }} = "write"
+{{- if eq .chezmoi.os "windows" }}
+{{ printf "%s\\AppData\\Roaming\\NuGet" $homeDir | quote }} = "read"
+{{ printf "%s\\.nuget\\plugins\\netcore" $homeDir | quote }} = "read"
+{{- else if eq .chezmoi.os "darwin" }}
+{{ printf "%s/.config/NuGet" $homeDir | quote }} = "read"
+{{ printf "%s/.nuget/NuGet" $homeDir | quote }} = "read"
+{{ printf "%s/.nuget/plugins/netcore" $homeDir | quote }} = "read"
+{{- else }}
+{{ printf "%s/.config/NuGet" $homeDir | quote }} = "read"
+{{ printf "%s/.nuget/NuGet" $homeDir | quote }} = "read"
+{{ printf "%s/.nuget/plugins/netcore" $homeDir | quote }} = "read"
+{{- end }}
 
-# Allow only package registries and local development endpoints.
+[permissions.dotnet-dev.network]
+enabled = true
+allow_local_binding = false
+allow_upstream_proxy = true
+
+[permissions.dotnet-dev.network.domains]
+"**.nuget.org" = "allow"
+"registry.npmjs.org" = "allow"
+"registry.yarnpkg.com" = "allow"
+"pkgs.dev.azure.com" = "allow"
+"**.pkgs.visualstudio.com" = "allow"
+"nuget.pkg.github.com" = "allow"
+"npm.pkg.github.com" = "allow"
+"localhost" = "allow"
+"127.0.0.1" = "allow"
+"::1" = "allow"
+
+# Keep the network proxy enabled for the selected permissions profile.
 [features.network_proxy]
 enabled = true
 allow_local_binding = false
@@ -48,7 +76,7 @@ allow_upstream_proxy = true
 
 # Azure Artifacts package feeds.
 "pkgs.dev.azure.com" = "allow"
-"*.pkgs.visualstudio.com" = "allow"
+"**.pkgs.visualstudio.com" = "allow"
 
 # Optional: private packages hosted by GitHub Packages.
 "nuget.pkg.github.com" = "allow"
@@ -75,6 +103,8 @@ exclude = [
 DOTNET_CLI_HOME = {{ printf "%s%sdotnet-cli" $cacheRoot $pathSep | quote }}
 NUGET_PACKAGES = {{ printf "%s%snuget-packages" $cacheRoot $pathSep | quote }}
 NUGET_HTTP_CACHE_PATH = {{ printf "%s%snuget-http-cache" $cacheRoot $pathSep | quote }}
+NUGET_SCRATCH = {{ printf "%s%snuget-scratch" $cacheRoot $pathSep | quote }}
+NUGET_PLUGINS_CACHE_PATH = {{ printf "%s%snuget-plugins-cache" $cacheRoot $pathSep | quote }}
 npm_config_cache = {{ printf "%s%snpm-cache" $cacheRoot $pathSep | quote }}
 pnpm_config_store_dir = {{ printf "%s%spnpm-store" $cacheRoot $pathSep | quote }}
 YARN_CACHE_FOLDER = {{ printf "%s%syarn-cache" $cacheRoot $pathSep | quote }}
