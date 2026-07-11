@@ -28,6 +28,7 @@
 - `epic`, `product backlog`, `task`, `user story`は生成したplanに基づき生成し、ユーザーに確認します
 - 作業内容のキーワードや機能領域が既存の`epic`, `product backlog`の説明と一致する場合、ユーザーに候補一覧を提示して選んでもらいます。ユーザーが新規作成を選んだ場合はplanモードを推奨して、確認してもらいます。
 - バグの場合は`bug`を使用します。
+- 作業前にwork itemの`state`を`doing`に設定します。作業者を自分に設定します。
 
 ### ドキュメント内のスクリプト
 
@@ -63,6 +64,12 @@
 - 性能改善: perf/issue番号（Azure DevOpsの場合はWork Item ID）-
 - パッケージ更新やtypo修正: chore/issue番号（Azure DevOpsの場合はWork Item ID）-
 - ソースコード以外の修正: docs/issue番号（Azure DevOpsの場合はWork Item ID）-
+
+### 作業に関する記録
+
+- `docs/task.md`があった場合、作業終了時に、作業内容を記録します。作業内容の記録は、作業開始時に作成したplanに基づき、作業内容を記録します。作業内容の記録は、ユーザーが確認できるように、issueやWork Itemにリンクを貼ります。
+- 実装計画立案時、当初の`docs/task.md`, `docs/plan.md`にない仕様変更があった場合、`docs/adr.md`に日付、該当taskと仕様変更の理由を箇条書きで記録します。`adr.md`が200行を超える場合、phase単位で分割します。
+  - 仕様を変更する必要がある場合、必ず`adr.md`を確認して、変更理由が以前の修正と矛盾しないか確認します。矛盾しそうな場合はユーザーに承認を求めます。
 
 ## 補足
 
