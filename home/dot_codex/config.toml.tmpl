@@ -38,14 +38,17 @@ extends = ":workspace"
 {{- if eq .chezmoi.os "windows" }}
 {{ printf "%s\\AppData\\Roaming\\NuGet" $homeDir | quote }} = "read"
 {{ printf "%s\\.nuget\\plugins\\netcore" $homeDir | quote }} = "read"
+{{ printf "%s\\.azure" $homeDir | quote }} = "write"
 {{- else if eq .chezmoi.os "darwin" }}
 {{ printf "%s/.config/NuGet" $homeDir | quote }} = "read"
 {{ printf "%s/.nuget/NuGet" $homeDir | quote }} = "read"
 {{ printf "%s/.nuget/plugins/netcore" $homeDir | quote }} = "read"
+{{ printf "%s/.azure" $homeDir | quote }} = "write"
 {{- else }}
 {{ printf "%s/.config/NuGet" $homeDir | quote }} = "read"
 {{ printf "%s/.nuget/NuGet" $homeDir | quote }} = "read"
 {{ printf "%s/.nuget/plugins/netcore" $homeDir | quote }} = "read"
+{{ printf "%s/.azure" $homeDir | quote }} = "write"
 {{- end }}
 
 [permissions.dotnet-dev.network]
@@ -54,6 +57,15 @@ allow_local_binding = false
 allow_upstream_proxy = true
 
 [permissions.dotnet-dev.network.domains]
+"login.microsoftonline.com" = "allow"
+"management.azure.com" = "allow"
+"graph.microsoft.com" = "allow"
+"dev.azure.com" = "allow"
+"**.dev.azure.com" = "allow"
+"**.visualstudio.com" = "allow"
+"aka.ms" = "allow"
+"**.blob.core.windows.net" = "allow"
+"**.azureedge.net" = "allow"
 "**.nuget.org" = "allow"
 "registry.npmjs.org" = "allow"
 "registry.yarnpkg.com" = "allow"
@@ -75,6 +87,15 @@ allow_upstream_proxy = true
 "**.nuget.org" = "allow"
 "registry.npmjs.org" = "allow"
 "registry.yarnpkg.com" = "allow"
+"login.microsoftonline.com" = "allow"
+"management.azure.com" = "allow"
+"graph.microsoft.com" = "allow"
+"dev.azure.com" = "allow"
+"**.dev.azure.com" = "allow"
+"**.visualstudio.com" = "allow"
+"aka.ms" = "allow"
+"**.blob.core.windows.net" = "allow"
+"**.azureedge.net" = "allow"
 
 # Azure Artifacts package feeds.
 "pkgs.dev.azure.com" = "allow"
