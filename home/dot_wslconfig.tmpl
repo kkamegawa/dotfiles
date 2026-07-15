@@ -1,0 +1,9 @@
+{{- $memory := output "powershell.exe" "-NoProfile" "-NonInteractive" "-Command" "$totalMemory = (Get-CimInstance -ClassName Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum; if ($totalMemory -ge 64GB) { '8GB' } else { '6GB' }" | trim -}}
+[wsl2]
+memory={{ $memory }}
+processors=4
+dnsTunneling=true
+networkingMode=Consomme
+
+[experimental]
+hostAddressLoopback=true
