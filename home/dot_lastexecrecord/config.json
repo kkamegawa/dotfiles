@@ -6,6 +6,40 @@
   },
   "commands": [
     {
+      "name": "chezmoi upgrade",
+      "enabled": true,
+      "exe": "chezmoi",
+      "args": [
+        "upgrade"
+      ]
+    },
+    {
+      "name": "mise upgrade",
+      "enabled": true,
+      "exe": "mise",
+      "args": [
+        "self-update"
+      ]
+    },
+    {
+      "name": "chezmoi update",
+      "enabled": true,
+      "exe": "chezmoi",
+      "args": [
+        "update"
+      ]
+    },
+    {
+      "name": "copilot-update",
+      "enabled": true,
+      "exe": "winget",
+      "args": [
+        "upgrade",
+        "GitHub.Copilot.Prerelease",
+        "--force"
+      ]
+    },
+    {
       "name": "winget",
       "enabled": true,
       "exe": "C:\\Windows\\System32\\sudo.exe",
