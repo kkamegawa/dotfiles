@@ -1,6 +1,0 @@
-[wsl2]
-memory=8589934592
-processors=4
-dnsTunneling=true
-[experimental]
-hostAddressLoopback=true
