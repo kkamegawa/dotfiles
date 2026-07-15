@@ -14,11 +14,12 @@
       ]
     },
     {
-      "name": "mise upgrade",
+      "name": "mise self-update",
       "enabled": true,
       "exe": "mise",
       "args": [
-        "self-update"
+        "self-update",
+        "-y"
       ]
     },
     {
@@ -30,7 +31,7 @@
       ]
     },
     {
-      "name": "copilot-update",
+      "name": "copilot update",
       "enabled": true,
       "exe": "winget",
       "args": [
