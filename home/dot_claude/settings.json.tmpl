@@ -43,6 +43,21 @@
       "Bash(dotnet test:*)",
       "Bash(dotnet format:*)",
       "Bash(dotnet add package:*)",
+      "Bash(dotnet new install:*)",
+      "Bash(dotnet nuget push:*)",
+      "Bash(dotnet tool install:*)",
+      "Bash(dotnet tool restore:*)",
+      "Bash(dotnet tool update:*)",
+      "Bash(dotnet workload install:*)",
+      "Bash(dotnet workload restore:*)",
+      "Bash(dotnet workload update:*)",
+      "Bash(dotnet workload repair:*)",
+      "Bash(dotnet ef database update:*)",
+      "Bash(az account show)",
+      "Bash(az extension show *)",
+      "Bash(az devops configure --list)",
+      "Bash(az devops project show *)",
+      "Bash(az boards work-item show *)",
       "Bash(node -v)",
       "Bash(npm ci)",
       "Bash(npm install:*)",
@@ -202,8 +217,7 @@
     "credentials": {
       "files": [
         { "path": "~/.aws", "mode": "deny" },
-        { "path": "~/.ssh", "mode": "deny" },
-        { "path": "~/.azure", "mode": "deny" }
+        { "path": "~/.ssh", "mode": "deny" }
       ],
       "envVars": [
         { "name": "GITHUB_TOKEN", "mode": "deny" },
@@ -215,8 +229,8 @@
     },
     "excludedCommands": [
       "docker",
-      "az",
       "gh",
+      "dotnet *",
       "cmd.exe"
     ]
   }
