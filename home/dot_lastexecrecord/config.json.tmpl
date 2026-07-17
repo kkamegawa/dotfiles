@@ -1,7 +1,4 @@
-{{- $userProfile := .chezmoi.homeDir -}}
-{{- if eq .chezmoi.os "windows" -}}
-{{- $userProfile = env "USERPROFILE" -}}
-{{- end -}}
+{{- $userProfile := env "USERPROFILE" -}}
 {
   "version": 1,
   "defaults": {
@@ -9,6 +6,7 @@
     "timeoutSeconds": 0
   },
   "commands": [
+{{- if eq .chezmoi.os "windows" }}
     {
       "name": "chezmoi update",
       "enabled": true,
@@ -43,5 +41,32 @@
         "--silent"
       ]
     }
+{{- else }}
+    {
+      "name": "chezmoi upgrade",
+      "enabled": true,
+      "exe": "chezmoi",
+      "args": [
+        "upgrade"
+      ]
+    },
+    {
+      "name": "mise self-update",
+      "enabled": true,
+      "exe": "mise",
+      "args": [
+        "self-update",
+        "-y"
+      ]
+    },
+    {
+      "name": "chezmoi update",
+      "enabled": true,
+      "exe": "chezmoi",
+      "args": [
+        "update"
+      ]
+    }
+{{- end }}
   ]
 }

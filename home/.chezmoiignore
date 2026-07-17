@@ -1,5 +1,6 @@
 # OS-specific exclusions.
 {{ if ne .chezmoi.os "windows" }}
+.lastexecrecord/config.json
 .wslconfig
 60-setup-apm-profile.ps1
 05-setup-mise-path.ps1
@@ -8,7 +9,6 @@
 {{ end }}
 
 {{ if eq .chezmoi.os "windows" }}
-.lastexecrecord/config.json
 .zprofile
 .zshenv
 .zshrc
