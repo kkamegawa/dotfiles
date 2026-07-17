@@ -1,7 +1,4 @@
-{{- $userProfile := .chezmoi.homeDir -}}
-{{- if eq .chezmoi.os "windows" -}}
-{{- $userProfile = env "USERPROFILE" -}}
-{{- end -}}
+{{- $userProfile := env "USERPROFILE" -}}
 {
   "version": 1,
   "defaults": {
