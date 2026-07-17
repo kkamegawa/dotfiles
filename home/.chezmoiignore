@@ -8,6 +8,7 @@
 {{ end }}
 
 {{ if eq .chezmoi.os "windows" }}
+.lastexecrecord/config.json
 .zprofile
 .zshenv
 .zshrc
