@@ -139,3 +139,12 @@ YARN_CACHE_FOLDER = {{ printf "%s%syarn-cache" $cacheRoot $pathSep | quote }}
 sandbox = "unelevated"
 sandbox_private_desktop = true
 {{- end }}
+
+[desktop]
+followUpQueueMode = "steer"
+show-context-window-usage = true
+composerEnterBehavior = "cmdAlways"
+
+[mcp_servers.learn_mcp]
+enabled = true
+url = "https://learn.microsoft.com/api/mcp"
