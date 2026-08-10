@@ -136,7 +136,7 @@ YARN_CACHE_FOLDER = {{ printf "%s%syarn-cache" $cacheRoot $pathSep | quote }}
 # Preferred native Windows sandbox.
 # Change only to "unelevated" when corporate policy or setup prevents elevated mode.
 [windows]
-sandbox = "unelevated"
+sandbox = "elevated"
 sandbox_private_desktop = true
 {{- end }}
 

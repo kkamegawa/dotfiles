@@ -6,6 +6,27 @@
     "timeoutSeconds": 0
   },
   "commands": [
+{{- if eq .chezmoi.os "windows" }}
+    {
+      "name": "chezmoi update",
+      "enabled": true,
+      "exe": {{ printf "%q" (printf "%s\\AppData\\Local\\Microsoft\\WindowsApps\\winget.exe" $userProfile) }},
+      "args": [
+        "upgrade",
+        "twpayne.chezmoi",
+        "--silent"
+      ]
+    },
+    {
+      "name": "mise update",
+      "enabled": true,
+      "exe": {{ printf "%q" (printf "%s\\AppData\\Local\\Microsoft\\WindowsApps\\winget.exe" $userProfile) }},
+      "args": [
+        "upgrade",
+        "jdx.mise",
+        "--silent"
+      ]
+    },
     {
       "name": "winget",
       "enabled": true,
@@ -18,5 +39,32 @@
         "--silent"
       ]
     }
+{{- else }}
+    {
+      "name": "chezmoi upgrade",
+      "enabled": true,
+      "exe": "chezmoi",
+      "args": [
+        "upgrade"
+      ]
+    },
+    {
+      "name": "mise self-update",
+      "enabled": true,
+      "exe": "mise",
+      "args": [
+        "self-update",
+        "-y"
+      ]
+    },
+    {
+      "name": "chezmoi update",
+      "enabled": true,
+      "exe": "chezmoi",
+      "args": [
+        "update"
+      ]
+    }
+{{- end }}
   ]
 }
