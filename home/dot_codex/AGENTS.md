@@ -24,12 +24,12 @@
 
 ## 作業方針
 
-### リモートありの場合
+### Gitリモートレポジトリありの場合
 
-- marketplaceのtfsugjp/skillsのskillを使用して、Azure Boardsのwork item, GitHubのissueを作成します。
+- marketplaceのtfsugjp/skillsのskillを使用して、Azure Boardsの場合work item, GitHubの場合issueを作成します。
 - 確定した作業計画はユーザーに確認してからWikiに登録してください。GitHubの場合のみ日本語と英語のplanを登録します。
 
-### リモートなしの場合
+### Gitリモートレポジトリなしの場合
 
 - issueやWork Itemは作成せず、ブランチ名ルールとコミットメッセージルールのみ適用します。
 - リモートなし、またはGitHub・Azure DevOps以外の場合、ブランチ名のissue番号部分は省略し、`prefix/説明`の形式を使用します。例: `feature/add-login-page`
