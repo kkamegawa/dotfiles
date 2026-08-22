@@ -24,7 +24,9 @@ default_permissions = "dotnet-dev"
 allow_login_shell = false
 
 # Cached search does not grant spawned commands unrestricted web access.
-web_search = "cached"
+web_search = "indexed"
+
+sandbox_mode = "workspace-write"
 
 # Workspace editing with read-only user NuGet config access.
 [permissions.dotnet-dev]
@@ -74,6 +76,10 @@ allow_upstream_proxy = true
 "localhost" = "allow"
 "127.0.0.1" = "allow"
 "::1" = "allow"
+
+[features]
+js_repl = false
+memories = true
 
 # Keep the network proxy enabled for the selected permissions profile.
 [features.network_proxy]
@@ -142,6 +148,10 @@ sandbox_private_desktop = true
 followUpQueueMode = "steer"
 show-context-window-usage = true
 composerEnterBehavior = "cmdAlways"
+enabled-reasoning-efforts = ["low", "medium", "high", "xhigh", "ultra", "max"]
+open-local-url-in-target-preference = "external-browser"
+git-pull-request-merge-method = "squash"
+worktree-upstream-refresh-mode = "best-effort"
 
 [mcp_servers.learn_mcp]
 enabled = true
@@ -151,3 +161,43 @@ url = "https://learn.microsoft.com/api/mcp"
 max_concurrent_threads_per_session = 100
 default_subagent_model = "gpt-5.6-luna"
 default_subagent_reasoning_effort = "max"
+
+[plugins."codex-app-tools@openai-bundled"]
+enabled = true
+
+[plugins."sites@openai-bundled"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."chrome@openai-bundled"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."visualize@openai-bundled"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
+[sandbox_workspace_write]
+network_access = true
+
+[memories]
+generate_memories = true
+use_memories = true
