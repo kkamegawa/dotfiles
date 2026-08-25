@@ -14,11 +14,11 @@ python = ['3.13', '3.11', '3.12', '3.14']
 
 [tasks.clean-old-pwsh-modules]
 description = "Remove old Azure, Microsoft Entra, and Microsoft Graph PowerShell module versions."
-run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/oldpowershellmodule.cs"'
+run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldpowershellmodule.cs"'
 
 [tasks.clean-old-pwsh-modules-dry-run]
 description = "Show old PowerShell module versions that would be removed."
-run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/oldpowershellmodule.cs" -- --dry-run'
+run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldpowershellmodule.cs" -- --dry-run'
 
 [env]
 # mise 管理の Python を uv のデフォルト Python として使う
