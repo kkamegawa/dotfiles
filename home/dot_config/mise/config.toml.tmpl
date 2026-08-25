@@ -20,6 +20,14 @@ run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldpowe
 description = "Show old PowerShell module versions that would be removed."
 run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldpowershellmodule.cs" -- --dry-run'
 
+[tasks.clean-old-nuget-package]
+description = "Remove old NuGet package versions."
+run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldnugetpackages.cs"'
+
+[tasks.clean-old-nuget-package-dry-run]
+description = "Show old NuGet package versions that would be removed."
+run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldnugetpackages.cs" -- --dry-run'
+
 [env]
 # mise 管理の Python を uv のデフォルト Python として使う
 # NOTE: 二重波括弧は mise 自身のテンプレート構文であり、chezmoi の Go テンプレートではない。
