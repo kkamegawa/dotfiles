@@ -154,7 +154,19 @@ Uninstall-Module -Name {{ToPowerShellSingleQuotedString(module.Name)}} -Required
     var result = await RunPowerShellAsync(powershell, script);
     if (result.ExitCode != 0)
     {
-        throw new InvalidOperationException($"Failed to uninstall {module.Name} {module.Version}: {result.Error.Trim()}");
+        Console.Error.WriteLine($"Warning: Failed to uninstall {module.Name} {module.Version} via Uninstall-Module: {result.Error.Trim()}");
+
+        if (!string.IsNullOrWhiteSpace(module.InstalledLocation) && Directory.Exists(module.InstalledLocation))
+        {
+            var fullPath = Path.GetFullPath(module.InstalledLocation);
+            Console.WriteLine($"Falling back to directory removal: {fullPath}");
+            Directory.Delete(fullPath, recursive: true);
+            Console.WriteLine($"Removed {fullPath}");
+        }
+        else
+        {
+            Console.Error.WriteLine($"Warning: Directory not found for {module.Name} {module.Version}, skipping.");
+        }
     }
 }
 
