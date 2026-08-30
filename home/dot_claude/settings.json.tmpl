@@ -1,4 +1,11 @@
 {{- $isWindows := eq .chezmoi.os "windows" -}}
+{{- define "orcaHookEntry" -}}
+          {
+            "type": "command",
+            "command": "if [ -z \"${HOME-}\" ]; then { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; printf '{}\\n'; else case \"${OSTYPE-}\" in msys*|cygwin*|win32*) if [ -f \"${HOME-}/.orca/agent-hooks/claude-hook.cmd\" ]; then case \"${HOME-}\" in *\\&*|*\\^*|*\\(*|*\\)*|*\\;*|*,*|*=*|*%*|*\\!*) if [ -f \"${SYSTEMROOT-}/System32/WindowsPowerShell/v1.0/powershell.exe\" ]; then \"${SYSTEMROOT-}/System32/WindowsPowerShell/v1.0/powershell.exe\" -NoProfile -EncodedCommand JABQAHIAbwBnAHIAZQBzAHMAUAByAGUAZgBlAHIAZQBuAGMAZQA9ACcAUwBpAGwAZQBuAHQAbAB5AEMAbwBuAHQAaQBuAHUAZQAnADsAIAB0AHIAeQAgAHsAIABTAGUAdAAtAEUAeABlAGMAdQB0AGkAbwBuAFAAbwBsAGkAYwB5ACAALQBTAGMAbwBwAGUAIABQAHIAbwBjAGUAcwBzACAALQBFAHgAZQBjAHUAdABpAG8AbgBQAG8AbABpAGMAeQAgAEIAeQBwAGEAcwBzACAALQBGAG8AcgBjAGUAIAAtAEUAcgByAG8AcgBBAGMAdABpAG8AbgAgAFMAaQBsAGUAbgB0AGwAeQBDAG8AbgB0AGkAbgB1AGUAIAB9ACAAYwBhAHQAYwBoACAAewB9ADsAIAAkAGgAbwBtAGUAUABhAHQAaAAgAD0AIAAkAGUAbgB2ADoASABPAE0ARQAgAC0AcgBlAHAAbABhAGMAZQAgACcAXgAvACgAWwBBAC0AWgBhAC0AegBdACkALwAnACwAIAAnACQAMQA6AC8AJwA7ACAAJABzAGMAcgBpAHAAdABQAGEAdABoACAAPQAgAEoAbwBpAG4ALQBQAGEAdABoACAAJABoAG8AbQBlAFAAYQB0AGgAIAAnAC4AbwByAGMAYQBcAGEAZwBlAG4AdAAtAGgAbwBvAGsAcwBcAGMAbABhAHUAZABlAC0AaABvAG8AawAuAGMAbQBkACcAOwAgAGkAZgAgACgAVABlAHMAdAAtAFAAYQB0AGgAIAAtAEwAaQB0AGUAcgBhAGwAUABhAHQAaAAgACQAcwBjAHIAaQBwAHQAUABhAHQAaAAgAC0AUABhAHQAaABUAHkAcABlACAATABlAGEAZgApACAAewAgACYAIAAkAHMAYwByAGkAcAB0AFAAYQB0AGgAOwAgAGUAeABpAHQAIAAkAEwAQQBTAFQARQBYAEkAVABDAE8ARABFACAAfQA7ACAAWwBDAG8AbgBzAG8AbABlAF0AOgA6AEkAbgAuAFIAZQBhAGQAVABvAEUAbgBkACgAKQAgAHwAIABPAHUAdAAtAE4AdQBsAGwAOwAgAFcAcgBpAHQAZQAtAE8AdQB0AHAAdQB0ACAAJwB7AH0AJwA7ACAAZQB4AGkAdAAgADAA; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; printf '{}\\n'; fi ;; *) \"${HOME-}/.orca/agent-hooks/claude-hook.cmd\" ;; esac; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; printf '{}\\n'; fi ;; *) if [ -f \"${HOME-}/.orca/agent-hooks/claude-hook.sh\" ] && [ -r \"${HOME-}/.orca/agent-hooks/claude-hook.sh\" ] && [ -x \"${HOME-}/.orca/agent-hooks/claude-hook.sh\" ]; then /bin/sh \"${HOME-}/.orca/agent-hooks/claude-hook.sh\"; else { command -p cat 2>/dev/null || cat; } >/dev/null 2>&1 || :; printf '{}\\n'; fi ;; esac; fi",
+            "timeout": 10
+          }
+{{- end -}}
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
@@ -25,6 +32,13 @@
       "Bash(wc:*)",
       "Bash(which:*)",
 {{- end }}
+      "Bash(git push:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh release:*)",
+      "Bash(gh issue:*)",
+      "Bash(az repos:*)",
+      "Bash(az boards:*)",
+      "Bash(az pipelines:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
@@ -72,13 +86,6 @@
       "Bash(Invoke-Pester:*)"
     ],
     "ask": [
-      "Bash(git push:*)",
-      "Bash(gh pr:*)",
-      "Bash(gh release:*)",
-      "Bash(gh issue:*)",
-      "Bash(az repos:*)",
-      "Bash(az boards:*)",
-      "Bash(az pipelines:*)",
       "Bash(dotnet ef database update:*)",
       "Bash(npm publish:*)",
       "Bash(dotnet nuget push:*)"
@@ -123,6 +130,12 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+{{ template "orcaHookEntry" }}
+        ]
       }
     ],
     "PostToolUse": [
@@ -137,6 +150,20 @@
             "async": true
           }
         ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+{{ template "orcaHookEntry" }}
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "*",
+        "hooks": [
+{{ template "orcaHookEntry" }}
+        ]
       }
     ],
     "PostCompact": [
@@ -148,6 +175,11 @@
             "args": ["run", "__CLAUDE_HOME__/hooks/compaction-recovery.cs"],
             "timeout": 15
           }
+        ]
+      },
+      {
+        "hooks": [
+{{ template "orcaHookEntry" }}
         ]
       }
     ],
@@ -170,6 +202,61 @@
             "args": ["run", "__CLAUDE_HOME__/hooks/userpromptsubmit-compact-prep-reminder.cs"],
             "timeout": 10
           }
+        ]
+      },
+      {
+        "hooks": [
+{{ template "orcaHookEntry" }}
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+{{ template "orcaHookEntry" }}
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+{{ template "orcaHookEntry" }}
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+{{ template "orcaHookEntry" }}
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+{{ template "orcaHookEntry" }}
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+{{ template "orcaHookEntry" }}
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+{{ template "orcaHookEntry" }}
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+{{ template "orcaHookEntry" }}
         ]
       }
     ]
@@ -251,5 +338,7 @@
       "cmd.exe"
     ]
   },
-  "enableWorkflows": true
+  "enableWorkflows": true,
+  "agentPushNotifEnabled": true,
+  "inputNeededNotifEnabled": true
 }
