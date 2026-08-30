@@ -1,8 +1,13 @@
 # Windows: run_after_20-mise-upgrade.ps1
-# Keep mise-managed tools up to date on every chezmoi apply/update.
+# Keep mise-managed tools up to date on Mondays.
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ((Get-Date).DayOfWeek -ne [System.DayOfWeek]::Monday) {
+  Write-Output 'Skipping execution because today is not Monday.'
+  exit 0
+}
 
 function Update-DotnetGlobalToolSet {
   [CmdletBinding(SupportsShouldProcess)]
