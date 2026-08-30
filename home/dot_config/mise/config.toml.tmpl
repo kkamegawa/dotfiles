@@ -11,6 +11,7 @@ npm = "latest"
 dotnet = "10"
 python = ['3.13', '3.11', '3.12', '3.14']
 "npm:@vscode/vsce" = "latest"
+"npm:@openai/codex" = "latest"
 
 [tasks.clean-old-pwsh-modules]
 description = "Remove old Azure, Microsoft Entra, and Microsoft Graph PowerShell module versions."
@@ -36,4 +37,3 @@ run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldnuge
 # `.path` を直接参照するとキーが見つからずレンダリングに失敗するため、
 # 先頭要素（最初に指定したバージョン）を明示的にインデックス参照する。
 UV_PYTHON = { value = "{{ "{{" }} tools.python[0].path {{ "}}" }}", tools = true }
-
