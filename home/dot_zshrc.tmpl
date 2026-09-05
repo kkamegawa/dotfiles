@@ -76,3 +76,6 @@ setopt HIST_IGNORE_SPACE
 
 bindkey "^[[3;5~" kill-word
 bindkey -e
+bindkey "^[[3~"   delete-char        # Delete
+bindkey "^[[3;5~" kill-word          # Ctrl+Delete
+bindkey "^W"      backward-kill-word # Ctrl+Backspace
