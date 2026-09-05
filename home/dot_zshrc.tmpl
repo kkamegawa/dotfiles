@@ -73,3 +73,6 @@ setopt HIST_IGNORE_SPACE
 # User additions
 # Put machine-local zsh customizations in ~/.zshrc.local.
 [ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"
+
+bindkey "^[[3;5~" kill-word
+bindkey -e
