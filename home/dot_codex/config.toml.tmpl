@@ -80,6 +80,8 @@ allow_upstream_proxy = true
 [features]
 js_repl = false
 memories = true
+multi_agent_v2.min_wait_timeout_ms = 120000
+multi_agent_v2.default_wait_timeout_ms = 120000
 
 # Keep the network proxy enabled for the selected permissions profile.
 [features.network_proxy]
@@ -160,7 +162,7 @@ url = "https://learn.microsoft.com/api/mcp"
 [agents]
 max_concurrent_threads_per_session = 100
 default_subagent_model = "gpt-5.6-luna"
-default_subagent_reasoning_effort = "max"
+default_subagent_reasoning_effort = "medium"
 
 [features.context_management]
 experimental = true
