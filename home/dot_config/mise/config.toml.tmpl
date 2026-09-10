@@ -10,6 +10,9 @@ node = "lts"
 npm = "latest"
 python = ['3.13', '3.11', '3.12', '3.14']
 "npm:@vscode/vsce" = "latest"
+{{ if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") }}
+go = "latest"
+{{ end }}
 
 [tasks.clean-old-pwsh-modules]
 description = "Remove old Azure, Microsoft Entra, and Microsoft Graph PowerShell module versions."
