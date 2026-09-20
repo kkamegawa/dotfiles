@@ -40,6 +40,16 @@
         "--accept-package-agreements",
         "--silent"
       ]
+    },
+    {
+      "name": "winget",
+      "enabled": true,
+      "exe": "C:\\Windows\\System32\\sudo.exe",
+      "args": [
+        "syncwingetlink",
+        "fix",
+        "-y"
+      ]
     }
 {{- else }}
     {
