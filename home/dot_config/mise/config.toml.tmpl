@@ -14,15 +14,6 @@ python = ['3.13', '3.11', '3.12', '3.14']
 go = "latest"
 {{ end }}
 
-{{- if eq .chezmoi.os "windows" }}
-
-"winget:openai.codex" = "latest"
-"winget:Anthropic.ClaudeCode" = "latest"
-"winget:Microsoft.APM" = "latest"
-"winget:GitHub.Copilot" = "latest"
-
-{{- end }}
-
 [tasks.clean-old-pwsh-modules]
 description = "Remove old Azure, Microsoft Entra, and Microsoft Graph PowerShell module versions."
 run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldpowershellmodule.cs"'
