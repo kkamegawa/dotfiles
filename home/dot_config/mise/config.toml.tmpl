@@ -30,24 +30,6 @@ run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldnuge
 description = "Show old NuGet package versions that would be removed."
 run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldnugetpackages.cs" -- --dry-run'
 
-{{- if eq .chezmoi.os "windows" }}
-
-[".config/mise/plugins/winget"]
-type = "archive"
-url = "https://github.com/Yuzu02/mise-winget/archive/f342b1dbb5ba11423694a1b37f2a9105e15d646d.zip"
-stripComponents = 1
-exact = true
-refreshPeriod = "168h"
-
-{{- end }}
-
-{{- if eq .chezmoi.os "windows" }}
-
-[plugins]
-winget = "~/.config/mise/plugins/winget"
-
-{{- end }}
-
 [env]
 # mise 管理の Python を uv のデフォルト Python として使う
 # NOTE: 二重波括弧は mise 自身のテンプレート構文であり、chezmoi の Go テンプレートではない。
