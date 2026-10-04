@@ -74,6 +74,15 @@ Codex CLI（OpenAI）・Claude Code CLI（Anthropic）は npm バックエンド
 プロジェクト固有の指示（`AGENTS.md` / `.github/copilot-instructions.md`）はリポジトリ側で管理し、
 ここでは全プロジェクト共通のユーザーレベル指示のみを dotfiles に含めます。
 
+#### Claude Code のフックとコンテキスト圧縮
+
+- フック・statusLine のスクリプトは `home/dot_claude/hooks/` から `~/.claude/hooks/` に配布し、`settings.json.tmpl` 内では `.chezmoi.homeDir` から組み立てた絶対パス（`$claudeHome`）で参照する
+- 自動圧縮のしきい値は `env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE = "60"` で、コンテキストウィンドウ使用率 60% に設定する（フックからは `/compact` を実行できないため、圧縮そのものは Claude Code に任せる）
+- 圧縮の前後処理は .NET 10 のファイルベースプログラム（`dotnet run <file>.cs`）で行う
+  - `compaction-recovery.cs`（PostCompact）: `compact_summary` を `~/.claude/hooks-state/{session_id}.summary` に保存する
+  - `userpromptsubmit-compaction-recovery.cs`（UserPromptSubmit）: 保存済みサマリーを次のプロンプトに `additionalContext` として 1 回だけ注入し、ファイルを削除する
+- `dotnet run` は初回にビルドが走るため（30 秒程度）、C# フックの `timeout` は 60 秒にしている
+
 ### APM（AI エージェント設定）
 
 - Copilot CLI 向けのカスタム指示・フック・スキル・MCP サーバーは別リポジトリで管理

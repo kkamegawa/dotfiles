@@ -1,11 +1,8 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
+import { readFileSync } from 'node:fs';
 
 /**
  * statusLine script for Claude Code.
  * Receives JSON session data on stdin, outputs a formatted context bar.
- * Creates ~/.claude/hooks-state/{session_id}.warned when context >= 60%.
  */
 
 function buildBar(pct, width) {
@@ -26,15 +23,6 @@ function main() {
     const model = data.model?.display_name ?? 'Claude';
     const pct = Math.max(0, Math.min(100, Math.round(+data.context_window?.used_percentage || 0)));
     const cwd = data.cwd ?? '';
-    const sessionId = data.session_id ?? 'unknown';
-
-    // Write warned marker once when context reaches 60%
-    const stateDir = join(homedir(), '.claude', 'hooks-state');
-    mkdirSync(stateDir, { recursive: true });
-    const warnFile = join(stateDir, `${sessionId}.warned`);
-    if (pct >= 60 && !existsSync(warnFile)) {
-      writeFileSync(warnFile, new Date().toISOString(), 'utf8');
-    }
 
     const dirName = cwd.split(/[/\\]/).pop() || cwd;
     const bar = buildBar(pct, 20);
