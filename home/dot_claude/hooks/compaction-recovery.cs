@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 
 // PostCompact hook (.NET 10 file-based program)
-// Saves compact_summary for recovery and clears the 60%-warning marker.
+// Saves compact_summary so the next UserPromptSubmit hook can restore it.
 
 try
 {
@@ -20,10 +20,6 @@ try
         await File.WriteAllTextAsync(
             Path.Combine(stateDir, $"{sessionId}.summary"), summary);
     }
-
-    var warnFile = Path.Combine(stateDir, $"{sessionId}.warned");
-    if (File.Exists(warnFile))
-        File.Delete(warnFile);
 }
 catch
 {

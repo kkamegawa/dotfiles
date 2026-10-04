@@ -1,4 +1,5 @@
 {{- $isWindows := eq .chezmoi.os "windows" -}}
+{{- $claudeHome := printf "%s/.claude" (.chezmoi.homeDir | replace "\\" "/") -}}
 {{- define "orcaHookEntry" -}}
           {
             "type": "command",
@@ -9,6 +10,9 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "model": "opusplan",
+  "env": {
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60"
+  },
   "permissions": {
     "defaultMode": "default",
     "allow": [
@@ -127,7 +131,7 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["__CLAUDE_HOME__/hooks/guard.mjs"],
+            "args": ["{{ $claudeHome }}/hooks/guard.mjs"],
             "timeout": 10
           }
         ]
@@ -146,7 +150,7 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["__CLAUDE_HOME__/hooks/format.mjs"],
+            "args": ["{{ $claudeHome }}/hooks/format.mjs"],
             "timeout": 30,
             "async": true
           }
@@ -173,8 +177,8 @@
           {
             "type": "command",
             "command": "dotnet",
-            "args": ["run", "__CLAUDE_HOME__/hooks/compaction-recovery.cs"],
-            "timeout": 15
+            "args": ["run", "{{ $claudeHome }}/hooks/compaction-recovery.cs"],
+            "timeout": 60
           }
         ]
       },
@@ -190,18 +194,8 @@
           {
             "type": "command",
             "command": "dotnet",
-            "args": ["run", "__CLAUDE_HOME__/hooks/userpromptsubmit-compaction-recovery.cs"],
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "dotnet",
-            "args": ["run", "__CLAUDE_HOME__/hooks/userpromptsubmit-compact-prep-reminder.cs"],
-            "timeout": 10
+            "args": ["run", "{{ $claudeHome }}/hooks/userpromptsubmit-compaction-recovery.cs"],
+            "timeout": 60
           }
         ]
       },
@@ -265,7 +259,7 @@
   "statusLine": {
     "type": "command",
     "command": "node",
-    "args": ["__CLAUDE_HOME__/hooks/statusline.mjs"],
+    "args": ["{{ $claudeHome }}/hooks/statusline.mjs"],
     "timeout": 5
   },
   "extraKnownMarketplaces": {

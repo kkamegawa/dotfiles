@@ -117,3 +117,26 @@ gh auth status
 gh auth login
 apm install
 ```
+
+---
+
+## Claude Code フック
+
+### フックが動かない（`Cannot find module '...\__CLAUDE_HOME__\hooks\...'`）
+
+`~/.claude/settings.json` に `__CLAUDE_HOME__` が残っていると、フックのパスがセッションの作業ディレクトリ基準で解決され、すべてのフックが失敗します（エラーは non-blocking のため気付きにくい）。現在のテンプレートは絶対パスを生成するので、最新のソースで再適用します。
+
+```sh
+chezmoi update
+grep -c __CLAUDE_HOME__ ~/.claude/settings.json   # 0 になること
+```
+
+```powershell
+chezmoi update
+(Select-String -Path ~/.claude/settings.json -Pattern '__CLAUDE_HOME__').Count   # 0 になること
+```
+
+### 60% で自動圧縮されない
+
+`~/.claude/settings.json` の `env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` が `"60"` になっているかを確認します。設定変更は新しいセッションから有効になります。
+
