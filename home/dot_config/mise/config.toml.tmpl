@@ -14,6 +14,23 @@ python = ['3.13', '3.11', '3.12', '3.14']
 go = "latest"
 {{ end }}
 
+[tasks.marketplace-sync]
+description = "Register/update the tfsugjp Claude Code skills marketplace and enable user-scope plugins."
+run = '''
+claude plugin marketplace add tfsugjp/skills --scope user || claude plugin marketplace update tfsugjp-agent-skills
+claude plugin install github-plan-wiki@tfsugjp-agent-skills -s user -y
+claude plugin install dependabot-safe-merge@tfsugjp-agent-skills -s user -y
+claude plugin install azure-devops-toolkit@tfsugjp-agent-skills -s user -y
+codex plugin marketplace add tfsugjp/skills --scope user || codex plugin marketplace update tfsugjp-agent-skills
+codex plugin install github-plan-wiki@tfsugjp-agent-skills -s user -y
+codex plugin install dependabot-safe-merge@tfsugjp-agent-skills -s user -y
+codex plugin install azure-devops-toolkit@tfsugjp-agent-skills -s user -y
+copilot plugin marketplace add tfsugjp/skills --scope user || copilot plugin marketplace update tfsugjp-agent-skills
+copilot plugin install github-plan-wiki@tfsugjp-agent-skills -s user -y
+copilot plugin install dependabot-safe-merge@tfsugjp-agent-skills -s user -y
+copilot plugin install azure-devops-toolkit@tfsugjp-agent-skills -s user -y
+'''
+
 [tasks.clean-old-pwsh-modules]
 description = "Remove old Azure, Microsoft Entra, and Microsoft Graph PowerShell module versions."
 run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldpowershellmodule.cs"'
