@@ -51,7 +51,7 @@ run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldnuge
 # mise 管理の Python を uv のデフォルト Python として使う
 # NOTE: 二重波括弧は mise 自身のテンプレート構文であり、chezmoi の Go テンプレートではない。
 # chezmoi にリテラルとして出力させるためエスケープしている。
-# `tools.python` は上の [tools] で複数バージョンを指定しているため配列になる。
-# `.path` を直接参照するとキーが見つからずレンダリングに失敗するため、
-# 先頭要素（最初に指定したバージョン）を明示的にインデックス参照する。
-UV_PYTHON = { value = "{% if tools.python is object %}{{ tools.python.path }}{% else %}{{ tools.python[0].path }}{% endif %}", tools = true }
+# `tools.python` はグローバルで複数バージョンを指定すると配列になるが、
+# プロジェクトの mise.toml が単一バージョンで上書きすると単体のオブジェクトになる。
+# どちらの形でも描画できるよう、型で分岐してパスを参照する。
+UV_PYTHON = { value = "{% if tools.python is object %}{{ "{{" }} tools.python.path {{ "}}" }}{% else %}{{ "{{" }} tools.python[0].path {{ "}}" }}{% endif %}", tools = true }
