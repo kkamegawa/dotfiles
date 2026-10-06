@@ -54,4 +54,4 @@ run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldnuge
 # `tools.python` は上の [tools] で複数バージョンを指定しているため配列になる。
 # `.path` を直接参照するとキーが見つからずレンダリングに失敗するため、
 # 先頭要素（最初に指定したバージョン）を明示的にインデックス参照する。
-UV_PYTHON = { value = "{{ "{{" }} tools.python[0].path {{ "}}" }}", tools = true }
+UV_PYTHON = { value = "{% if tools.python is object %}{{ tools.python.path }}{% else %}{{ tools.python[0].path }}{% endif %}", tools = true }
