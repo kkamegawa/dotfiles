@@ -71,8 +71,20 @@ if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
 
 Write-Output '==> Running mise install...'
 mise install
+if ($LASTEXITCODE -ne 0) {
+  throw "mise install failed with exit code $LASTEXITCODE."
+}
 
 Write-Output '==> Running mise upgrade...'
 mise upgrade
+if ($LASTEXITCODE -ne 0) {
+  throw "mise upgrade failed with exit code $LASTEXITCODE."
+}
+
+Write-Output '==> Applying mise bootstrap packages...'
+mise bootstrap packages apply --yes
+if ($LASTEXITCODE -ne 0) {
+  throw "mise bootstrap packages apply failed with exit code $LASTEXITCODE."
+}
 
 Write-Output '==> mise install/upgrade complete'

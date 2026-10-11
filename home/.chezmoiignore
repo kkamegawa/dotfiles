@@ -5,6 +5,7 @@
 60-setup-apm-profile.ps1
 05-setup-mise-path.ps1
 10-install-packages.ps1
+20-mise-install.ps1
 50-import-vs-settings.ps1
 {{ end }}
 

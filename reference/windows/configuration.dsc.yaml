@@ -15,6 +15,10 @@
 #     開発環境ベースラインに合わせて有効化している
 #   - Windows オプション機能（OpenSSH, Hyper-V, 開発者モード）は PSDscResources/Script で管理
 #   - フォントは JetBrains Mono Nerd Font を winget、他は GitHub Releases から管理
+#   - Winget packages that install in user scope are declared as `winget:` entries in
+#     [bootstrap.packages] of home/dot_config/mise/config.toml.tmpl, not here.
+#     This file keeps apps under Program Files (including MSIX apps in
+#     Program Files\WindowsApps), Microsoft Store apps, chezmoi/mise bootstrap, and fonts.
 
 properties:
   configurationVersion: 0.2.0
@@ -216,47 +220,6 @@ properties:
         id: GitHub.cli
         source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: github-desktop
-      directives:
-        description: GitHub Desktop
-      settings:
-        id: GitHub.GitHubDesktop
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: github-copilot-prerelease
-      directives:
-        description: GitHub Copilot for CLI (Prerelease)
-        allowPrerelease: true
-      settings:
-        id: GitHub.Copilot.Prerelease
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: github-copilot-app
-      directives:
-        description: GitHub Copilot App
-      settings:
-        id: GitHub.CopilotApp
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: ghq
-      directives:
-        description: ghq（リポジトリ管理）
-      settings:
-        id: x-motemen.ghq
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: komac
-      directives:
-        description: Komac（winget マニフェスト作成）
-      settings:
-        id: RussellBanks.Komac
-        source: winget
-
     # -------------------------------------------------------------------------
     # dotfiles・設定管理ツール
     # -------------------------------------------------------------------------
@@ -274,14 +237,6 @@ properties:
         description: mise-en-place（Node.js / Python バージョン管理）
       settings:
         id: jdx.mise
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: apm
-      directives:
-        description: APM - Agent Package Manager（Copilot CLI 設定管理）
-      settings:
-        id: Microsoft.APM
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -303,30 +258,6 @@ properties:
     # -------------------------------------------------------------------------
     # 開発ツール全般
     # -------------------------------------------------------------------------
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: fzf
-      directives:
-        description: fzf（ファジーファインダー）
-      settings:
-        id: junegunn.fzf
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: lastexecrecord
-      directives:
-        description: lastexecrecord
-      settings:
-        id: kkamegawa.lastexecrecord
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: powertoys
-      directives:
-        description: Microsoft PowerToys
-      settings:
-        id: Microsoft.PowerToys
-        source: winget
-
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: winget-studio
       directives:
@@ -351,44 +282,9 @@ properties:
         id: Microsoft.WinAppCli
         source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: edit
-      directives:
-        description: Microsoft Edit（テキストエディタ）
-      settings:
-        id: Microsoft.Edit
-        source: winget
-
-    # -------------------------------------------------------------------------
-    # Python 系
-    # -------------------------------------------------------------------------
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: uv
-      directives:
-        description: uv（Python パッケージマネージャー）
-      settings:
-        id: astral-sh.uv
-        source: winget
-
     # -------------------------------------------------------------------------
     # エディタ・IDE
     # -------------------------------------------------------------------------
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: vscode
-      directives:
-        description: Visual Studio Code
-      settings:
-        id: Microsoft.VisualStudioCode
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: vscode-insiders
-      directives:
-        description: Visual Studio Code Insiders
-      settings:
-        id: Microsoft.VisualStudioCode.Insiders
-        source: winget
-
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: visual-studio-enterprise-insiders
       directives:
@@ -396,14 +292,6 @@ properties:
         allowPrerelease: true
       settings:
         id: Microsoft.VisualStudio.Enterprise.Insiders
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: jetbrains-toolbox
-      directives:
-        description: JetBrains Toolbox（Rider 等を管理）
-      settings:
-        id: JetBrains.Toolbox
         source: winget
 
     # -------------------------------------------------------------------------
@@ -418,43 +306,11 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: azd
-      directives:
-        description: Azure Developer CLI (azd)
-      settings:
-        id: Microsoft.Azd
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: azcopy
-      directives:
-        description: AzCopy 10
-      settings:
-        id: Microsoft.Azure.AZCopy.10
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: azure-functions-core-tools
       directives:
         description: Azure Functions Core Tools
       settings:
         id: Microsoft.Azure.FunctionsCoreTools
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: azure-storage-explorer
-      directives:
-        description: Azure Storage Explorer
-      settings:
-        id: Microsoft.Azure.StorageExplorer
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: bicep
-      directives:
-        description: Bicep CLI
-      settings:
-        id: Microsoft.Bicep
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -466,22 +322,6 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: claude
-      directives:
-        description: Claude Code（Anthropic 製 AI コーディング支援）
-      settings:
-        id: Anthropic.Claude
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: claude-code-cli
-      directives:
-        description: Claude Code CLI（Anthropic 製 AI コーディング支援）
-      settings:
-        id: Anthropic.ClaudeCode
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: codex
       directives:
         description: Codex（OpenAI 製 AI コーディング支援）
@@ -490,27 +330,11 @@ properties:
         source: msstore
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: codex-cli
-      directives:
-        description: Codex CLI（OpenAI 製 AI コーディング支援）
-      settings:
-        id: OpenAI.Codex
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: coreutils
       directives:
         description: Core Utilities
       settings:
         id: Microsoft.Coreutils
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: microsoft-scout
-      directives:
-        description: Microsoft Scout（AI 支援）
-      settings:
-        id: Microsoft.ScoutAgent
         source: winget
 
     # -------------------------------------------------------------------------
@@ -551,41 +375,9 @@ properties:
         id: XP99C9G0KRDZ27
         source: msstore
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: 1password-cli
-      directives:
-        description: 1Password CLI
-      settings:
-        id: AgileBits.1Password.CLI
-        source: winget
-
     # -------------------------------------------------------------------------
     # 生産性・ユーティリティ・ブラウザ
     # -------------------------------------------------------------------------
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: ffmpeg
-      directives:
-        description: FFmpeg
-      settings:
-        id: Gyan.FFmpeg
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: winscp
-      directives:
-        description: WinSCP（SFTP/FTP クライアント）
-      settings:
-        id: WinSCP.WinSCP
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: youtube-dl
-      directives:
-        description: youtube-dl
-      settings:
-        id: youtube-dl.youtube-dl
-        source: winget
-
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: chrome
       directives:
