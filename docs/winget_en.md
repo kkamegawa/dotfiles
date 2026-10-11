@@ -19,7 +19,7 @@ To decide where a new package belongs, check where it installs. Packages that go
 ## When packages are applied
 
 - `run_once_after_20-mise-install.ps1` runs `mise install` and `mise bootstrap packages apply --yes` once after the first `chezmoi apply`.
-- `run_after_20-mise-upgrade.ps1` runs `mise bootstrap packages apply --yes` on Mondays, after `mise install` and `mise upgrade`.
+- `run_after_20-mise-upgrade.ps1` runs `mise bootstrap packages apply --yes` on every `chezmoi apply` / `chezmoi update`, after `mise install` and `mise upgrade`.
 
 `apply` only installs missing packages. It does not upgrade installed packages. To upgrade them, run `mise bootstrap packages upgrade` or `winget upgrade`.
 
