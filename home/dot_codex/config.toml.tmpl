@@ -37,7 +37,7 @@ web_search = "indexed"
 
 {{- if eq .chezmoi.os "windows" }}
 {{- else if eq .chezmoi.os "darwin" }}
-{{- $cacheRoot = printf "%s/.cache/codex-dev" $homeDir -}}
+{{- $cacheRoot = printf "%s/.cache/codex-dev" $homeDir }}
 notify = [{{ printf "%s/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient" $codexHome | quote }}, "turn-ended"]
 {{- end }}
 
