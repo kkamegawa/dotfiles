@@ -1,26 +1,25 @@
-# Homebrew package handling
+# macOS package management with mise
 
-## Self-updating macOS casks
+macOS command-line tools, applications, and fonts listed under `[bootstrap.packages]` in `home/dot_config/mise/config.toml.tmpl` are installed by mise's `brew` and `brew-cask` package managers. The `run_once_after_20-mise-install.sh` script applies this configuration after mise itself has been installed. Later `chezmoi apply` runs also apply the package configuration from `run_after_20-mise-upgrade.sh`.
 
-The macOS bootstrap installs Homebrew formulae first, then Homebrew casks.
+The package configuration only targets macOS. It does not install Homebrew itself. mise's Homebrew package managers use Homebrew-compatible package metadata and install packages into the standard Homebrew locations.
 
-Some cask applications update themselves outside Homebrew. When those apps are already present, running `brew install --cask` again can make Homebrew compare its recorded cask version against an app that has already self-updated. That work is redundant during dotfiles bootstrap.
+## Migrating existing Homebrew installations
 
-The bootstrap treats casks as install-only during dotfiles setup. It skips a cask when Homebrew already lists that cask as installed, so `brew install --cask` does not trigger an implicit upgrade during bootstrap.
+Adding a package to mise configuration does not transfer ownership of an existing Homebrew installation. Existing formulae and casks are left in place and remain Homebrew-managed. Do not run `mise bootstrap packages prune` as part of migration.
 
-For casks marked `auto_updates` in Homebrew metadata, the bootstrap treats the first successful install as the only Homebrew-managed install. Later runs skip the cask when Homebrew metadata records it as installed. If the cask was installed outside Homebrew, the bootstrap also skips it when an application bundle declared by the cask exists in `/Applications`, `~/Applications`, or an absolute `.app` path listed by the cask metadata.
+To transfer an existing package to mise management, first inspect the package and any dependent tools. For a cask, uninstall it with Homebrew and then apply the mise configuration:
 
-This keeps first-time setup behavior intact for new machines while avoiding repeated Homebrew work for apps that manage their own updates. Casks that are missing continue to use the normal `brew install --cask` path.
+```sh
+brew uninstall --cask <cask-name>
+mise bootstrap packages apply --manager brew-cask --dry-run
+mise bootstrap packages apply --manager brew-cask
+```
 
-## Azure CLI preview cask
+For a formula, use the corresponding `brew uninstall <formula>` command and then apply the `brew` manager. Uninstalling a cask may remove application data or affect macOS privacy permissions. Back up or verify important data before proceeding. Migrate packages individually; do not uninstall packages that are dependencies of tools managed outside mise.
 
-On macOS, this repository installs Azure CLI with the preview Homebrew cask flow from Microsoft Learn instead of the Homebrew core formula.
+## Unsupported packages and Azure CLI preview
 
-- Tap: `azure/azure-cli`
-- Cask: `azure-cli-preview`
+The package list is limited to entries mise can resolve from the configured Homebrew formula and cask sources. `azure-cli-preview` comes from a custom tap and may not be supported by mise's cask implementation; if package application reports an unsupported cask or tap feature, keep that package under a separately managed installation method rather than restoring a general Homebrew package-install script.
 
-The bootstrap does not install the `azure-cli` formula during the preview phase, which avoids conflicts with the cask-based installation model.
-
-## Sudo handling for casks
-
-Formula installation does not keep sudo alive. Immediately before cask installation starts, the bootstrap runs `sudo -v` once and keeps that sudo timestamp active only while the cask batch is running. This avoids repeated password prompts from cask installers without leaving a long-lived sudo keepalive process after the bootstrap finishes.
+Review the `--dry-run` output before applying packages. mise does not install packages declared for another operating system.

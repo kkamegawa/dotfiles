@@ -72,7 +72,7 @@ Codex CLI（OpenAI）・Claude Code CLI（Anthropic）は npm バックエンド
 | OS | Claude Code CLI | Codex CLI |
 | --- | --- | --- |
 | Windows | WinGet（`reference/windows/configuration.dsc.yaml`） | WinGet（`reference/windows/configuration.dsc.yaml`） |
-| macOS | Homebrew cask（`home/run_once_before_10-install-homebrew-packages.sh`） | Homebrew cask（`home/run_once_before_10-install-homebrew-packages.sh`） |
+| macOS | mise bootstrap packages (`brew` / `brew-cask`) | mise bootstrap packages (`brew` / `brew-cask`) |
 | Linux / WSL | apt 公式リポジトリ（`home/run_once_before_10-install-packages.sh`） | 公式スタンドアロンインストーラー（`home/run_once_before_10-install-packages.sh`） |
 
 ```sh

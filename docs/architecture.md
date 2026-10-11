@@ -48,7 +48,7 @@
 Codex CLI（OpenAI）・Claude Code CLI（Anthropic）は npm バックエンドでは管理せず、OS ネイティブのパッケージ管理に一元化する。
 
 - **Windows**: WinGet（`reference/windows/configuration.dsc.yaml`）
-- **macOS**: Homebrew cask（`claude` / `claude-code` / `codex` / `codex-cli`、`home/run_once_before_10-install-homebrew-packages.sh`）
+- **macOS**: mise bootstrap package managers (`brew` / `brew-cask`), configured in `home/dot_config/mise/config.toml.tmpl`
 - **Linux / WSL**: `home/run_once_before_10-install-packages.sh`（Ubuntu/Debian のみ自動化。他ディストリビューションは手動インストール）
   - Claude Code CLI: 公式 apt リポジトリ（`downloads.claude.ai`）経由で `apt install claude-code`
   - Codex CLI: apt パッケージが存在しないため、OpenAI 公式スタンドアロンインストーラー（`curl -fsSL https://chatgpt.com/codex/install.sh | sh`）を使用

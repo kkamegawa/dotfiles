@@ -51,4 +51,9 @@ mise install
 echo "==> mise upgrade を実行します..."
 mise upgrade
 
+if [ "$(uname -s)" = "Darwin" ]; then
+  echo "==> mise bootstrap packages を適用します..."
+  mise bootstrap packages apply
+fi
+
 echo "==> mise install/upgrade 完了"

@@ -13,7 +13,6 @@
 .zshenv
 .zshrc
 60-setup-apm-profile.sh
-10-install-homebrew-packages.sh
 10-install-packages.sh
 10-setup-git-hooks.sh
 15-install-powershell-modules.sh
@@ -29,7 +28,6 @@
 {{ end }}
 
 {{ if ne .chezmoi.os "darwin" }}
-10-install-homebrew-packages.sh
 {{ end }}
 
 {{ if .isDevContainer }}
