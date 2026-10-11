@@ -19,7 +19,7 @@ mise が管理するのは「どのパッケージを入れておくか」とい
 ## パッケージが適用されるタイミング
 
 - `run_once_after_20-mise-install.ps1` が、最初の `chezmoi apply` の後に `mise install` と `mise bootstrap packages apply --yes` を 1 回だけ実行します。
-- `run_after_20-mise-upgrade.ps1` が、毎週月曜日に `mise install` と `mise upgrade` に続けて `mise bootstrap packages apply --yes` を実行します。
+- `run_after_20-mise-upgrade.ps1` が、`chezmoi apply` / `chezmoi update` のたびに `mise install` と `mise upgrade` に続けて `mise bootstrap packages apply --yes` を実行します。
 
 `apply` は未インストールのパッケージを入れるだけで、インストール済みのパッケージは更新しません。更新するには `mise bootstrap packages upgrade` または `winget upgrade` を実行します。
 

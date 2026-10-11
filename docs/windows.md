@@ -47,7 +47,7 @@ winget configure validate -f "$(chezmoi source-path)\reference\windows\configura
 |----------|------|
 | CLI | ghq, Komac, APM, fzf, lastexecrecord, Edit, uv, Gitleaks, ripgrep, Helm |
 | Azure・クラウド | azd, AzCopy, Bicep, Azure Storage Explorer |
-| AI 支援 | Claude, Claude Code CLI, Codex CLI, GitHub Copilot CLI (Prerelease), GitHub Copilot App, Microsoft Scout |
+| AI 支援 | Claude, Claude Code CLI, Codex CLI, GitHub Copilot CLI (Prerelease), GitHub Copilot App |
 | エディタ・IDE | VS Code, VS Code Insiders, JetBrains Toolbox |
 | GUI・ユーティリティ | GitHub Desktop, PowerToys, WinSCP |
 | セキュリティ | 1Password CLI |
