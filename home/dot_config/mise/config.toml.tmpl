@@ -154,6 +154,10 @@ python = ['3.13', '3.11', '3.12', '3.14']
 {{ if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") }}
 go = "latest"
 {{ end }}
+{{ if eq .chezmoi.os "darwin" }}
+# mise bootstrap が tap の cask 定義 (.rb) を評価するために Ruby 3 以上が必要
+ruby = "3"
+{{ end }}
 
 [tasks.marketplace-sync]
 description = "Register/update the tfsugjp Claude Code skills marketplace and enable user-scope plugins."
