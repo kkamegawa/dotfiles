@@ -1,18 +1,24 @@
 {{- $homeDir := .chezmoi.homeDir -}}
 {{- if eq .chezmoi.os "windows" -}}
+{{- if env "USERPROFILE" -}}
 {{- $homeDir = env "USERPROFILE" -}}
 {{- end -}}
-
+{{- end -}}
 {{- $cacheRoot := "" -}}
 {{- $pathSep := "/" -}}
 {{- if eq .chezmoi.os "darwin" -}}
 {{- $cacheRoot = printf "%s/Library/Caches/codex-dev" $homeDir -}}
 {{- else if eq .chezmoi.os "windows" -}}
-{{- $cacheRoot = printf "%s\\AppData\\Local\\codex-dev" $homeDir -}}
+{{- $localAppData := printf "%s\\AppData\\Local" $homeDir -}}
+{{- if env "LOCALAPPDATA" -}}
+{{- $localAppData = env "LOCALAPPDATA" -}}
+{{- end -}}
+{{- $cacheRoot = printf "%s\\codex-dev" $localAppData -}}
 {{- $pathSep = "\\" -}}
 {{- else -}}
 {{- $cacheRoot = printf "%s/.cache/codex-dev" $homeDir -}}
 {{- end -}}
+{{- $codexHome := printf "%s%s.codex" $homeDir $pathSep -}}
 
 # Codex local development config.toml
 
@@ -23,8 +29,17 @@ default_permissions = "dotnet-dev"
 # Avoid loading arbitrary shell startup scripts into agent commands.
 allow_login_shell = false
 
+model = "gpt-6.1-sol"
+model_reasoning_effort = "high"
+
 # Cached search does not grant spawned commands unrestricted web access.
 web_search = "indexed"
+
+{{- if eq .chezmoi.os "windows" }}
+{{- else if eq .chezmoi.os "darwin" }}
+{{- $cacheRoot = printf "%s/.cache/codex-dev" $homeDir -}}
+notify = [{{ printf "%s/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient" $codexHome | quote }}, "turn-ended"]
+{{- end }}
 
 # Workspace editing with read-only user NuGet config access.
 [permissions.dotnet-dev]
@@ -34,7 +49,11 @@ extends = ":workspace"
 [permissions.dotnet-dev.filesystem]
 {{ $cacheRoot | quote }} = "write"
 {{- if eq .chezmoi.os "windows" }}
-{{ printf "%s\\AppData\\Roaming\\NuGet" $homeDir | quote }} = "read"
+{{- $appData := printf "%s\\AppData\\Roaming" $homeDir }}
+{{- if env "APPDATA" }}
+{{- $appData = env "APPDATA" }}
+{{- end }}
+{{ printf "%s\\NuGet" $appData | quote }} = "read"
 {{ printf "%s\\.nuget\\plugins\\netcore" $homeDir | quote }} = "read"
 {{ printf "%s\\.azure" $homeDir | quote }} = "write"
 {{- else if eq .chezmoi.os "darwin" }}
@@ -55,6 +74,8 @@ allow_local_binding = false
 allow_upstream_proxy = true
 
 [permissions.dotnet-dev.network.domains]
+"github.com" = "allow"
+"api.github.com" = "allow"
 "login.microsoftonline.com" = "allow"
 "management.azure.com" = "allow"
 "graph.microsoft.com" = "allow"
@@ -88,6 +109,8 @@ allow_local_binding = false
 allow_upstream_proxy = true
 
 [features.network_proxy.domains]
+"github.com" = "allow"
+"api.github.com" = "allow"
 "**.nuget.org" = "allow"
 "registry.npmjs.org" = "allow"
 "registry.yarnpkg.com" = "allow"
@@ -156,8 +179,78 @@ worktree-upstream-refresh-mode = "best-effort"
 enabled = true
 url = "https://learn.microsoft.com/api/mcp"
 
+{{- if eq .chezmoi.os "darwin" }}
+# macOS app-bundled Node REPL configuration.
+[mcp_servers.node_repl]
+args = []
+command = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl"
+startup_timeout_sec = 120
+
+
+[mcp_servers.node_repl.env]
+NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
+CODEX_HOME = {{ $codexHome | quote }}
+NODE_REPL_NODE_MODULE_DIRS = "/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules"
+NODE_REPL_NODE_PATH = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node"
+NODE_REPL_TRUSTED_CODE_PATHS = {{ printf "%s:/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules" $codexHome | quote }}
+BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab,mcpapps"
+BROWSER_USE_TINYSKY_ENABLED = "1"
+NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = ""
+NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = ""
+NODE_REPL_INSTRUCTIONS_USE_CASE_COMPUTER_USE = ""
+BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
+BROWSER_USE_CODEX_APP_VERSION = "26.1007.30912"
+NODE_REPL_TRUSTED_SERVICES = {{ dict "browser" (printf "%s/plugins/cache/openai-bundled/browser/26.1007.30912/scripts/browser-service.mjs" $codexHome) "sky" "@oai/sky/service" | toJson | quote }}
+SKY_CUA_SERVICE_PATH = {{ printf "%s/computer-use/Codex Computer Use.app" $codexHome | quote }}
+CODEX_CLI_PATH = "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+{{- end }}
+
 [agents]
 max_concurrent_threads_per_session = 100
 default_subagent_model = "gpt-6-luna"
 default_subagent_reasoning_effort = "high"
 
+
+{{- if eq .chezmoi.os "darwin" }}
+# Local runtime marketplaces and plugins from the macOS app installation.
+[marketplaces.openai-primary-runtime]
+source_type = "local"
+source = {{ printf "%s/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime" $homeDir | quote }}
+
+[marketplaces.openai-bundled]
+source_type = "local"
+source = {{ printf "%s/.tmp/bundled-marketplaces/openai-bundled" $codexHome | quote }}
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
+[plugins."codex-app-tools@openai-bundled"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."unified-computer-use@openai-bundled"]
+enabled = true
+
+[plugins."chrome@openai-bundled"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."visualize@openai-bundled"]
+enabled = true
+{{- end }}
