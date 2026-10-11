@@ -21,6 +21,8 @@ chezmoi add ~/.zshrc
 
 `chezmoi update` / `chezmoi apply` 実行時は `run_after_20-mise-upgrade.*` が動き、
 `mise install` と `mise upgrade` もあわせて実行されます。
+Windows では続けて `mise bootstrap packages apply` を実行し、`winget:` エントリのうち未インストールのパッケージを入れます
+（詳細は [mise による Windows のパッケージ管理](winget_ja.md)）。
 
 ---
 
@@ -71,7 +73,7 @@ Codex CLI（OpenAI）・Claude Code CLI（Anthropic）は npm バックエンド
 
 | OS | Claude Code CLI | Codex CLI |
 | --- | --- | --- |
-| Windows | WinGet（`reference/windows/configuration.dsc.yaml`） | WinGet（`reference/windows/configuration.dsc.yaml`） |
+| Windows | mise bootstrap packages (`winget`) | mise bootstrap packages (`winget`) |
 | macOS | mise bootstrap packages (`brew` / `brew-cask`) | mise bootstrap packages (`brew` / `brew-cask`) |
 | Linux / WSL | apt 公式リポジトリ（`home/run_once_before_10-install-packages.sh`） | 公式スタンドアロンインストーラー（`home/run_once_before_10-install-packages.sh`） |
 

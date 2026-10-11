@@ -92,9 +92,11 @@ chezmoi init --apply kkamegawa
 # 3. Windows DSC で残りのアプリ・設定を適用
 winget configure -f "$(chezmoi source-path)\..\reference\windows\configuration.dsc.yaml"
 
-# 4. mise でツールをインストール
+# 4. mise でツールとユーザースコープの winget パッケージをインストール
+#    （初回の chezmoi apply で実行済み。手動で再適用する場合）
 gh auth login
 mise install
+mise bootstrap packages apply
 
 # 5. PowerShell モジュール（Az / Microsoft.Entra / Microsoft.Graph）は
 #    winget configure でセットアップ済み
@@ -114,6 +116,7 @@ Get-ChildItem "$HOME/.config/apm"
 
 - [アーキテクチャと設計判断](docs/architecture.md)
 - [Homebrew パッケージ管理](docs/homebrew_ja.md)
+- [winget パッケージ管理](docs/winget_ja.md)
 - [日常操作ガイド](docs/operations.md)
 - [Windows 固有の設定](docs/windows.md)
 - [トラブルシューティング](docs/troubleshooting.md)

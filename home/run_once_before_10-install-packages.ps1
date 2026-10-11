@@ -1,5 +1,5 @@
 # Windows: run_once_before_10-install-packages.ps1
-# Install minimal bootstrap packages with winget.
+# Install mise, the only bootstrap package that must exist before chezmoi applies mise config.
 # chezmoi should only run this script on Windows.
 
 Set-StrictMode -Version Latest
@@ -15,10 +15,10 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
   throw 'winget was not found. Install App Installer or run this script from a Windows environment that provides winget.'
 }
 
+# Other user-scope winget packages are declared in mise [bootstrap.packages]
+# and applied by run_once_after_20-mise-install.ps1.
 $packages = @(
-  'Gitleaks.Gitleaks'
   'jdx.mise'
-  'junegunn.fzf'
 )
 
 foreach ($id in $packages) {

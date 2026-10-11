@@ -42,12 +42,15 @@
 - **Windows オプション機能**: `PSDscResources/Script` リソースで DISM 経由管理
   （`WindowsOptionalFeature` は Windows Server 向けのため）
 - **フォント**: JetBrains Mono Nerd Font は winget、Monaspace / PlemolJP Console NF / Noto Sans JP は GitHub Releases から管理
+- **管理範囲**: `C:\Program Files` 配下にインストールされるアプリ（`Program Files\WindowsApps` の MSIX アプリを含む）、Microsoft Store アプリ、chezmoi / mise のブートストラップ、フォントのみ
+  - ユーザースコープにインストールされる winget パッケージは、mise 組み込みの `winget` パッケージマネージャーで管理する（`home/dot_config/mise/config.toml.tmpl` の `[bootstrap.packages]` に `winget:` エントリとして宣言）。macOS の `brew:` / `brew-cask:` と同じ方式にそろえるため
+  - 実際のインストール・更新は winget が行うため、既存のインストールはそのまま引き継げる
 
 ### Codex CLI / Claude Code CLI の管理
 
 Codex CLI（OpenAI）・Claude Code CLI（Anthropic）は npm バックエンドでは管理せず、OS ネイティブのパッケージ管理に一元化する。
 
-- **Windows**: WinGet（`reference/windows/configuration.dsc.yaml`）
+- **Windows**: mise bootstrap package manager (`winget`), configured in `home/dot_config/mise/config.toml.tmpl`
 - **macOS**: mise bootstrap package managers (`brew` / `brew-cask`), configured in `home/dot_config/mise/config.toml.tmpl`
 - **Linux / WSL**: `home/run_once_before_10-install-packages.sh`（Ubuntu/Debian のみ自動化。他ディストリビューションは手動インストール）
   - Claude Code CLI: 公式 apt リポジトリ（`downloads.claude.ai`）経由で `apt install claude-code`

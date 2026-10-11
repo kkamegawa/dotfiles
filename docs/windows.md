@@ -19,23 +19,39 @@ winget configure validate -f "$(chezmoi source-path)\reference\windows\configura
 
 | カテゴリ | 内容 |
 |----------|------|
-| シェル・ターミナル | PowerShell 7, Windows Terminal, Windows Terminal Preview, Oh My Posh |
+| シェル・ターミナル | PowerShell 7, Windows Terminal, Windows Terminal Preview, Intelligent Terminal, Oh My Posh |
 | PowerShell モジュール | Az, Microsoft Entra, Microsoft Graph |
-| バージョン管理 | Git, GitHub CLI, GitHub Desktop, ghq, Komac |
-| dotfiles・設定管理 | chezmoi, mise, APM, Desired State Configuration, App Installer |
-| 開発ツール | fzf, lastexecrecord, PowerToys, WinGet Studio, MSIX ツール, Edit, GitHub Copilot for CLI (Prerelease) |
-| Python | uv |
+| バージョン管理 | Git, GitHub CLI |
+| dotfiles・設定管理 | chezmoi, mise, Desired State Configuration, App Installer |
+| 開発ツール | WinGet Studio, MSIX ツール, Windows App CLI, Core Utilities |
 | .NET / Windows 開発 | .NET SDK 8 (LTS), .NET SDK Preview, .NET デスクトップランタイム 8, Web Deploy, Windows SDK 10.0.26100 / 10.0.28000 |
 | データベース接続 | ODBC Driver 17 / 18 for SQL Server, Microsoft OLE DB Driver for SQL Server |
-| エディタ・IDE | VS Code, VS Code Insiders, Visual Studio Enterprise Insiders, JetBrains Toolbox |
-| Azure・クラウド | Azure CLI, azd, AzCopy, Functions Core Tools, Storage Explorer, Bicep, AI Shell, Global Secure Access |
+| エディタ・IDE | Visual Studio Enterprise Insiders |
+| Azure・クラウド | Azure CLI, Functions Core Tools, AI Shell, Global Secure Access |
+| AI 支援 | Codex アプリ (Store) |
 | コンテナ・仮想化 | Docker Desktop, WSL, Ubuntu |
-| セキュリティ | 1Password, 1Password CLI |
+| セキュリティ | 1Password |
 | 生産性・コミュニケーション | Microsoft 365, OneDrive, Teams, Copilot Keyboard, Discord |
-| ユーティリティ・ブラウザ | FFmpeg, WinSCP, youtube-dl, Google Chrome, Microsoft Edge, Edge Beta / Dev / Canary |
+| ブラウザ | Google Chrome, Microsoft Edge, Edge Beta / Dev / Canary |
 | Windows アプリ基盤 | Windows App, UI.Xaml 2.7 / 2.8, VCLibs, VC++ Redistributable, Windows App Runtime 1.1 / 1.2 / 1.4-1.8 |
 | Windows オプション機能 | OpenSSH クライアント, Hyper-V, 開発者モード |
 | フォント | JetBrains Mono Nerd Font, Monaspace, PlemolJP Console NF, Noto Sans JP |
+
+### mise で管理する winget パッケージ
+
+ユーザースコープにインストールされる winget パッケージは DSC ではなく、
+`home/dot_config/mise/config.toml.tmpl` の `[bootstrap.packages]` に `winget:` エントリとして宣言しています。
+詳細は [mise による Windows のパッケージ管理](winget_ja.md) を参照してください。
+
+| カテゴリ | 内容 |
+|----------|------|
+| CLI | ghq, Komac, APM, fzf, lastexecrecord, Edit, uv, Gitleaks, ripgrep, Helm |
+| Azure・クラウド | azd, AzCopy, Bicep, Azure Storage Explorer |
+| AI 支援 | Claude, Claude Code CLI, Codex CLI, GitHub Copilot CLI (Prerelease), GitHub Copilot App, Microsoft Scout |
+| エディタ・IDE | VS Code, VS Code Insiders, JetBrains Toolbox |
+| GUI・ユーティリティ | GitHub Desktop, PowerToys, WinSCP |
+| セキュリティ | 1Password CLI |
+| メディア | FFmpeg, youtube-dl |
 
 ### DSC の種別について
 

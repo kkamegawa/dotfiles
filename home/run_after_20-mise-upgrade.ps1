@@ -75,4 +75,7 @@ mise install
 Write-Output '==> Running mise upgrade...'
 mise upgrade
 
+Write-Output '==> Applying mise bootstrap packages...'
+mise bootstrap packages apply --yes
+
 Write-Output '==> mise install/upgrade complete'
