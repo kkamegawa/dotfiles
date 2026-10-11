@@ -13,6 +13,6 @@ echo "==> mise install を実行します..."
 mise install
 if [ "$(uname -s)" = "Darwin" ]; then
   echo "==> mise bootstrap packages を適用します..."
-  mise exec -- mise bootstrap packages apply
+  mise bootstrap packages apply
 fi
 echo "==> mise install 完了"

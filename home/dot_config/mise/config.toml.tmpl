@@ -97,7 +97,6 @@ env_file = '.env'
 "brew-cask:1password" = { os = ["macos"] }
 "brew-cask:1password-cli" = { os = ["macos"] }
 "brew-cask:adobe-creative-cloud" = { os = ["macos"] }
-"brew-cask:azure/azure-cli/azure-cli-preview" = { os = ["macos"] }
 "brew-cask:bing-wallpaper" = { os = ["macos"] }
 "brew-cask:blender" = { os = ["macos"] }
 "brew-cask:codex" = { os = ["macos"] }
@@ -153,10 +152,6 @@ python = ['3.13', '3.11', '3.12', '3.14']
 "npm:@vscode/vsce" = "latest"
 {{ if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") }}
 go = "latest"
-{{ end }}
-{{ if eq .chezmoi.os "darwin" }}
-# mise bootstrap が tap の cask 定義 (.rb) を評価するために Ruby 3 以上が必要
-ruby = "3"
 {{ end }}
 
 [tasks.marketplace-sync]
