@@ -192,4 +192,4 @@ run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldnuge
 # `tools.python` はグローバルで複数バージョンを指定すると配列になるが、
 # プロジェクトの mise.toml が単一バージョンで上書きすると単体のオブジェクトになる。
 # どちらの形でも描画できるよう、型で分岐してパスを参照する。
-UV_PYTHON = { value = "{% if tools.python is object %}{{ "{{" }} tools.python.path {{ "}}" }}{% else %}{{ "{{" }} tools.python[0].path {{ "}}" }}{% endif %}", tools = true }
+UV_PYTHON = { value = "{% if tools.python is map %}{{ "{{" }} tools.python.path {{ "}}" }}{% else %}{{ "{{" }} tools.python[0].path {{ "}}" }}{% endif %}", tools = true }
