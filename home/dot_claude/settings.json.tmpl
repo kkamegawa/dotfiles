@@ -13,20 +13,9 @@
   "env": {
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60"
   },
-  "ok": true,
-  "autoModeKeysWritten": [
-    "environment",
-    "soft_deny"
-  ],
-  "environmentEntriesPreserved": 0,
-  "permissionsAllowRemoved": [
-    "Bash(npm run:*)"
-  ],
-  "permissionsAllowNotFound": [],
-  "permissionsAllowSkipped": false,
-  "warnings": [],
   "permissions": {
     "defaultMode": "auto",
+    "blockReadsOutsideWorkingDirectories": true,
     "allow": [
       "Read",
       "Glob",
@@ -150,7 +139,6 @@
       {
         "matcher": "*",
         "hooks": [
-{{ template "orcaHookEntry" }}
         ]
       }
     ],
@@ -170,7 +158,6 @@
       {
         "matcher": "*",
         "hooks": [
-{{ template "orcaHookEntry" }}
         ]
       }
     ],
@@ -178,7 +165,6 @@
       {
         "matcher": "*",
         "hooks": [
-{{ template "orcaHookEntry" }}
         ]
       }
     ],
@@ -195,7 +181,6 @@
       },
       {
         "hooks": [
-{{ template "orcaHookEntry" }}
         ]
       }
     ],
@@ -212,49 +197,42 @@
       },
       {
         "hooks": [
-{{ template "orcaHookEntry" }}
         ]
       }
     ],
     "SessionStart": [
       {
         "hooks": [
-{{ template "orcaHookEntry" }}
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-{{ template "orcaHookEntry" }}
         ]
       }
     ],
     "StopFailure": [
       {
         "hooks": [
-{{ template "orcaHookEntry" }}
         ]
       }
     ],
     "SubagentStart": [
       {
         "hooks": [
-{{ template "orcaHookEntry" }}
         ]
       }
     ],
     "SubagentStop": [
       {
         "hooks": [
-{{ template "orcaHookEntry" }}
         ]
       }
     ],
     "TeammateIdle": [
       {
         "hooks": [
-{{ template "orcaHookEntry" }}
         ]
       }
     ],
@@ -262,7 +240,6 @@
       {
         "matcher": "*",
         "hooks": [
-{{ template "orcaHookEntry" }}
         ]
       }
     ]
@@ -293,6 +270,7 @@
     "enableWeakerNetworkIsolation": true,
     "failIfUnavailable": false,
     "network": {
+      "allowLocalBinding": true,
       "allowedDomains": [
         "github.com",
         "api.github.com",
@@ -322,6 +300,7 @@
         "~/.nuget",
         "~/.npm",
         "~/.azure",
+        "~/.local/share/mise",
         "~/.cache"
       ]
     },
@@ -342,13 +321,16 @@
       "docker",
       "gh",
       "dotnet *",
-      "cmd.exe"
+      "cmd.exe",
+      "wslc"
     ]
   },
   "enableWorkflows": true,
-  "includeCoAuthoredBy": false,
+  "attribution": false,
   "agentPushNotifEnabled": true,
   "attribution": false,
   "inputNeededNotifEnabled": true,
-  "subagentPromptCacheTtl": "1h"
+  "subagentPromptCacheTtl": "1h",
+  "language": "japanese",
+  "cleanupPeriodDays": 60
 }
