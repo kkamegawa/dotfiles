@@ -70,7 +70,7 @@ extends = ":workspace"
 
 [permissions.dotnet-dev.network]
 enabled = true
-allow_local_binding = false
+allow_local_binding = true
 allow_upstream_proxy = true
 
 [permissions.dotnet-dev.network.domains]
@@ -105,7 +105,7 @@ multi_agent_v2.default_wait_timeout_ms = 120000
 # Keep the network proxy enabled for the selected permissions profile.
 [features.network_proxy]
 enabled = true
-allow_local_binding = false
+allow_local_binding = true
 allow_upstream_proxy = true
 
 [features.network_proxy.domains]
