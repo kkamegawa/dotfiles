@@ -82,4 +82,10 @@ if ($LASTEXITCODE -ne 0) {
   throw "mise bootstrap packages apply failed with exit code $LASTEXITCODE."
 }
 
+Write-Output '==> Upgrading mise-managed winget packages...'
+mise bootstrap packages upgrade --manager winget --yes
+if ($LASTEXITCODE -ne 0) {
+  throw "mise bootstrap packages upgrade failed with exit code $LASTEXITCODE."
+}
+
 Write-Output '==> mise install/upgrade complete'
