@@ -1,0 +1,4 @@
+#!/bin/sh
+# Preserve the Homebrew GNU sed command name.
+set -e
+exec mise exec conda:sed -- sed "$@"

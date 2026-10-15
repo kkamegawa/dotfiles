@@ -54,6 +54,8 @@ mise upgrade
 if [ "$(uname -s)" = "Darwin" ]; then
   echo "==> mise bootstrap packages を適用します..."
   mise bootstrap packages apply
+  echo "==> Updating Homebrew runtime libraries..."
+  mise bootstrap packages upgrade --manager brew --yes
 fi
 
 echo "==> mise install/upgrade 完了"

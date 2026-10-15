@@ -4,6 +4,11 @@
 
 set -e
 
+# macOS uses the native mise uv tool.
+if [ "$(uname -s)" = "Darwin" ]; then
+  exit 0
+fi
+
 if command -v uv >/dev/null 2>&1; then
   echo "==> uv は既にインストール済みです: $(uv --version)"
   exit 0

@@ -84,7 +84,9 @@ bindkey "^W"      backward-kill-word # Ctrl+Backspace
 ZSH_AUTOSUGGEST_STRATEGY=(history)
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
 
-source "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+if [ -r "$HOME/.local/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]; then
+  source "$HOME/.local/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+fi
 
 # Ctrl+Space: accept the entire suggestion
 bindkey '^ ' autosuggest-accept
