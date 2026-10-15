@@ -5,94 +5,22 @@
 experimental = true
 env_file = '.env'
 
-[bootstrap.brew.taps]
-"azure/azure-cli" = "https://github.com/Azure/homebrew-azure-cli.git"
-"azure/azd" = "https://github.com/Azure/homebrew-azd.git"
-"azure/bicep" = "https://github.com/Azure/homebrew-bicep.git"
-"azure/functions" = "https://github.com/Azure/homebrew-functions.git"
-"hashicorp/tap" = "https://github.com/hashicorp/homebrew-tap.git"
-"microsoft/apm" = "https://github.com/microsoft/homebrew-apm.git"
-
 [bootstrap.packages]
-"brew:ansible" = { os = ["macos"] }
-"brew:ansible-lint" = { os = ["macos"] }
-"brew:microsoft/apm/apm" = { os = ["macos"] }
-"brew:autoconf" = { os = ["macos"] }
-"brew:azure/azd/azd" = { os = ["macos"] }
-"brew:azure/functions/azure-functions-core-tools@4" = { os = ["macos"] }
-"brew:azure/bicep/bicep" = { os = ["macos"] }
-"brew:brotli" = { os = ["macos"] }
+# Runtime libraries used by the official termscp/osslsigncode binaries.
+# Preserve libraries used by existing pyenv Python installations.
 "brew:ca-certificates" = { os = ["macos"] }
-"brew:certifi" = { os = ["macos"] }
-"brew:cffi" = { os = ["macos"] }
-"brew:cmake" = { os = ["macos"] }
-"brew:cryptography" = { os = ["macos"] }
-"brew:curl" = { os = ["macos"] }
-"brew:docker-squash" = { os = ["macos"] }
-"brew:gcab" = { os = ["macos"] }
 "brew:gettext" = { os = ["macos"] }
-"brew:gh" = { os = ["macos"] }
-"brew:git" = { os = ["macos"] }
-"brew:git-lfs" = { os = ["macos"] }
-"brew:gitleaks" = { os = ["macos"] }
-"brew:glib" = { os = ["macos"] }
 "brew:gmp" = { os = ["macos"] }
-"brew:gnu-sed" = { os = ["macos"] }
 "brew:gnutls" = { os = ["macos"] }
 "brew:icu4c@78" = { os = ["macos"] }
-"brew:jq" = { os = ["macos"] }
-"brew:json-c" = { os = ["macos"] }
-"brew:komac" = { os = ["macos"] }
-"brew:krb5" = { os = ["macos"] }
-"brew:libgsf" = { os = ["macos"] }
 "brew:libidn2" = { os = ["macos"] }
-"brew:libnghttp2" = { os = ["macos"] }
-"brew:libnghttp3" = { os = ["macos"] }
-"brew:libngtcp2" = { os = ["macos"] }
-"brew:libpsl" = { os = ["macos"] }
-"brew:libsodium" = { os = ["macos"] }
-"brew:libssh" = { os = ["macos"] }
-"brew:libssh2" = { os = ["macos"] }
 "brew:libtasn1" = { os = ["macos"] }
 "brew:libunistring" = { os = ["macos"] }
-"brew:libxcrypt" = { os = ["macos"] }
-"brew:libyaml" = { os = ["macos"] }
-"brew:lmdb" = { os = ["macos"] }
-"brew:lz4" = { os = ["macos"] }
-"brew:m4" = { os = ["macos"] }
-"brew:micro" = { os = ["macos"] }
-"brew:mpdecimal" = { os = ["macos"] }
-"brew:msitools" = { os = ["macos"] }
 "brew:nettle" = { os = ["macos"] }
-"brew:oniguruma" = { os = ["macos"] }
-"brew:hashicorp/tap/packer" = { os = ["macos"] }
 "brew:openssl@3" = { os = ["macos"] }
-"brew:openssl@4" = { os = ["macos"] }
-"brew:osslsigncode" = { os = ["macos"] }
 "brew:p11-kit" = { os = ["macos"] }
-"brew:pcre2" = { os = ["macos"] }
-"brew:pipx" = { os = ["macos"] }
-"brew:pkgconf" = { os = ["macos"] }
-"brew:popt" = { os = ["macos"] }
-"brew:pycparser" = { os = ["macos"] }
-"brew:pydantic" = { os = ["macos"] }
-"brew:pyenv" = { os = ["macos"] }
-"brew:python@3.14" = { os = ["macos"] }
 "brew:readline" = { os = ["macos"] }
-"brew:rpds-py" = { os = ["macos"] }
-"brew:samba" = { os = ["macos"] }
-"brew:sqlite" = { os = ["macos"] }
-"brew:starship" = { os = ["macos"] }
-"brew:talloc" = { os = ["macos"] }
-"brew:tdb" = { os = ["macos"] }
-"brew:tevent" = { os = ["macos"] }
-"brew:termscp" = { os = ["macos"] }
-"brew:tree" = { os = ["macos"] }
-"brew:uv" = { os = ["macos"] }
-"brew:wget" = { os = ["macos"] }
 "brew:xz" = { os = ["macos"] }
-"brew:zsh-autosuggestions" = { os = ["macos"] }
-"brew:zstd" = { os = ["macos"] }
 
 "brew-cask:1password" = { os = ["macos"] }
 "brew-cask:1password-cli" = { os = ["macos"] }
@@ -182,8 +110,50 @@ node = "lts"
 npm = "latest"
 python = ['3.13', '3.11', '3.12', '3.14']
 "npm:@vscode/vsce" = "latest"
+{{ if eq .chezmoi.os "darwin" }}
+uv = "latest"
+cmake = "latest"
+gh = "latest"
+git-lfs = "latest"
+gitleaks = "latest"
+jq = "latest"
+micro = "latest"
+packer = "latest"
+pipx = "latest"
+starship = "latest"
+oh-my-posh = "latest"
+azd = "latest"
+"pypi:docker-squash" = "latest"
+azure-functions-core-tools = "4"
+"github:microsoft/apm" = { version = "latest", asset_pattern = "apm-darwin-{{ if eq .chezmoi.arch "arm64" }}arm64{{ else }}x86_64{{ end }}.tar.gz" }
+"github:Azure/bicep" = { version = "latest", asset_pattern = "bicep-osx-{{ if eq .chezmoi.arch "arm64" }}arm64{{ else }}x64{{ end }}", format = "raw", bin = "bicep" }
+"github:russellbanks/Komac" = { version = "latest", asset_pattern = "komac-*-{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-apple-darwin.tar.gz", rename_exe = "komac" }
+"github:veeso/termscp" = { version = "latest", asset_pattern = "termscp-v*-{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-apple-darwin.tar.gz", rename_exe = "termscp" }
+"github:mtrojnar/osslsigncode" = { version = "2.14", asset_pattern = "osslsigncode-2.14-macOS.zip", bin_path = "bin", checksum = "sha256:555326a4d01c60c63bb0fd70d4c0eea66fd69036dd75a4f909f2ddf264f44a9c" }
+"conda:git" = "latest"
+"conda:curl" = "latest"
+"conda:wget" = "latest"
+"conda:sed" = "latest"
+"conda:msitools" = "latest"
+"conda:sqlite" = "latest"
+
+# Keep the traditional Azure CLI isolated on Python 3.14, including pip for extensions.
+azure-cli = { version = "latest", with = ["pip"], uvx_args = "--python 3.14" }
+{{ end }}
 {{ if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") }}
 go = "latest"
+{{ end }}
+
+{{ if eq .chezmoi.os "darwin" }}
+# Build the original Unix tree CLI from its verified release source.
+[tools."http:tree"]
+version = "2.3.2"
+url = "https://github.com/Old-Man-Programmer/tree/archive/refs/tags/{{ "{{" }} version {{ "}}" }}.tar.gz"
+checksum = "sha256:22cf32e84e3eb508d97a9e991c2c3cc006b9dcf4afed201d96311c5c57d08fcf"
+strip_components = 1
+bin_path = "bin"
+postinstall = 'make -C "$MISE_TOOL_INSTALL_PATH" install PREFIX="$MISE_TOOL_INSTALL_PATH" MANDIR="$MISE_TOOL_INSTALL_PATH/share/man"'
+
 {{ end }}
 
 [tasks.marketplace-sync]
