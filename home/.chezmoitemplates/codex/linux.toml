@@ -1,0 +1,7 @@
+{{- /* Managed Codex settings for linux. */ -}}
+{{- $p := includeTemplate "codex/paths" . | fromJson -}}
+[permissions.dotnet-dev.filesystem]
+{{ printf "%s/.config/NuGet" $p.homeDir | quote }} = "read"
+{{ printf "%s/.nuget/NuGet" $p.homeDir | quote }} = "read"
+{{ printf "%s/.nuget/plugins/netcore" $p.homeDir | quote }} = "read"
+{{ printf "%s/.azure" $p.homeDir | quote }} = "write"

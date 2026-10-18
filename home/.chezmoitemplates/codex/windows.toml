@@ -1,0 +1,18 @@
+{{- /* Managed Codex settings for Windows. */ -}}
+{{- $homeDir := .chezmoi.homeDir -}}
+{{- if env "USERPROFILE" -}}
+{{- $homeDir = env "USERPROFILE" -}}
+{{- end -}}
+{{- $appData := printf "%s\\AppData\\Roaming" $homeDir -}}
+{{- if env "APPDATA" -}}
+{{- $appData = env "APPDATA" -}}
+{{- end -}}
+[permissions.dotnet-dev.filesystem]
+{{ printf "%s\\NuGet" $appData | quote }} = "read"
+{{ printf "%s\\.nuget\\plugins\\netcore" $homeDir | quote }} = "read"
+{{ printf "%s\\.azure" $homeDir | quote }} = "write"
+
+# Preferred native Windows sandbox.
+# Change only to "unelevated" when corporate policy or setup prevents elevated mode.
+[windows]
+sandbox = "mxc"
