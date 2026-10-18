@@ -26,7 +26,8 @@ local 層にリポジトリは書き込みません。キーがリポジトリ�
 | `home/dot_claude/modify_settings.json` | `~/.claude/settings.json` |
 | `home/.chezmoitemplates/codex/{common,darwin,linux,windows}.toml` | Codex の管理断片 |
 | `home/.chezmoitemplates/claude/{common,unix,windows}.json` | Claude の管理断片 |
-| `home/.chezmoitemplates/merge/union` | 配列の和集合を作る共通テンプレート |
+| `home/.chezmoitemplates/merge/deep` | 配列の和集合パスを持つ共通のディープマージテンプレート |
+| `home/.chezmoitemplates/{codex,claude}/paths` | 共通のパス補助（ホーム、キャッシュルート、Claude ホーム） |
 
 断片は common を先に適用し、続けて `.chezmoi.os` に対応する overlay を適用します。衝突したときは overlay が優先されます。
 

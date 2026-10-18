@@ -26,7 +26,8 @@ Each file is produced by a chezmoi `modify_` template (a file whose body contain
 | `home/dot_claude/modify_settings.json` | `~/.claude/settings.json` |
 | `home/.chezmoitemplates/codex/{common,darwin,linux,windows}.toml` | managed Codex fragments |
 | `home/.chezmoitemplates/claude/{common,unix,windows}.json` | managed Claude fragments |
-| `home/.chezmoitemplates/merge/union` | shared array-union template |
+| `home/.chezmoitemplates/merge/deep` | shared deep-merge template with array-union paths |
+| `home/.chezmoitemplates/{codex,claude}/paths` | shared path helpers (home, cache root, Claude home) |
 
 A fragment set is common first, then the overlay for `.chezmoi.os`. The overlay wins on conflicts.
 
