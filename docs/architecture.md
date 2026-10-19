@@ -70,16 +70,18 @@ Codex CLI（OpenAI）・Claude Code CLI（Anthropic）は npm バックエンド
 |---------------------------|-----------|---------------|
 | `home/dot_github/copilot-instructions.md` | `~/.github/copilot-instructions.md` | GitHub Copilot CLI / Copilot Chat |
 | `home/dot_codex/AGENTS.md` | `~/.codex/AGENTS.md` | Codex CLI |
-| `home/dot_codex/config.toml.tmpl` | `~/.codex/config.toml` | Codex CLI config |
+| `home/dot_codex/modify_private_config.toml` | `~/.codex/config.toml` | Codex CLI config（管理キーのみマージ） |
 | `home/dot_claude/CLAUDE.md` | `~/.claude/CLAUDE.md` | Claude Code |
-| `home/dot_claude/settings.json.tmpl` | `~/.claude/settings.json` | Claude Code settings |
+| `home/dot_claude/modify_settings.json` | `~/.claude/settings.json` | Claude Code settings（管理キーのみマージ） |
+
+`config.toml` と `settings.json` はアプリも書き換えるため、リポジトリが管理するキーだけを chezmoi の `modify_` テンプレートでマージします（詳細は [ai-tool-config.md](ai-tool-config.md)）。
 
 プロジェクト固有の指示（`AGENTS.md` / `.github/copilot-instructions.md`）はリポジトリ側で管理し、
 ここでは全プロジェクト共通のユーザーレベル指示のみを dotfiles に含めます。
 
 #### Claude Code のフックとコンテキスト圧縮
 
-- フック・statusLine のスクリプトは `home/dot_claude/hooks/` から `~/.claude/hooks/` に配布し、`settings.json.tmpl` 内では `.chezmoi.homeDir` から組み立てた絶対パス（`$claudeHome`）で参照する
+- フック・statusLine のスクリプトは `home/dot_claude/hooks/` から `~/.claude/hooks/` に配布し、`settings.json` の管理断片内では `.chezmoi.homeDir` から組み立てた絶対パス（`$claudeHome`）で参照する
 - 自動圧縮のしきい値は `env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE = "60"` で、コンテキストウィンドウ使用率 60% に設定する（フックからは `/compact` を実行できないため、圧縮そのものは Claude Code に任せる）
 - 圧縮の前後処理は .NET 10 のファイルベースプログラム（`dotnet run <file>.cs`）で行う
   - `compaction-recovery.cs`（PostCompact）: `compact_summary` を `~/.claude/hooks-state/{session_id}.summary` に保存する

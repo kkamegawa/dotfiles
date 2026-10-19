@@ -1,0 +1,23 @@
+{{- /*
+  Deep-merge .src into .dst and emit JSON.
+  Input: dict "dst" map, "src" map, "union" list of dotted paths, "path" string (start with "").
+  Maps are merged recursively and src scalars win. Arrays are replaced by src, except at
+  paths listed in .union, where src items come first and dst-only items are kept.
+*/ -}}
+{{- $out := dict -}}
+{{- range $k, $v := .dst -}}
+{{- $_ := set $out $k $v -}}
+{{- end -}}
+{{- range $k, $sv := .src -}}
+{{- $p := $k -}}
+{{- if ne $.path "" -}}{{- $p = printf "%s.%s" $.path $k -}}{{- end -}}
+{{- $dv := index $.dst $k -}}
+{{- if and (kindIs "map" $sv) (kindIs "map" $dv) -}}
+{{- $_ := set $out $k (includeTemplate "merge/deep" (dict "dst" $dv "src" $sv "union" $.union "path" $p) | fromJson) -}}
+{{- else if and (kindIs "slice" $sv) (kindIs "slice" $dv) (has $p $.union) -}}
+{{- $_ := set $out $k (concat $sv $dv | uniq) -}}
+{{- else -}}
+{{- $_ := set $out $k $sv -}}
+{{- end -}}
+{{- end -}}
+{{- $out | toJson -}}

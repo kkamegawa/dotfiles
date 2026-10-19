@@ -1,0 +1,9 @@
+{{- /* Managed Codex settings for darwin. */ -}}
+{{- $p := includeTemplate "codex/paths" . | fromJson -}}
+notify = [{{ printf "%s/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient" $p.codexHome | quote }}, "turn-ended"]
+
+[permissions.dotnet-dev.filesystem]
+{{ printf "%s/.config/NuGet" $p.homeDir | quote }} = "read"
+{{ printf "%s/.nuget/NuGet" $p.homeDir | quote }} = "read"
+{{ printf "%s/.nuget/plugins/netcore" $p.homeDir | quote }} = "read"
+{{ printf "%s/.azure" $p.homeDir | quote }} = "write"

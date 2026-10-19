@@ -1,0 +1,41 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+  Merge the repository-managed Claude Code settings into the existing settings.json.
+  Unmanaged keys (enabledPlugins, hooks injected by other tools, ...) are kept.
+  See docs/ai-tool-config.md.
+*/ -}}
+{{- $claudeHome := (includeTemplate "claude/paths" . | fromJson).claudeHome -}}
+{{- $current := dict -}}
+{{- if .chezmoi.stdin -}}
+{{- $current = .chezmoi.stdin | fromJson -}}
+{{- end -}}
+{{- $union := list "permissions.allow" "permissions.ask" "permissions.deny" "sandbox.network.allowedDomains" "sandbox.filesystem.allowWrite" "sandbox.excludedCommands" -}}
+
+{{- /* Combine the common fragment with the OS overlay. */ -}}
+{{- $overlay := "claude/unix.json" -}}
+{{- if eq .chezmoi.os "windows" -}}{{- $overlay = "claude/windows.json" -}}{{- end -}}
+{{- $managed := includeTemplate "claude/common.json" . | fromJson -}}
+{{- $managed = includeTemplate "merge/deep" (dict "dst" $managed "src" (includeTemplate $overlay . | fromJson) "union" $union "path" "") | fromJson -}}
+
+{{- /* Hook entries that run repository hook scripts are repository-owned: drop them and re-add. */ -}}
+{{- $owned := printf "%s/hooks/" $claudeHome -}}
+{{- if kindIs "map" (index $current "hooks") -}}
+{{- $hooks := dict -}}
+{{- range $event, $entries := (index $current "hooks") -}}
+{{- if kindIs "slice" $entries -}}
+{{- $kept := list -}}
+{{- range $entries -}}
+{{- if not (contains $owned (toJson .)) -}}{{- $kept = append $kept . -}}{{- end -}}
+{{- end -}}
+{{- $_ := set $hooks $event $kept -}}
+{{- else -}}
+{{- $_ := set $hooks $event $entries -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $current "hooks" $hooks -}}
+{{- end -}}
+{{- range $event, $_ := $managed.hooks -}}
+{{- $union = append $union (printf "hooks.%s" $event) -}}
+{{- end -}}
+
+{{- includeTemplate "merge/deep" (dict "dst" $current "src" $managed "union" $union "path" "") | fromJson | toPrettyJson | trim }}

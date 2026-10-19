@@ -1,0 +1,16 @@
+{{- /* Managed Claude Code settings for Windows. Emits JSON. */ -}}
+{
+  "permissions": {
+    "allow": [
+      "Bash(where:*)",
+      "Bash(Get-Command:*)",
+      "Bash(Get-ChildItem:*)",
+      "Bash(Get-Content:*)",
+      "Bash(Select-String:*)"
+    ],
+    "deny": [
+      "Bash(curl:*)",
+      "Bash(wget:*)"
+    ]
+  }
+}

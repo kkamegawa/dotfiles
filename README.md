@@ -34,8 +34,8 @@ Windows / Linux（サーバー）/ macOS / WSL / Dev Container を一つのリ�
 | `dot_config/micro/bindings.json` | `~/.config/micro/bindings.json` | micro エディタ キーバインド |
 | `dot_config/git/hooks/` | `~/.config/git/hooks/` | Git グローバルフック |
 | `dot_config/Code/User/` | `~/.config/Code/User/` | VS Code ユーザー設定 |
-| `dot_codex/config.toml.tmpl` | `~/.codex/config.toml` | OpenAI Codex CLI 設定 |
-| `dot_claude/settings.json.tmpl` | `~/.claude/settings.json` | Claude Code settings |
+| `dot_codex/modify_private_config.toml` | `~/.codex/config.toml` | OpenAI Codex CLI 設定（管理キーのみマージ） |
+| `dot_claude/modify_settings.json` | `~/.claude/settings.json` | Claude Code settings（管理キーのみマージ） |
 | `run_once_after_60-setup-apm-profile.sh` | `~/.config/apm/{skills,agents}` | APM スキル/エージェント管理ディレクトリ作成とリンク設定（Linux/macOS/WSL） |
 | `run_once_after_60-setup-apm-profile.ps1` | `%USERPROFILE%/.config/apm/{skills,agents}` | APM スキル/エージェント管理ディレクトリ作成とリンク設定（Windows） |
 | `dot_wslconfig` | `~/.wslconfig` | WSL2 メモリ・CPU 設定（Windows のみ） |

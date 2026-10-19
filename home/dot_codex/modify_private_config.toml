@@ -1,0 +1,13 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+  Merge the repository-managed Codex settings into the existing config.toml.
+  Unmanaged keys (mcp_servers.node_repl, marketplaces, plugins, projects, ...)
+  are kept as the app wrote them. See docs/ai-tool-config.md.
+*/ -}}
+{{- $current := dict -}}
+{{- if .chezmoi.stdin -}}
+{{- $current = .chezmoi.stdin | fromToml -}}
+{{- end -}}
+{{- $managed := includeTemplate "codex/common.toml" . | fromToml -}}
+{{- $managed = mergeOverwrite $managed (includeTemplate (printf "codex/%s.toml" .chezmoi.os) . | fromToml) -}}
+{{- mergeOverwrite $current $managed | toToml -}}

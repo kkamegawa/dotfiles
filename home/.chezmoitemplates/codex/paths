@@ -1,0 +1,16 @@
+{{- /* Per-OS paths for the managed Codex fragments. Emits JSON. */ -}}
+{{- $homeDir := .chezmoi.homeDir -}}
+{{- $pathSep := "/" -}}
+{{- $cacheRoot := printf "%s/.cache/codex-dev" $homeDir -}}
+{{- if eq .chezmoi.os "windows" -}}
+{{- if env "USERPROFILE" -}}
+{{- $homeDir = env "USERPROFILE" -}}
+{{- end -}}
+{{- $localAppData := printf "%s\\AppData\\Local" $homeDir -}}
+{{- if env "LOCALAPPDATA" -}}
+{{- $localAppData = env "LOCALAPPDATA" -}}
+{{- end -}}
+{{- $cacheRoot = printf "%s\\codex-dev" $localAppData -}}
+{{- $pathSep = "\\" -}}
+{{- end -}}
+{{- dict "homeDir" $homeDir "pathSep" $pathSep "cacheRoot" $cacheRoot "codexHome" (printf "%s%s.codex" $homeDir $pathSep) | toJson -}}

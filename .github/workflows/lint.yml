@@ -151,6 +151,34 @@ jobs:
             --disable-interactivity `
             --verbose
 
+  config-merge-tests:
+    name: Config merge tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install chezmoi (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install chezmoi (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $binDir = Join-Path $env:RUNNER_TEMP 'chezmoi-bin'
+          New-Item -ItemType Directory -Force -Path $binDir | Out-Null
+          iex "&{$(irm 'https://get.chezmoi.io/ps1')} -b '$binDir'"
+          $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Run merge tests
+        run: python -m unittest discover -s scripts/tests -v
+
   create-failure-issues:
     name: Create failure issues
     runs-on: ubuntu-latest
@@ -167,6 +195,7 @@ jobs:
       - chezmoi-dry-run-macos
       - chezmoi-dry-run-windows
       - winget-config-validate
+      - config-merge-tests
     steps:
       - name: Upsert failure issues
         uses: actions/github-script@v7
@@ -220,6 +249,18 @@ jobs:
                 title: '[ci-failure] lint / winget configure validate',
                 files: ['.github/workflows/lint.yml', 'reference/windows/configuration.dsc.yaml'],
                 summary: 'Windows の winget configure validate job が失敗しました。',
+              },
+              {
+                id: 'config-merge-tests',
+                title: '[ci-failure] lint / config merge tests',
+                files: [
+                  '.github/workflows/lint.yml',
+                  'scripts/tests/test_config_merge.py',
+                  'home/dot_codex/',
+                  'home/dot_claude/',
+                  'home/.chezmoitemplates/',
+                ],
+                summary: 'Codex / Claude 設定のマージテスト job が失敗しました。',
               },
             ];
 
