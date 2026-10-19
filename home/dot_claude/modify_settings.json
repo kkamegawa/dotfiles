@@ -38,4 +38,4 @@
 {{- $union = append $union (printf "hooks.%s" $event) -}}
 {{- end -}}
 
-{{- includeTemplate "merge/deep" (dict "dst" $current "src" $managed "union" $union "path" "") | fromJson | toPrettyJson }}
+{{- includeTemplate "merge/deep" (dict "dst" $current "src" $managed "union" $union "path" "") | fromJson | toPrettyJson | trim }}
