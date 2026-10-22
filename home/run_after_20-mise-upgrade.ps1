@@ -94,6 +94,7 @@ function Update-MiseWingetPackageSet {
     }
   }
 
+  $failures = [System.Collections.Generic.List[string]]::new()
   foreach ($package in $packages) {
     $wingetArgs = @('upgrade', '--id', $package.package, '--exact', '--force')
     if ($package.requested_version -ne 'latest') {
@@ -108,13 +109,27 @@ function Update-MiseWingetPackageSet {
 
     if ($PSCmdlet.ShouldProcess($package.package, 'Upgrade WinGet package with --force')) {
       Write-Output "==> Upgrading mise-managed winget package with --force: $($package.package)"
-      winget @wingetArgs
-      $upgradeExitCode = $LASTEXITCODE
-      # APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE (0x8A15002B).
-      if ($upgradeExitCode -notin @(0, -1978335189)) {
-        throw "winget upgrade '$($package.package)' failed with exit code 0x$($upgradeExitCode.ToString('X8'))."
+      try {
+        winget @wingetArgs
+        $upgradeExitCode = $LASTEXITCODE
+        # APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE (0x8A15002B).
+        if ($upgradeExitCode -notin @(0, -1978335189)) {
+          $message = "winget upgrade '$($package.package)' failed with exit code 0x$($upgradeExitCode.ToString('X8'))."
+          $failures.Add($message)
+          Write-Warning $message
+        }
+      }
+      catch {
+        $message = "winget upgrade '$($package.package)' failed: $($_.Exception.Message)"
+        $failures.Add($message)
+        Write-Warning $message
       }
     }
+  }
+
+  if ($failures.Count -gt 0) {
+    Write-Warning ("WinGet upgrades completed with {0} failure(s):{1}{2}" -f
+      $failures.Count, [Environment]::NewLine, ($failures -join [Environment]::NewLine))
   }
 }
 
@@ -154,3 +169,5 @@ Write-Output '==> Upgrading mise-managed winget packages...'
 Update-MiseWingetPackageSet
 
 Write-Output '==> mise install/upgrade complete'
+# Individual WinGet upgrade failures are warnings and must not stop chezmoi.
+exit 0
