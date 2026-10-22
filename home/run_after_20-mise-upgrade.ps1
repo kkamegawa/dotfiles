@@ -50,6 +50,74 @@ function Update-DotnetGlobalToolSet {
   }
 }
 
+function Update-MiseWingetPackageSet {
+  [CmdletBinding(SupportsShouldProcess)]
+  param()
+
+  # WinGet uses a nonzero exit code when no upgrade applies.
+  # Inspect native exit codes here even if the caller enables native error handling.
+  $PSNativeCommandUseErrorActionPreference = $false
+  $statusJson = mise bootstrap packages status --json
+  if ($LASTEXITCODE -ne 0) {
+    throw "mise bootstrap packages status failed with exit code $LASTEXITCODE."
+  }
+
+  $packageStatus = ($statusJson -join [Environment]::NewLine) | ConvertFrom-Json -ErrorAction Stop
+  if ($null -eq $packageStatus) {
+    throw 'mise bootstrap packages status returned no package status.'
+  }
+
+  $wingetProperty = $packageStatus.PSObject.Properties['winget']
+  if ($null -eq $wingetProperty) {
+    Write-Output '==> No mise-managed winget packages configured.'
+    return
+  }
+
+  $manager = $wingetProperty.Value
+  if (-not $manager.available) {
+    throw "mise winget package manager is unavailable: $($manager.reason)"
+  }
+
+  $packages = @($manager.packages | Where-Object {
+      $_.desired_state -eq 'present' -and
+      $_.state -in @('installed', 'version_mismatch', 'needs_repair')
+    })
+  if ($packages.Count -eq 0) {
+    Write-Output '==> No installed mise-managed winget packages to upgrade.'
+    return
+  }
+
+  if ($PSCmdlet.ShouldProcess('WinGet sources', 'Refresh')) {
+    winget source update --disable-interactivity
+    if ($LASTEXITCODE -ne 0) {
+      throw "winget source update failed with exit code $LASTEXITCODE."
+    }
+  }
+
+  foreach ($package in $packages) {
+    $wingetArgs = @('upgrade', '--id', $package.package, '--exact', '--force')
+    if ($package.requested_version -ne 'latest') {
+      $wingetArgs += @('--version', $package.requested_version)
+    }
+    $wingetArgs += @(
+      '--silent',
+      '--accept-source-agreements',
+      '--accept-package-agreements',
+      '--disable-interactivity'
+    )
+
+    if ($PSCmdlet.ShouldProcess($package.package, 'Upgrade WinGet package with --force')) {
+      Write-Output "==> Upgrading mise-managed winget package with --force: $($package.package)"
+      winget @wingetArgs
+      $upgradeExitCode = $LASTEXITCODE
+      # APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE (0x8A15002B).
+      if ($upgradeExitCode -notin @(0, -1978335189)) {
+        throw "winget upgrade '$($package.package)' failed with exit code 0x$($upgradeExitCode.ToString('X8'))."
+      }
+    }
+  }
+}
+
 # dotnet global tools are cross-platform; run before Windows-only mise steps.
 Update-DotnetGlobalToolSet
 
@@ -83,9 +151,6 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Output '==> Upgrading mise-managed winget packages...'
-mise bootstrap packages upgrade --manager winget --yes
-if ($LASTEXITCODE -ne 0) {
-  throw "mise bootstrap packages upgrade failed with exit code $LASTEXITCODE."
-}
+Update-MiseWingetPackageSet
 
 Write-Output '==> mise install/upgrade complete'
