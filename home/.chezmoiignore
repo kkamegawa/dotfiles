@@ -7,6 +7,7 @@
 10-install-packages.ps1
 20-mise-install.ps1
 50-import-vs-settings.ps1
+70-setup-claude-mcp.ps1
 {{ end }}
 
 {{ if eq .chezmoi.os "windows" }}
@@ -22,6 +23,7 @@
 20-mise-upgrade.sh
 30-install-uv.sh
 30-setup-1password.sh
+70-setup-claude-mcp.sh
 {{ end }}
 
 {{ if ne .chezmoi.os "linux" }}

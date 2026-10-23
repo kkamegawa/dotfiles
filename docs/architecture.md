@@ -88,6 +88,19 @@ Codex CLI（OpenAI）・Claude Code CLI（Anthropic）は npm バックエンド
   - `userpromptsubmit-compaction-recovery.cs`（UserPromptSubmit）: 保存済みサマリーを次のプロンプトに `additionalContext` として 1 回だけ注入し、ファイルを削除する
 - `dotnet run` は初回にビルドが走るため（30 秒程度）、C# フックの `timeout` は 60 秒にしている
 
+#### Claude Code の作業フォルダー外の読み取り
+
+- `permissions.blockReadsOutsideWorkingDirectories = true` のため、作業フォルダー外のログなどの読み取りは承認が必要になる
+- Windows のみ、Visual Studio / Codex for Visual Studio のログ置き場を `permissions.additionalDirectories` に登録して承認を省く。パスは `.chezmoi.homeDir` から組み立てる
+- Visual Studio のインスタンス ID を含む `VisualStudio/*/VSExtensions` は、`additionalDirectories` にワイルドカードを書かず、chezmoi の `glob` 関数で `chezmoi apply` 時に実在フォルダーへ展開する。新しいインスタンスが増えたら再度 `chezmoi apply` する
+- `additionalDirectories` のフォルダーは読み取りだけでなく Edit / Write の対象にもなる
+
+#### Claude Code の MCP サーバー登録
+
+- `permissions.allow` の `mcp__microsoft-learn__microsoft_docs_search` は、MCP サーバー名が `microsoft-learn` であることに依存する。claude.ai のコネクタ経由だとサーバー名が UUID になり一致しないため、ユーザースコープのローカル登録に統一する
+- 登録は `home/run_after_70-setup-claude-mcp.{sh,ps1}` が `chezmoi apply` のたびに冪等に行う。登録済みなら何もしない。`claude` が PATH にない場合は警告してスキップする
+- 登録先の `~/.claude.json` はセッション状態も含むため、chezmoi では管理しない
+
 ### APM（AI エージェント設定）
 
 - Copilot CLI 向けのカスタム指示・フック・スキル・MCP サーバーは別リポジトリで管理
