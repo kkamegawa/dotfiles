@@ -1,4 +1,5 @@
 {{- /* Managed Claude Code settings for Windows. Emits JSON. */ -}}
+{{- $homeDir := .chezmoi.homeDir | replace "\\" "/" -}}
 {
   "permissions": {
     "allow": [
@@ -6,11 +7,21 @@
       "Bash(Get-Command:*)",
       "Bash(Get-ChildItem:*)",
       "Bash(Get-Content:*)",
-      "Bash(Select-String:*)"
+      "Bash(Select-String:*)",
+      "Bash(vswhere:*)",
+      "Bash(cygpath *)"
     ],
     "deny": [
       "Bash(curl:*)",
       "Bash(wget:*)"
+    ],
+    "additionalDirectories": [
+      "{{ $homeDir }}/AppData/Local/Temp/Kkamegawa.CodexForVisualStudio",
+      "{{ $homeDir }}/AppData/Local/Temp/VSLogs",
+      "{{ $homeDir }}/AppData/Local/Temp/servicehub/logs"
+{{- range glob (printf "%s/AppData/Local/Microsoft/VisualStudio/*/VSExtensions" $homeDir) }},
+      "{{ . | replace "\\" "/" }}"
+{{- end }}
     ]
   }
 }
