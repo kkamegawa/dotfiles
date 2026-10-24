@@ -46,6 +46,10 @@ docs/ 以下のADR・アーキテクチャ・インフラ・テスト・セッ�
 
 - bash(macOS/Linux)とPowerShell 7用のスクリプト両方作ります。Azureのコマンドを例示で作る場合、Azure CLIを前提にします。
 
+### sandboxでのgit/gh
+
+- 認証が必要な`gh`と`git`(push/fetch/pull/clone/ls-remote)は、sandbox外で実行する`excludedCommands`で許可しています。この除外はコマンドの先頭一致のため、`cd ... && gh ...`や`echo ...; gh ...`のように前へ別のコマンドを付けたり、パイプや連結で他のコマンドと1行にまとめたりすると、sandbox内で実行されて失敗します(ghの起動拒否、GCMのクラッシュ)。これらは必ず単独のコマンドとして実行してください。
+
 ### 作業に関する記録
 
 - ファイル変更が依頼の範囲に含まれ、`docs/task.md`がある場合は、作業終了時に承認済みのplanに基づく作業内容と検証結果を記録します。関連IssueまたはWork Itemがある場合はリンクを貼ります。調査・レビューのみの依頼では、`docs/task.md`を変更しません。
