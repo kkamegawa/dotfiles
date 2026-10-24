@@ -230,6 +230,12 @@
     "excludedCommands": [
       "docker",
       "gh",
+      "gh *",
+      "git push *",
+      "git fetch *",
+      "git pull *",
+      "git clone *",
+      "git ls-remote *",
       "dotnet *",
       "cmd.exe",
       "wslc"

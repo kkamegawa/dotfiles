@@ -1,0 +1,23 @@
+# Managed by chezmoi (dotfiles repository). See docs/ai-tool-config.md.
+# Codex has no config.toml option to exclude commands from the sandbox, so the
+# networked git / gh commands are allowed to run outside it through rules.
+# Local-only git operations (commit, status, ...) stay sandboxed.
+
+prefix_rule(
+    pattern = ["gh"],
+    decision = "allow",
+    justification = "gh needs the keychain and TLS trust store that the sandbox blocks",
+)
+
+prefix_rule(
+    pattern = ["git", ["push", "fetch", "pull", "clone", "ls-remote"]],
+    decision = "allow",
+    justification = "Credential manager access is blocked inside the sandbox",
+)
+
+# Keep destructive pushes behind a prompt (the most restrictive rule wins).
+prefix_rule(
+    pattern = ["git", "push", ["--force", "-f", "--force-with-lease"]],
+    decision = "prompt",
+    justification = "Force pushes rewrite remote history",
+)
