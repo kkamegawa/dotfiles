@@ -7,3 +7,5 @@ notify = [{{ printf "%s/computer-use/Codex Computer Use.app/Contents/SharedSuppo
 {{ printf "%s/.nuget/NuGet" $p.homeDir | quote }} = "read"
 {{ printf "%s/.nuget/plugins/netcore" $p.homeDir | quote }} = "read"
 {{ printf "%s/.azure" $p.homeDir | quote }} = "write"
+"/tmp/.dotnet" = "write"
+"/private/tmp/.dotnet" = "write"

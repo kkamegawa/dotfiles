@@ -72,6 +72,17 @@ The Windows overlay also sets `permissions.additionalDirectories` to the Visual 
 
 The MCP server name appears in the tool name (`mcp__microsoft-learn__*` in `permissions.allow`), so the server must be registered under that name. `~/.claude.json` holds session state and is not managed by this repository; `home/run_after_70-setup-claude-mcp.{sh,ps1}` register the user-scope `microsoft-learn` server on every apply when it does not exist yet, and skip when `claude` is not in PATH.
 
+### Git / gh outside the sandbox
+
+Credential manager access (keychain, GUI) and the `gh` TLS trust store are blocked inside the sandbox, and .NET needs a fixed `/tmp/.dotnet/shm` work directory. Both tools are relaxed the same way:
+
+| Tool | Networked git and `gh` outside the sandbox | `/tmp/.dotnet` writable |
+| --- | --- | --- |
+| Claude Code | `sandbox.excludedCommands`: `gh *`, `git push/fetch/pull/clone/ls-remote *` (common fragment) | `sandbox.filesystem.allowWrite` (Unix overlay) |
+| Codex | `home/dot_codex/rules/dotfiles.rules` (`prefix_rule` with `decision = "allow"`; `config.toml` has no equivalent option) | `permissions.dotnet-dev.filesystem` (darwin / linux fragments) |
+
+Excluded commands run without sandbox restrictions. Local-only git operations such as `git commit` and `git status` are not excluded. Force pushes stay behind a prompt in Codex and are denied in Claude Code.
+
 ## Operations
 
 - Add or change a shared setting: edit the fragment, then run `chezmoi diff` and `chezmoi apply`.

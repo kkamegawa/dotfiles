@@ -72,6 +72,17 @@ Windows overlay は `permissions.additionalDirectories` に Visual Studio と Co
 
 MCP サーバー名はツール名に含まれる（`permissions.allow` の `mcp__microsoft-learn__*`）ため、サーバーはその名前で登録する必要があります。`~/.claude.json` はセッション状態を含むため、このリポジトリでは管理しません。`home/run_after_70-setup-claude-mcp.{sh,ps1}` が、ユーザースコープの `microsoft-learn` サーバーが未登録なら `chezmoi apply` のたびに登録し、`claude` が PATH にない場合はスキップします。
 
+### sandbox 外で実行する git / gh
+
+認証情報マネージャー（キーチェーン、GUI）と `gh` の TLS 信頼ストアは sandbox 内で遮断され、.NET は固定の作業ディレクトリ `/tmp/.dotnet/shm` を必要とします。Claude Code と Codex の両方で次のように緩めます。
+
+| ツール | 通信する git と `gh` を sandbox 外で実行 | `/tmp/.dotnet` を書き込み可能に |
+| --- | --- | --- |
+| Claude Code | `sandbox.excludedCommands`: `gh *`、`git push/fetch/pull/clone/ls-remote *`（common フラグメント） | `sandbox.filesystem.allowWrite`（Unix オーバーレイ） |
+| Codex | `home/dot_codex/rules/dotfiles.rules`（`decision = "allow"` の `prefix_rule`。`config.toml` に同等の項目はありません） | `permissions.dotnet-dev.filesystem`（darwin / linux フラグメント） |
+
+除外されたコマンドは sandbox の制限なしで動きます。`git commit` や `git status` などローカルだけの操作は対象外です。force push は Codex では確認を求め、Claude Code では拒否されます。
+
 ## 運用
 
 - 共通設定を追加・変更する: 断片を編集し、`chezmoi diff` と `chezmoi apply` を実行します。
