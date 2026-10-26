@@ -71,7 +71,7 @@ class MiseTemplateTest(unittest.TestCase):
         self.assertEqual(data["tools"]["dotnet"], ["10", "8"])
         self.assertEqual(
             data["settings"]["dotnet"]["dotnet_root"],
-            str(self.home / ".local/share/mise/dotnet-root"),
+            (self.home / ".local/share/mise/dotnet-root").as_posix(),
         )
         self.assertIs(data["settings"]["dotnet"]["isolated"], False)
 
@@ -90,7 +90,7 @@ class MiseTemplateTest(unittest.TestCase):
                     self.assertEqual(data["tools"]["dotnet"], ["10", "8"])
                     self.assertEqual(
                         data["settings"]["dotnet"]["dotnet_root"],
-                        str(self.home / ".local/share/mise/dotnet-root"),
+                        (self.home / ".local/share/mise/dotnet-root").as_posix(),
                     )
                     self.assertIs(data["settings"]["dotnet"]["isolated"], False)
                 else:

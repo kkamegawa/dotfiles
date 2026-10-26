@@ -991,7 +991,7 @@ migration_restore_manifest() {
   fi
 }
 migration_restore_registration() {
-  local kind backup temp original_mode original_uid baseline system_sdks
+  local kind backup temp original_mode original_uid baseline system_sdks registration_dir
   kind=$("$MIGRATION_JQ_BIN" -r '.registration.kind' "$(migration_state_path)")
   backup=$("$MIGRATION_JQ_BIN" -r '.registration.backupFile' "$(migration_state_path)")
   baseline=$("$MIGRATION_JQ_BIN" -r '.package.version' "$(migration_state_path)")
@@ -1011,9 +1011,10 @@ migration_restore_registration() {
   if [ "$kind" = absent ]; then "$MIGRATION_SUDO_BIN" rm -f "$MIGRATION_REGISTRATION" || return 1
   else
     [ -f "$backup" ] || migration_die 'Registration backup missing.' || return 1
-    if [ ! -e /etc/dotnet ]; then "$MIGRATION_SUDO_BIN" mkdir -m 0755 /etc/dotnet || return 1; fi
-    [ -d /etc/dotnet ] && [ ! -L /etc/dotnet ] && [ "$(stat -f '%Su' /etc/dotnet 2>/dev/null)" = root ] || migration_die '/etc/dotnet is missing or has unexpected ownership/type.' || return 1
-    temp=$("$MIGRATION_SUDO_BIN" mktemp /etc/dotnet/.install_location_XXXXXX) || return 1
+    registration_dir=$(dirname "$MIGRATION_REGISTRATION") || return 1
+    if [ ! -e "$registration_dir" ]; then "$MIGRATION_SUDO_BIN" mkdir -m 0755 "$registration_dir" || return 1; fi
+    [ -d "$registration_dir" ] && [ ! -L "$registration_dir" ] && [ "$(stat -f '%Su' "$registration_dir" 2>/dev/null)" = root ] || migration_die 'Registration directory is missing or has unexpected ownership/type.' || return 1
+    temp=$("$MIGRATION_SUDO_BIN" mktemp "$registration_dir/.install_location_XXXXXX") || return 1
     cat "$backup" | "$MIGRATION_SUDO_BIN" tee "$temp" >/dev/null || { "$MIGRATION_SUDO_BIN" rm -f "$temp"; return 1; }
     original_mode=$("$MIGRATION_JQ_BIN" -r '.registration.mode' "$(migration_state_path)")
     original_uid=$("$MIGRATION_JQ_BIN" -r '.registration.uid' "$(migration_state_path)")

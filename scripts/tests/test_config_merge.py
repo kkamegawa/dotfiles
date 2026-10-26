@@ -99,7 +99,10 @@ class CodexMergeTest(MergeTestCase):
         self.assertEqual(data["projects"]["/work/repo"]["trust_level"], "trusted")
         env = data["shell_environment_policy"]["set"]
         self.assertEqual(env["APP_CACHE"], "/app/cache")
-        self.assertIn("/opt/unmanaged/bin", env["PATH"].split(os.pathsep))
+        if platform.system() == "Darwin":
+            self.assertIn("/opt/unmanaged/bin", env["PATH"].split(":"))
+        else:
+            self.assertEqual(env["PATH"], "/opt/unmanaged/bin:/usr/bin")
 
     def test_integers_stay_integers(self):
         self.apply(self.dest / self.REL)
@@ -139,9 +142,13 @@ class CodexMergeTest(MergeTestCase):
         )
         self.assertEqual(self.apply(target).returncode, 0)
         first = target.read_bytes()
-        path_entries = self.load()["shell_environment_policy"]["set"]["PATH"].split(os.pathsep)
-        self.assertIn("/opt/unmanaged/bin", path_entries)
-        self.assertEqual(len(path_entries), len(set(path_entries)))
+        merged_path = self.load()["shell_environment_policy"]["set"]["PATH"]
+        if platform.system() == "Darwin":
+            path_entries = merged_path.split(":")
+            self.assertIn("/opt/unmanaged/bin", path_entries)
+            self.assertEqual(len(path_entries), len(set(path_entries)))
+        else:
+            self.assertEqual(merged_path, f"/opt/unmanaged/bin{os.pathsep}/usr/bin{os.pathsep}/opt/unmanaged/bin")
         self.assertEqual(self.apply(target).returncode, 0)
         self.assertEqual(target.read_bytes(), first)
 

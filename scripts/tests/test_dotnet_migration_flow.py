@@ -32,6 +32,8 @@ class MigrationFlowTest(unittest.TestCase):
         self.fixture.setUp()
         self.addCleanup(self.fixture.doCleanups)
         self.f = self.fixture
+        self.f.state.mkdir(mode=0o700)
+        self.f.state.chmod(0o700)
         self.system_sdks = self.f.scratch / "system-sdks.txt"
         self.user_sdks = self.f.scratch / "user-sdks.txt"
         self.shared_sdks = self.f.scratch / "shared-sdks.txt"
@@ -266,7 +268,8 @@ esac''',
             "stat",
             "import os,sys\n"
             "args=sys.argv[1:]\n"
-            "if len(args)>=3 and args[0]=='-f' and args[2]==os.environ.get('FAKE_REGISTRATION'):\n"
+            "fake_registration=os.environ.get('FAKE_REGISTRATION')\n"
+            "if len(args)>=3 and args[0]=='-f' and args[2] in (fake_registration, os.path.dirname(fake_registration or '')):\n"
             "    values={'%Su':'root','%u':'0','%Lp':'644'}\n"
             "    if args[1] in values: print(values[args[1]]); raise SystemExit(0)\n"
             f"os.execv({actual_stat!r}, [{actual_stat!r}, *args])\n",
