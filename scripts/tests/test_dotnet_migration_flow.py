@@ -266,12 +266,16 @@ esac''',
         actual_stat = shutil.which("stat")
         self.write_python_command(
             "stat",
-            "import os,sys\n"
+            "import os,platform,sys\n"
             "args=sys.argv[1:]\n"
             "fake_registration=os.environ.get('FAKE_REGISTRATION')\n"
             "if len(args)>=3 and args[0]=='-f' and args[2] in (fake_registration, os.path.dirname(fake_registration or '')):\n"
             "    values={'%Su':'root','%u':'0','%Lp':'644'}\n"
             "    if args[1] in values: print(values[args[1]]); raise SystemExit(0)\n"
+            "if platform.system() != 'Darwin' and len(args)>=3 and args[0]=='-f':\n"
+            "    formats={'%Su':'%U','%u':'%u','%Lp':'%a','%Sp':'%A'}\n"
+            "    if args[1] in formats:\n"
+            f"        os.execv({actual_stat!r}, [{actual_stat!r}, '-c', formats[args[1]], args[2]])\n"
             f"os.execv({actual_stat!r}, [{actual_stat!r}, *args])\n",
         )
 
