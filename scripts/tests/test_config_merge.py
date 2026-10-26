@@ -204,7 +204,10 @@ class ClaudeMergeTest(MergeTestCase):
         if platform.system() == "Darwin":
             shared_root = (Path.home() / ".local/share/mise/dotnet-root").as_posix()
             self.assertEqual(env["DOTNET_ROOT"], shared_root)
-            self.assertEqual(data["sandbox"]["filesystem"]["allowRead"], [shared_root])
+            self.assertEqual(
+                data["sandbox"]["filesystem"]["allowRead"],
+                ["~/.local/share/mise", "~/.config/mise", "~/.dotnet", "~/.nuget"],
+            )
             self.assertIn("DOTNET_ROOT_ARM64" if platform.machine() == "arm64" else "DOTNET_ROOT_X64", env)
             managed_path = env["PATH"].split(os.pathsep)
             self.assertEqual(managed_path[0], shared_root)
@@ -245,9 +248,15 @@ class ClaudeMergeTest(MergeTestCase):
         self.assertIn("Bash(local-deny)", data["permissions"]["deny"])
         self.assertIn("/tmp/user-readable", data["sandbox"]["filesystem"]["allowRead"])
         if platform.system() == "Darwin":
-            self.assertIn(
-                (Path.home() / ".local/share/mise/dotnet-root").as_posix(),
-                data["sandbox"]["filesystem"]["allowRead"],
+            self.assertEqual(
+                set(data["sandbox"]["filesystem"]["allowRead"]),
+                {
+                    "/tmp/user-readable",
+                    "~/.local/share/mise",
+                    "~/.config/mise",
+                    "~/.dotnet",
+                    "~/.nuget",
+                },
             )
         self.assertEqual(self.hook_commands(data, "SessionStart")[0]["command"], "/opt/orca/hook")
 

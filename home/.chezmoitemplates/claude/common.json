@@ -225,7 +225,12 @@
       ]
     },
     "filesystem": {
-      {{ if eq .chezmoi.os "darwin" }}"allowRead": [{{ $dotnetRoot | toJson }}],{{ end }}
+      {{ if eq .chezmoi.os "darwin" }}"allowRead": [
+        "~/.local/share/mise",
+        "~/.config/mise",
+        "~/.dotnet",
+        "~/.nuget"
+      ],{{ end }}
       "allowWrite": [
         "~/.dotnet",
         "~/.nuget",
