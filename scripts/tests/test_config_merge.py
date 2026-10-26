@@ -199,10 +199,12 @@ class ClaudeMergeTest(MergeTestCase):
 
     def test_macos_environment_is_managed_without_dropping_other_env(self):
         self.apply(self.dest / self.REL)
-        env = self.load()["env"]
+        data = self.load()
+        env = data["env"]
         if platform.system() == "Darwin":
             shared_root = (Path.home() / ".local/share/mise/dotnet-root").as_posix()
             self.assertEqual(env["DOTNET_ROOT"], shared_root)
+            self.assertEqual(data["sandbox"]["filesystem"]["allowRead"], [shared_root])
             self.assertIn("DOTNET_ROOT_ARM64" if platform.machine() == "arm64" else "DOTNET_ROOT_X64", env)
             managed_path = env["PATH"].split(os.pathsep)
             self.assertEqual(managed_path[0], shared_root)
@@ -213,6 +215,7 @@ class ClaudeMergeTest(MergeTestCase):
         else:
             self.assertNotIn("DOTNET_ROOT", env)
             self.assertNotIn("PATH", env)
+            self.assertNotIn("allowRead", data.get("sandbox", {}).get("filesystem", {}))
 
     def test_local_keys_and_extras_survive(self):
         target = self.write(
@@ -223,6 +226,7 @@ class ClaudeMergeTest(MergeTestCase):
                     "env": {"APP_OWNED_VALUE": "preserve", "DOTNET_CLI_HOME": "/app/cache"},
                     "enabledPlugins": {"x@inline": True},
                     "permissions": {"allow": ["Bash(make:*)"], "deny": ["Bash(local-deny)"]},
+                    "sandbox": {"filesystem": {"allowRead": ["/tmp/user-readable"]}},
                     "hooks": {
                         "SessionStart": [{"hooks": [{"type": "command", "command": "/opt/orca/hook"}]}],
                     },
@@ -239,6 +243,12 @@ class ClaudeMergeTest(MergeTestCase):
         self.assertIn("Bash(make:*)", data["permissions"]["allow"])
         self.assertIn("Bash(git status:*)", data["permissions"]["allow"])
         self.assertIn("Bash(local-deny)", data["permissions"]["deny"])
+        self.assertIn("/tmp/user-readable", data["sandbox"]["filesystem"]["allowRead"])
+        if platform.system() == "Darwin":
+            self.assertIn(
+                (Path.home() / ".local/share/mise/dotnet-root").as_posix(),
+                data["sandbox"]["filesystem"]["allowRead"],
+            )
         self.assertEqual(self.hook_commands(data, "SessionStart")[0]["command"], "/opt/orca/hook")
 
     def test_owned_hook_is_replaced_not_duplicated(self):

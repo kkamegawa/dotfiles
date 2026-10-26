@@ -225,6 +225,7 @@
       ]
     },
     "filesystem": {
+      {{ if eq .chezmoi.os "darwin" }}"allowRead": [{{ $dotnetRoot | toJson }}],{{ end }}
       "allowWrite": [
         "~/.dotnet",
         "~/.nuget",

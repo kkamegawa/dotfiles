@@ -9,7 +9,7 @@
 {{- if .chezmoi.stdin -}}
 {{- $current = .chezmoi.stdin | fromJson -}}
 {{- end -}}
-{{- $union := list "permissions.allow" "permissions.ask" "permissions.deny" "permissions.additionalDirectories" "sandbox.network.allowedDomains" "sandbox.filesystem.allowWrite" "sandbox.excludedCommands" -}}
+{{- $union := list "permissions.allow" "permissions.ask" "permissions.deny" "permissions.additionalDirectories" "sandbox.network.allowedDomains" "sandbox.filesystem.allowRead" "sandbox.filesystem.allowWrite" "sandbox.excludedCommands" -}}
 
 {{- /* Combine the common fragment with the OS overlay. */ -}}
 {{- $overlay := "claude/unix.json" -}}
