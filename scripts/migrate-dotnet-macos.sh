@@ -32,6 +32,8 @@ migration_init_defaults() {
   MIGRATION_FILE_BIN=${MIGRATION_FILE_BIN:-$(command -v file 2>/dev/null || true)}
   MIGRATION_SUDO_BIN=${MIGRATION_SUDO_BIN:-$(command -v sudo 2>/dev/null || true)}
   MIGRATION_PACKAGE_TOOL=${MIGRATION_PACKAGE_TOOL:-$(command -v installer 2>/dev/null || true)}
+  MIGRATION_GCM_ARM64_HELPER=${MIGRATION_GCM_ARM64_HELPER:-/opt/homebrew/share/gcm-core/git-credential-manager}
+  MIGRATION_GCM_X64_HELPER=${MIGRATION_GCM_X64_HELPER:-/usr/local/share/gcm-core/git-credential-manager}
   MIGRATION_STATE_FILE=${MIGRATION_STATE_FILE:-$MIGRATION_HOME/.config/dotfiles/dotnet-retained-sdks.json}
   MIGRATION_INITIALIZED=1
 }
@@ -178,11 +180,27 @@ migration_find_global_json() {
     dir=$(dirname "$dir")
   done
 }
-migration_project_pins() {
-  local project file version roll_forward allow_prerelease sdk_paths
+migration_global_json_files() {
+  local project root file
+  local -a roots=()
   for project in ${MIGRATION_PROJECTS[@]+"${MIGRATION_PROJECTS[@]}"}; do
-    file=$(migration_find_global_json "$project")
-    if [ -n "$file" ]; then
+    if [ -d "$project" ]; then root=$(cd "$project" 2>/dev/null && pwd -P) || return 1
+    else root=$(cd "$(dirname "$project")" 2>/dev/null && pwd -P) || return 1; fi
+    file=$(migration_find_global_json "$root")
+    [ -z "$file" ] || roots+=("$file")
+    if [ -d "$project" ] || [[ "$project" = *.sln || "$project" = *.slnx ]]; then
+      while IFS= read -r file; do [ -z "$file" ] || roots+=("$file"); done < <(
+        find "$root" \( -type d \( -name .git -o -name .agents -o -name .claude -o -name .codex -o -name apm_modules -o -name bin -o -name obj -o -name artifacts -o -name node_modules \) -prune \) -o \( -type f -name global.json -print \)
+      )
+    fi
+  done
+  [ "${#roots[@]}" -eq 0 ] || printf '%s\n' "${roots[@]}" | sort -u
+}
+migration_project_pins() {
+  local file version roll_forward allow_prerelease sdk_paths files
+  files=$(migration_global_json_files) || return 1
+  while IFS= read -r file; do
+    [ -n "$file" ] || continue
       version=$("$MIGRATION_JQ_BIN" -r '.sdk.version // empty' "$file" 2>/dev/null) || migration_die "Cannot parse SDK version in $file" || return 1
       if [ -n "$version" ]; then migration_exact_version "$version" || migration_die "global.json SDK version must be exact X.Y.Z: $file" || return 1; fi
       roll_forward=$("$MIGRATION_JQ_BIN" -r '.sdk.rollForward // "default"' "$file") || return 1
@@ -190,8 +208,9 @@ migration_project_pins() {
       sdk_paths=$("$MIGRATION_JQ_BIN" -c '.sdk.paths // []' "$file") || return 1
       [ -n "$version" ] || version='(none)'
       printf '%s\t%s\t%s\t%s\t%s\n' "$version" "$file" "$roll_forward" "$allow_prerelease" "$sdk_paths"
-    fi
-  done
+  done <<EOF
+$files
+EOF
 }
 migration_inventory() {
   migration_init_defaults; migration_require_macos || return 1; migration_validate_inputs || return 1; migration_require_tools || return 1; migration_check_mise || return 1
@@ -477,6 +496,14 @@ migration_archive_old_installer() {
   chmod 600 "$file" "$metadata" "$index" "$MIGRATION_STATE_DIR/package-signature.txt" || return 1
   "$MIGRATION_JQ_BIN" -n --arg version "$version" --arg rid "osx-$MIGRATION_ARCH" --arg url "$url" --arg file "$file" --arg sha512 "$actual" '{version:$version,rid:$rid,url:$url,file:$file,sha512:$sha512,signatureVerified:true}'
 }
+migration_cask_version() {
+  local inventory version
+  [ -n "$MIGRATION_BREW_BIN" ] && [ -x "$MIGRATION_BREW_BIN" ] || migration_die 'Homebrew is required to identify the installed dotnet-sdk cask version.' || return 1
+  inventory=$("$MIGRATION_BREW_BIN" list --cask --versions dotnet-sdk 2>&1) || { printf '%s\n' "$inventory" >&2; migration_die 'The dotnet-sdk cask must be installed and its version must be identifiable before prepare.'; return 1; }
+  version=$(printf '%s\n' "$inventory" | awk '$1=="dotnet-sdk" { if (count++) exit 1; print $2 }')
+  migration_exact_version "$version" || migration_die "Could not identify one exact dotnet-sdk cask version: $inventory" || return 1
+  printf '%s\n' "$version"
+}
 migration_verify_package_signature() {
   local output
   output=$("$MIGRATION_PKGUTIL_BIN" --check-signature "$1" 2>&1) || { printf '%s\n' "$output"; return 1; }
@@ -559,7 +586,7 @@ migration_prepare() {
   [ -x "$MIGRATION_SYSTEM_ROOT/dotnet" ] || migration_die 'Expected system SDK host is absent.' || return 1
   migration_check_host_architecture "$MIGRATION_SYSTEM_ROOT/dotnet" || return 1
   "$MIGRATION_SYSTEM_ROOT/dotnet" --list-sdks | grep -q '^10\.0\.401 ' || migration_die 'Expected system SDK 10.0.401 baseline was not found.' || return 1
-  local projects_json pins versions targets registration inventory package state_json version manifest_state manifest_kind manifest_mode manifest_sha
+  local projects_json pins versions targets registration inventory package state_json version cask_version manifest_state manifest_kind manifest_mode manifest_sha
   projects_json=$(printf '%s\n' ${MIGRATION_PROJECTS[@]+"${MIGRATION_PROJECTS[@]}"} | "$MIGRATION_JQ_BIN" -Rsc 'split("\n")|map(select(length>0))') || return 1
   pins=$(migration_project_pins) || return 1
   if [ -n "$pins" ] && printf '%s\n' "$pins" | awk -F '\t' '$5 != "[]" { found=1 } END { exit found ? 0 : 1 }'; then
@@ -567,11 +594,13 @@ migration_prepare() {
     return 1
   fi
   [ -z "$(printenv MSBuildSDKsPath 2>/dev/null || true)" ] || migration_die 'MSBuildSDKsPath overrides SDK resolution; remove it before prepare.' || return 1
+  cask_version=$(migration_cask_version) || return 1
   inventory=$(migration_collect_inventory_json) || return 1
   local system_versions user_versions shared_versions
   system_versions=$(cat "$MIGRATION_STATE_DIR/inventory-system.txt")
   user_versions=$(cat "$MIGRATION_STATE_DIR/inventory-user.txt")
   shared_versions=$(cat "$MIGRATION_STATE_DIR/inventory-shared.txt")
+  printf '%s\n' "$system_versions" | grep -Fxq "$cask_version" || migration_die "Cask-owned SDK $cask_version is absent from the system SDK inventory." || return 1
   versions=$(printf '%s\n' 10.0.401 8.0.404 ${MIGRATION_SDKS[@]+"${MIGRATION_SDKS[@]}"} "$pins" "$system_versions" "$user_versions" "$shared_versions" | sed '/^$/d' | awk -F '\t' '$1 != "(none)" {print $1}' | sort -u | "$MIGRATION_JQ_BIN" -Rsc 'split("\n")|map(select(length>0))') || return 1
   for version in $("$MIGRATION_JQ_BIN" -r '.[]' <<EOF
 $versions
@@ -595,9 +624,7 @@ EOF
   manifest_state=$("$MIGRATION_JQ_BIN" -n --arg path "$(migration_manifest_path)" --arg kind "$manifest_kind" --arg mode "$manifest_mode" --arg sha "$manifest_sha" --arg backup "$MIGRATION_STATE_DIR/manifest.original" '{path:$path,originalKind:$kind,originalMode:$mode,originalSha256:$sha,backupFile:(if $kind=="file" then $backup else "" end),appliedSha256:null}')
   chmod 600 "$MIGRATION_STATE_DIR/manifest.original" 2>/dev/null || true
   printf '%s\n' "$inventory" > "$MIGRATION_STATE_DIR/inventory.json"; chmod 600 "$MIGRATION_STATE_DIR/inventory.json" || return 1
-  version=$(sort -t. -k1,1n -k2,2n -k3,3n "$MIGRATION_STATE_DIR/inventory-system.txt" | tail -n 1)
-  [ -n "$version" ] || migration_die 'No system SDK version is available to preserve for rollback.' || return 1
-  package=$(migration_archive_old_installer "$version") || return 1
+  package=$(migration_archive_old_installer "$cask_version") || return 1
   state_json=$("$MIGRATION_JQ_BIN" -n --arg home "$MIGRATION_HOME" --arg repo "$MIGRATION_REPO" --arg arch "$MIGRATION_ARCH" --arg root "$MIGRATION_SHARED_ROOT" --argjson projects "$projects_json" --argjson versions "$versions" --argjson targets "$targets" --argjson registration "$registration" --argjson inventory "$inventory" --argjson package "$package" --argjson manifest "$manifest_state" '{schemaVersion:1,phase:"preparing",home:$home,repo:$repo,architecture:$arch,sharedRoot:$root,projectPaths:$projects,retainedVersions:$versions,targets:$targets,registration:$registration,manifest:$manifest,checkpoints:{installedVersions:[],appliedTargets:[],registration:"pending",caskRemoved:false,guiAttested:false,manifestAppliedSha256:null},package:$package,inventory:$inventory}') || return 1
   migration_write_state "$state_json" || return 1
   MIGRATION_PREPARE_ACTIVE=0
@@ -770,7 +797,11 @@ EOF
 migration_verify_credential_helper() {
   local configured helper
   configured=$(git config --global --get credential.helper 2>/dev/null) || migration_die 'Global Git credential.helper is not configured.' || return 1
-  helper=/usr/local/share/gcm-core/git-credential-manager
+  if [ "$MIGRATION_ARCH" = arm64 ] && [ -x "$MIGRATION_GCM_ARM64_HELPER" ]; then helper=$MIGRATION_GCM_ARM64_HELPER
+  elif [ "$MIGRATION_ARCH" = x64 ] && [ -x "$MIGRATION_GCM_X64_HELPER" ]; then helper=$MIGRATION_GCM_X64_HELPER
+  elif [ -x "$MIGRATION_GCM_ARM64_HELPER" ]; then helper=$MIGRATION_GCM_ARM64_HELPER
+  elif [ -x "$MIGRATION_GCM_X64_HELPER" ]; then helper=$MIGRATION_GCM_X64_HELPER
+  else migration_die 'Native Git Credential Manager is unavailable in either Homebrew prefix.' || return 1; fi
   [ "$configured" = "$helper" ] || migration_die "Git credential.helper does not select the native cask executable: $configured" || return 1
   [ -x "$helper" ] || migration_die "Native Git Credential Manager is unavailable: $helper" || return 1
   env -u DOTNET_ROOT -u DOTNET_ROOT_ARM64 -u DOTNET_ROOT_X64 -u DOTNET_HOST_PATH "$helper" --version >/dev/null || migration_die 'Native Git Credential Manager version check failed.' || return 1

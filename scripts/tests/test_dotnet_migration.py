@@ -281,10 +281,32 @@ esac
         project.mkdir()
         original = json.dumps({"sdk": {"version": "8.0.404", "rollForward": "disable"}})
         (project / "global.json").write_text(original)
+        nested = project / "services" / "api"
+        nested.mkdir(parents=True)
+        (nested / "global.json").write_text(json.dumps({"sdk": {"version": "10.0.302"}}))
         result = self.run_api(f"MIGRATION_PROJECTS=({shlex.quote(str(project))}); migration_project_pins")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("8.0.404", result.stdout)
+        self.assertIn("10.0.302", result.stdout)
         self.assertEqual((project / "global.json").read_text(), original)
+
+    def test_cask_version_must_be_unambiguous_and_exact(self):
+        self.env["BREW_DOTNET_SDK_INSTALLED"] = "1"
+        result = self.run_api("migration_cask_version")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "10.0.401")
+
+    def test_credential_helper_verification_uses_configured_architecture_path(self):
+        helper = self.scratch / "opt/homebrew/share/gcm-core/git-credential-manager"
+        helper.parent.mkdir(parents=True)
+        helper.write_text("#!/bin/sh\necho fixture-gcm\n", encoding="utf-8")
+        helper.chmod(0o755)
+        self.env["EXPECTED_HELPER"] = str(helper)
+        self.command("git", 'printf "%s\\n" "$EXPECTED_HELPER"')
+        result = self.run_api(
+            f"MIGRATION_GCM_ARM64_HELPER={shlex.quote(str(helper))}; migration_verify_credential_helper"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_nested_project_discovery_skips_generated_artifacts(self):
         root = self.scratch / "multi-project-root"

@@ -334,17 +334,19 @@ migration_verify_critical_consumers() { echo consumer-checks >> "$CALLS"; return
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_prepare_archives_fixture_package_and_unions_inventory_and_manifest_pins(self):
+        self.system_sdks.write_text("10.0.401 [/system/sdk]\n10.0.999 [/system/sdk]\n", encoding="utf-8")
         result = self.run_flow("migration_prepare")
         self.assertEqual(result.returncode, 0, result.stderr + "\n" + self.f.call_log())
         state = self.state()
         self.assertEqual(state["phase"], "prepared")
-        expected = {"10.0.401", "8.0.404", "9.0.100", "6.0.403", "7.0.410"}
+        expected = {"10.0.401", "10.0.999", "8.0.404", "9.0.100", "6.0.403", "7.0.410"}
         self.assertTrue(expected.issubset(set(state["retainedVersions"])))
-        self.assertEqual(set(state["inventory"]["oldSystemSdks"]), {"10.0.401"})
+        self.assertEqual(set(state["inventory"]["oldSystemSdks"]), {"10.0.401", "10.0.999"})
         self.assertEqual(set(state["inventory"]["oldUserSdks"]), {"8.0.404"})
         self.assertEqual(state["inventory"]["oldSharedSdks"], [])
         self.assertEqual(json.loads(Path(state["inventory"]["workloadsFile"]).read_text()), {"workloads": []})
         self.assertEqual(state["package"]["sha512"], self.package_hash)
+        self.assertEqual(state["package"]["version"], "10.0.401", "Rollback must archive the cask-owned SDK, not the newest system SDK")
         self.assertTrue(state["package"]["signatureVerified"])
         self.assertEqual(set(json.loads(self.manifest.read_text())["versions"]), expected)
         self.assertTrue((self.f.state / "original.pkg").exists() is False)

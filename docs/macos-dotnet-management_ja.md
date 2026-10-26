@@ -70,7 +70,7 @@ bash scripts/migrate-dotnet-macos.sh plan \
   --sdk 10.0.401 --sdk 8.0.404
 ```
 
-関係する repository ごとに `--project` を、調査で見つかった完全 SDK ごとに `--sdk` を指定します。state directory と project root は絶対パスにします。変更案を確認してから、`prepare`、`switch`、`verify`、`finalize` を個別に順番どおり実行します。IDE の確認を手動で終えた後だけ `--ide-checks-confirmed` を付けます。問題があれば `rollback` で記録済みの設定と登録を戻します。
+関係する repository ごとに `--project` を、調査で見つかった完全 SDK ごとに `--sdk` を指定します。inventory は選択した project root / solution 以下のネストした `global.json` と祖先の policy を読み、rollback 用にインストール済み `dotnet-sdk` cask が報告する正確な SDK バージョンを保存します。state directory と project root は絶対パスにします。変更案を確認してから、`prepare`、`switch`、`verify`、`finalize` を個別に順番どおり実行します。IDE の確認を手動で終えた後だけ `--ide-checks-confirmed` を付けます。問題があれば `rollback` で記録済みの設定と登録を戻します。
 
 スクリプトは phase checkpoint を保存し、同時実行を防ぐ lock を使い、再開時に基準状態を再検証します。バックアップと一覧はユーザー所有の private state directory に保存し、資格情報や全環境変数をログに出しません。hook を無効にして承認対象ファイルだけを反映し、全体の chezmoi apply、無関係なパッケージ更新、`mise prune`、`--zap`、システム全体への SDK 導入は行いません。特権操作は対象アーキテクチャの登録ファイルに限定します。登録変更とパッケージ削除はユーザーが実行します。
 
