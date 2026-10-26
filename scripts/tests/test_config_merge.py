@@ -85,6 +85,7 @@ class CodexMergeTest(MergeTestCase):
             '[agents]\ndefault_subagent_model = "old"\nkeep = 1\n'
             '[mcp_servers.node_repl.env]\nBROWSER_USE_CODEX_APP_VERSION = "9"\n'
             '[plugins."code-review@openai-bundled"]\nenabled = true\n'
+            '[shell_environment_policy.set]\nPATH = "/opt/unmanaged/bin:/usr/bin"\nAPP_CACHE = "/app/cache"\n'
             '[projects."/work/repo"]\ntrust_level = "trusted"\n',
         )
         result = self.apply(target)
@@ -96,11 +97,60 @@ class CodexMergeTest(MergeTestCase):
         self.assertEqual(data["mcp_servers"]["node_repl"]["env"]["BROWSER_USE_CODEX_APP_VERSION"], "9")
         self.assertTrue(data["plugins"]["code-review@openai-bundled"]["enabled"])
         self.assertEqual(data["projects"]["/work/repo"]["trust_level"], "trusted")
+        env = data["shell_environment_policy"]["set"]
+        self.assertEqual(env["APP_CACHE"], "/app/cache")
+        if platform.system() == "Darwin":
+            self.assertIn("/opt/unmanaged/bin", env["PATH"].split(":"))
+        else:
+            self.assertEqual(env["PATH"], "/opt/unmanaged/bin:/usr/bin")
 
     def test_integers_stay_integers(self):
         self.apply(self.dest / self.REL)
         data = self.load()
         self.assertIsInstance(data["features"]["multi_agent_v2"]["min_wait_timeout_ms"], int)
+
+    def test_environment_overlay_keeps_common_dotnet_caches(self):
+        self.apply(self.dest / self.REL)
+        data = self.load()
+        env = data["shell_environment_policy"]["set"]
+        self.assertTrue(env["DOTNET_CLI_HOME"].endswith("dotnet-cli"))
+        self.assertTrue(env["NUGET_PACKAGES"].endswith("nuget-packages"))
+        if platform.system() == "Darwin":
+            shared_root = (Path.home() / ".local/share/mise/dotnet-root").as_posix()
+            self.assertEqual(env["DOTNET_ROOT"], shared_root)
+            self.assertIn("DOTNET_ROOT_ARM64" if platform.machine() == "arm64" else "DOTNET_ROOT_X64", env)
+            managed_path = env["PATH"].split(os.pathsep)
+            self.assertEqual(
+                managed_path[:4],
+                [
+                    shared_root,
+                    (Path.home() / ".dotnet/tools").as_posix(),
+                    (Path.home() / ".local/bin").as_posix(),
+                    (Path.home() / ".local/share/mise/shims").as_posix(),
+                ],
+            )
+            self.assertEqual(len(managed_path), len(set(managed_path)))
+        else:
+            self.assertNotIn("DOTNET_ROOT", env)
+            self.assertNotIn("PATH", env)
+
+    def test_path_merge_preserves_entries_without_duplicate_growth(self):
+        target = self.write(
+            self.REL,
+            '[shell_environment_policy.set]\nPATH = '
+            f'"/opt/unmanaged/bin{os.pathsep}/usr/bin{os.pathsep}/opt/unmanaged/bin"\n',
+        )
+        self.assertEqual(self.apply(target).returncode, 0)
+        first = target.read_bytes()
+        merged_path = self.load()["shell_environment_policy"]["set"]["PATH"]
+        if platform.system() == "Darwin":
+            path_entries = merged_path.split(":")
+            self.assertIn("/opt/unmanaged/bin", path_entries)
+            self.assertEqual(len(path_entries), len(set(path_entries)))
+        else:
+            self.assertEqual(merged_path, f"/opt/unmanaged/bin{os.pathsep}/usr/bin{os.pathsep}/opt/unmanaged/bin")
+        self.assertEqual(self.apply(target).returncode, 0)
+        self.assertEqual(target.read_bytes(), first)
 
     def test_second_apply_changes_nothing(self):
         target = self.dest / self.REL
@@ -147,14 +197,56 @@ class ClaudeMergeTest(MergeTestCase):
         self.assertEqual(data["statusLine"]["args"], [f"{CLAUDE_HOME}/hooks/statusline.mjs"])
         self.assertNotIn("enabledPlugins", data)
 
+    def test_macos_environment_is_managed_without_dropping_other_env(self):
+        self.apply(self.dest / self.REL)
+        data = self.load()
+        env = data["env"]
+        if platform.system() == "Darwin":
+            shared_root = (Path.home() / ".local/share/mise/dotnet-root").as_posix()
+            self.assertEqual(env["DOTNET_ROOT"], shared_root)
+            self.assertEqual(
+                data["sandbox"]["filesystem"]["allowRead"],
+                ["~/.local/share/mise", "~/.config/mise", "~/.dotnet", "~/.nuget"],
+            )
+            self.assertEqual(
+                data["permissions"]["additionalDirectories"],
+                ["~/.local/share/mise", "~/.config/mise", "~/.dotnet", "~/.nuget"],
+            )
+            self.assertIn("DOTNET_ROOT_ARM64" if platform.machine() == "arm64" else "DOTNET_ROOT_X64", env)
+            managed_path = env["PATH"].split(os.pathsep)
+            self.assertEqual(managed_path[0], shared_root)
+            self.assertIn((Path.home() / ".local/bin").as_posix(), managed_path)
+            self.assertIn((Path.home() / ".dotnet/tools").as_posix(), managed_path)
+            self.assertIn((Path.home() / ".local/share/mise/shims").as_posix(), managed_path)
+            self.assertEqual(len(managed_path), len(set(managed_path)))
+        else:
+            self.assertNotIn("DOTNET_ROOT", env)
+            self.assertNotIn("PATH", env)
+            self.assertNotIn("allowRead", data.get("sandbox", {}).get("filesystem", {}))
+            dotnet_paths = {
+                "~/.local/share/mise",
+                "~/.config/mise",
+                "~/.dotnet",
+                "~/.nuget",
+            }
+            self.assertTrue(
+                dotnet_paths.isdisjoint(data["permissions"].get("additionalDirectories", []))
+            )
+
     def test_local_keys_and_extras_survive(self):
         target = self.write(
             self.REL,
             json.dumps(
                 {
                     "model": "sonnet",
+                    "env": {"APP_OWNED_VALUE": "preserve", "DOTNET_CLI_HOME": "/app/cache"},
                     "enabledPlugins": {"x@inline": True},
-                    "permissions": {"allow": ["Bash(make:*)"], "deny": ["Bash(local-deny)"]},
+                    "permissions": {
+                        "allow": ["Bash(make:*)"],
+                        "deny": ["Bash(local-deny)"],
+                        "additionalDirectories": ["/tmp/user-workspace"],
+                    },
+                    "sandbox": {"filesystem": {"allowRead": ["/tmp/user-readable"]}},
                     "hooks": {
                         "SessionStart": [{"hooks": [{"type": "command", "command": "/opt/orca/hook"}]}],
                     },
@@ -165,10 +257,35 @@ class ClaudeMergeTest(MergeTestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         data = self.load()
         self.assertEqual(data["model"], "opusplan")
+        self.assertEqual(data["env"]["APP_OWNED_VALUE"], "preserve")
+        self.assertEqual(data["env"]["DOTNET_CLI_HOME"], "/app/cache")
         self.assertEqual(data["enabledPlugins"], {"x@inline": True})
         self.assertIn("Bash(make:*)", data["permissions"]["allow"])
         self.assertIn("Bash(git status:*)", data["permissions"]["allow"])
         self.assertIn("Bash(local-deny)", data["permissions"]["deny"])
+        self.assertIn("/tmp/user-workspace", data["permissions"]["additionalDirectories"])
+        self.assertIn("/tmp/user-readable", data["sandbox"]["filesystem"]["allowRead"])
+        if platform.system() == "Darwin":
+            self.assertEqual(
+                set(data["sandbox"]["filesystem"]["allowRead"]),
+                {
+                    "/tmp/user-readable",
+                    "~/.local/share/mise",
+                    "~/.config/mise",
+                    "~/.dotnet",
+                    "~/.nuget",
+                },
+            )
+            self.assertEqual(
+                set(data["permissions"]["additionalDirectories"]),
+                {
+                    "/tmp/user-workspace",
+                    "~/.local/share/mise",
+                    "~/.config/mise",
+                    "~/.dotnet",
+                    "~/.nuget",
+                },
+            )
         self.assertEqual(self.hook_commands(data, "SessionStart")[0]["command"], "/opt/orca/hook")
 
     def test_owned_hook_is_replaced_not_duplicated(self):

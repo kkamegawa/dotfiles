@@ -3,7 +3,45 @@
 # 非対話シェル（IDE, スクリプト, CI）でも PATH が揃うよう、
 # すべてのシェル起動ファイルからここを source する。
 
-# 多重読み込み防止
+# Refresh managed macOS .NET state before the profile guard so repeated sourcing
+# after path_helper remains safe and repairs inherited stale environment values.
+{{ if eq .chezmoi.os "darwin" }}
+DOTFILES_DOTNET_ROOT="$HOME/.local/share/mise/dotnet-root"
+export DOTNET_ROOT="$DOTFILES_DOTNET_ROOT"
+if [ "$(sysctl -in hw.optional.arm64 2>/dev/null || true)" = "1" ] || [ "$(uname -m)" = "arm64" ]; then
+  export DOTNET_ROOT_ARM64="$DOTFILES_DOTNET_ROOT"
+  unset DOTNET_ROOT_X64
+else
+  export DOTNET_ROOT_X64="$DOTFILES_DOTNET_ROOT"
+  unset DOTNET_ROOT_ARM64
+fi
+
+_dotfiles_remove_path_entry() {
+  PATH=$(printf '%s\n' "$PATH" | awk -v remove="$1" -F: '{
+    result = ""
+    for (i = 1; i <= NF; i++) {
+      if ($i != remove) {
+        if (result != "") result = result ":"
+        result = result $i
+      }
+    }
+    print result
+  }')
+}
+_dotfiles_remove_path_entry "$DOTFILES_DOTNET_ROOT"
+_dotfiles_remove_path_entry "$HOME/.dotnet/tools"
+if [ -d "$HOME/.dotnet/tools" ]; then
+  PATH="$HOME/.dotnet/tools:$PATH"
+fi
+if [ -x "$DOTFILES_DOTNET_ROOT/dotnet" ]; then
+  PATH="$DOTFILES_DOTNET_ROOT:$PATH"
+fi
+unset -f _dotfiles_remove_path_entry
+export PATH
+unset DOTFILES_DOTNET_ROOT
+{{ end }}
+
+# Prevent repeated setup while allowing the macOS runtime refresh above.
 [ -n "$__DOTFILES_PROFILE_LOADED" ] && return
 export __DOTFILES_PROFILE_LOADED=1
 

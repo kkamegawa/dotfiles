@@ -157,7 +157,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -165,6 +165,11 @@ jobs:
           python-version: '3.13'
       - name: Install chezmoi (Linux)
         if: runner.os == 'Linux'
+        run: |
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install chezmoi (macOS)
+        if: runner.os == 'macOS'
         run: |
           sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
@@ -176,7 +181,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $binDir | Out-Null
           iex "&{$(irm 'https://get.chezmoi.io/ps1')} -b '$binDir'"
           $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      - name: Run merge tests
+      - name: Run configuration merge and environment tests
         run: python -m unittest discover -s scripts/tests -v
 
   create-failure-issues:
@@ -256,11 +261,24 @@ jobs:
                 files: [
                   '.github/workflows/lint.yml',
                   'scripts/tests/test_config_merge.py',
+                  'scripts/tests/test_dotnet_environment.py',
+                  'scripts/tests/test_dotnet_migration.py',
+                  'scripts/tests/test_dotnet_migration_flow.py',
+                  'scripts/migrate-dotnet-macos.sh',
+                  'scripts/migrate-dotnet-macos.ps1',
                   'home/dot_codex/',
                   'home/dot_claude/',
                   'home/.chezmoitemplates/',
+                  'home/dot_profile.tmpl',
+                  'home/PowerShell_profile.ps1.tmpl',
+                  'home/run_after_20-mise-upgrade.sh',
+                  'home/run_after_20-mise-upgrade.ps1',
+                  'home/run_once_after_20-mise-install.sh',
+                  'home/.chezmoiignore',
+                  'home/dot_local/bin/executable_dotfiles-dotnet10',
+                  'home/dot_local/share/dotfiles/dotnet10-runner/global.json',
                 ],
-                summary: 'Codex / Claude 設定のマージテスト job が失敗しました。',
+                summary: 'Codex / Claude 設定、macOS 環境、.NET 移行テスト job が失敗しました。',
               },
             ];
 

@@ -15,6 +15,18 @@
 {{- $sshSignProgram = "/opt/1Password/op-ssh-sign" -}}
 {{- end -}}
 {{- $sshSigningKey := printf "%s/.ssh/id_ed25519.pub" .chezmoi.homeDir -}}
+{{- $dotnetCredentialHelper := "/usr/local/share/gcm-core/git-credential-manager" -}}
+{{- if and .isMac (eq .chezmoi.arch "arm64") (stat "/opt/homebrew/share/gcm-core/git-credential-manager") -}}
+{{- $dotnetCredentialHelper = "/opt/homebrew/share/gcm-core/git-credential-manager" -}}
+{{- else if and .isMac (ne .chezmoi.arch "arm64") (stat "/usr/local/share/gcm-core/git-credential-manager") -}}
+{{- $dotnetCredentialHelper = "/usr/local/share/gcm-core/git-credential-manager" -}}
+{{- else if and .isMac (stat "/opt/homebrew/share/gcm-core/git-credential-manager") -}}
+{{- $dotnetCredentialHelper = "/opt/homebrew/share/gcm-core/git-credential-manager" -}}
+{{- else if and .isMac (stat "/usr/local/share/gcm-core/git-credential-manager") -}}
+{{- $dotnetCredentialHelper = "/usr/local/share/gcm-core/git-credential-manager" -}}
+{{- else if and .isMac (eq .chezmoi.arch "arm64") -}}
+{{- $dotnetCredentialHelper = "/opt/homebrew/share/gcm-core/git-credential-manager" -}}
+{{- end -}}
 {{- $enableCommitSigning := false -}}
 {{- if and (not .isDevContainer) $sshSignProgram (stat $sshSignProgram) (stat $sshSigningKey) -}}
 {{- $enableCommitSigning = true -}}
@@ -80,7 +92,7 @@
 {{- if .isMac -}}
 [credential]
   helper =
-  helper = manager
+  helper = {{ $dotnetCredentialHelper }}
 
 [credential "https://dev.azure.com"]
   useHttpPath = true

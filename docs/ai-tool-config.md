@@ -12,6 +12,13 @@
 
 The local layer is never written by the repository. A key belongs to the repository only when it appears in a managed fragment.
 
+
+## macOS .NET execution environment
+
+The Darwin overlay adds an absolute managed PATH and DOTNET_ROOT/architecture-specific runtime root under shell_environment_policy.set. It retains allow_login_shell=false, the existing DOTNET_CLI_HOME/NuGet cache values, model/auth settings and secret exclusions. Values are rendered by chezmoi; shell expressions such as a literal $PATH are not expansion mechanisms in the set table.
+
+macOS repository-owned Claude C# hooks invoke the absolute .NET 10 runner. Its private global.json/cwd avoids an unrelated project's SDK pin while preserving hook input/output. SDK installation stays in user-run migration/chezmoi operations outside agent sandboxes; this change adds no installer-host allowlist or sandbox bypass. See [macOS .NET management](macos-dotnet-management.md).
+
 ## Mechanism
 
 Each file is produced by a chezmoi `modify_` template (a file whose body contains the `chezmoi:modify-template` marker, without a `.tmpl` suffix). chezmoi passes the current target to the template as `.chezmoi.stdin`; the template parses it, merges the managed fragments into it, and prints the result.
@@ -70,6 +77,8 @@ OS differences live in the overlays: the Windows overlay uses PowerShell read-on
 
 The Windows overlay also sets `permissions.additionalDirectories` to the Visual Studio and Codex for Visual Studio log folders, so reading them is not blocked by `blockReadsOutsideWorkingDirectories`. The folders under `VisualStudio/*/VSExtensions` contain a per-instance ID, and the setting does not document glob support, so the overlay expands the pattern with chezmoi's `glob` function at apply time. Run `chezmoi apply` again after a new Visual Studio instance appears. Folders in `additionalDirectories` are writable as well as readable.
 
+On macOS, the overlay adds `~/.local/share/mise`, `~/.config/mise`, `~/.dotnet`, and `~/.nuget` to both `permissions.additionalDirectories` and `sandbox.filesystem.allowRead`. `additionalDirectories` makes them Claude Code working directories, allowing its file tools to read and edit files there; `allowRead` allows shell commands inside the sandbox to read them. The former therefore also grants write access and should be limited to these required locations.
+
 The MCP server name appears in the tool name (`mcp__microsoft-learn__*` in `permissions.allow`), so the server must be registered under that name. `~/.claude.json` holds session state and is not managed by this repository; `home/run_after_70-setup-claude-mcp.{sh,ps1}` register the user-scope `microsoft-learn` server on every apply when it does not exist yet, and skip when `claude` is not in PATH.
 
 ### Git / gh outside the sandbox
@@ -106,4 +115,10 @@ chezmoi apply ~/.codex/config.toml ~/.claude/settings.json
 
 ## Verification
 
-`scripts/tests` applies the templates to fixture files in a scratch chezmoi source, destination, and state, and checks: managed keys applied, app-owned keys preserved, union and replace behavior, hook ownership, idempotence on a second apply, and that invalid input fails without changing the file. The `lint.yml` workflow runs it on ubuntu and windows.
+`scripts/tests` applies the templates to fixture files in a scratch chezmoi source, destination, and state, and checks: managed keys applied, app-owned keys preserved, union and replace behavior, hook ownership, idempotence on a second apply, and that invalid input fails without changing the file. The `lint.yml` workflow runs it on Linux, Windows, and macOS, including isolated migration/runner tests.
+
+## .NET decision change history
+
+| Date | Previous decision | New decision | Reason | Approval |
+|---|---|---|---|---|
+| 2026-10-26 | System SDK and inherited PATH; shared OS tool hook execution | Stable mise root, one updater per OS, explicit agent environment and isolated SDK 10 runner | Manual migration design review; see macos-dotnet-management.md | User approved design; host migration remains an explicit user-run operation |

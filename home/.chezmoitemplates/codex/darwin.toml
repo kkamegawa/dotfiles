@@ -1,6 +1,20 @@
 {{- /* Managed Codex settings for darwin. */ -}}
 {{- $p := includeTemplate "codex/paths" . | fromJson -}}
+{{- $dotnetRoot := printf "%s/.local/share/mise/dotnet-root" $p.homeDir -}}
+{{- $dotnetPath := list $dotnetRoot (printf "%s/.dotnet/tools" $p.homeDir) (printf "%s/.local/bin" $p.homeDir) (printf "%s/.local/share/mise/shims" $p.homeDir) -}}
+{{- range $entry := splitList ":" (env "PATH") -}}
+{{- if and $entry (not (has $entry $dotnetPath)) -}}{{- $dotnetPath = append $dotnetPath $entry -}}{{- end -}}
+{{- end -}}
 notify = [{{ printf "%s/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient" $p.codexHome | quote }}, "turn-ended"]
+
+[shell_environment_policy.set]
+DOTNET_ROOT = {{ $dotnetRoot | quote }}
+{{ if eq .chezmoi.arch "arm64" }}
+DOTNET_ROOT_ARM64 = {{ $dotnetRoot | quote }}
+{{ else }}
+DOTNET_ROOT_X64 = {{ $dotnetRoot | quote }}
+{{ end }}
+PATH = {{ join ":" $dotnetPath | quote }}
 
 [permissions.dotnet-dev.filesystem]
 {{ printf "%s/.config/NuGet" $p.homeDir | quote }} = "read"

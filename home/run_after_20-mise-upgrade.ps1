@@ -33,20 +33,26 @@ function Update-DotnetGlobalToolSet {
   )
 
   Write-Output '==> Ensuring managed dotnet global tools...'
-  foreach ($toolName in $managedTools) {
-    $installed = dotnet tool list -g 2>$null | Select-String -Pattern "^$([regex]::Escape($toolName))\s" -SimpleMatch:$false
-    if ($installed) {
-      if ($PSCmdlet.ShouldProcess($toolName, 'Update dotnet global tool')) {
-        Write-Output "==> Updating dotnet global tool: $toolName"
-        dotnet tool update --global $toolName
+  Push-Location ([System.IO.Path]::GetTempPath())
+  try {
+    foreach ($toolName in $managedTools) {
+      $installed = dotnet tool list --global 2>$null | Select-String -Pattern "^$([regex]::Escape($toolName))\s" -SimpleMatch:$false
+      if ($installed) {
+        if ($PSCmdlet.ShouldProcess($toolName, 'Update dotnet global tool')) {
+          Write-Output "==> Updating dotnet global tool: $toolName"
+          dotnet tool update --global $toolName
+        }
+      }
+      else {
+        if ($PSCmdlet.ShouldProcess($toolName, 'Install dotnet global tool')) {
+          Write-Output "==> Installing dotnet global tool: $toolName"
+          dotnet tool install --global $toolName
+        }
       }
     }
-    else {
-      if ($PSCmdlet.ShouldProcess($toolName, 'Install dotnet global tool')) {
-        Write-Output "==> Installing dotnet global tool: $toolName"
-        dotnet tool install --global $toolName
-      }
-    }
+  }
+  finally {
+    Pop-Location
   }
 }
 
@@ -133,14 +139,13 @@ function Update-MiseWingetPackageSet {
   }
 }
 
-# dotnet global tools are cross-platform; run before Windows-only mise steps.
-Update-DotnetGlobalToolSet
-
 $isWindowsHost = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
 if (-not $isWindowsHost) {
-  Write-Warning 'Skipping mise upgrade because this host is not Windows.'
+  Write-Warning 'Skipping the Windows-owned mise upgrade hook on this host.'
   exit 0
 }
+
+# This hook owns package and global-tool updates only on Windows.
 
 if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
   Write-Warning 'Skipping mise upgrade because mise was not found in PATH.'
@@ -158,6 +163,8 @@ mise upgrade
 if ($LASTEXITCODE -ne 0) {
   throw "mise upgrade failed with exit code $LASTEXITCODE."
 }
+
+Update-DotnetGlobalToolSet
 
 Write-Output '==> Applying mise bootstrap packages...'
 mise bootstrap packages apply --yes

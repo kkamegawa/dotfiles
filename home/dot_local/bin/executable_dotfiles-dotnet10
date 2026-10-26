@@ -1,0 +1,62 @@
+#!/bin/sh
+# Run a C# file program with the managed .NET 10 SDK, independent of project state.
+
+set -eu
+
+if [ "$(uname -s)" != "Darwin" ]; then
+  echo "dotfiles-dotnet10 is available only on macOS." >&2
+  exit 2
+fi
+
+if [ "$#" -lt 3 ] || [ "$1" != "run" ] || [ "$2" != "--file" ]; then
+  echo "Usage: dotfiles-dotnet10 run --file /absolute/path/program.cs [arguments...]" >&2
+  exit 2
+fi
+
+cs_file=$3
+shift 3
+case "$cs_file" in
+  /*) ;;
+  *) echo "The C# source path must be absolute: $cs_file" >&2; exit 2 ;;
+esac
+if [ ! -f "$cs_file" ]; then
+  echo "The C# source file does not exist: $cs_file" >&2
+  exit 2
+fi
+
+dotnet_root="$HOME/.local/share/mise/dotnet-root"
+dotnet_host="$dotnet_root/dotnet"
+runner_dir="$HOME/.local/share/dotfiles/dotnet10-runner"
+original_cwd=$(pwd -P)
+if [ ! -x "$dotnet_host" ]; then
+  echo "Managed dotnet host is missing: $dotnet_host" >&2
+  exit 1
+fi
+if [ ! -f "$runner_dir/global.json" ]; then
+  echo "Runner global.json is missing: $runner_dir/global.json" >&2
+  exit 1
+fi
+if [ -n "${MSBuildSDKsPath:-}" ]; then
+  echo "MSBuildSDKsPath is set and can redirect SDK resolution: $MSBuildSDKsPath" >&2
+  exit 1
+fi
+unset DOTNET_HOST_PATH
+
+export DOTNET_ROOT="$dotnet_root"
+if [ "$(sysctl -in hw.optional.arm64 2>/dev/null || true)" = "1" ] || [ "$(uname -m)" = "arm64" ]; then
+  export DOTNET_ROOT_ARM64="$dotnet_root"
+  unset DOTNET_ROOT_X64
+else
+  export DOTNET_ROOT_X64="$dotnet_root"
+  unset DOTNET_ROOT_ARM64
+fi
+
+cd "$runner_dir"
+export DOTFILES_DOTNET10_ORIGINAL_CWD="$original_cwd"
+sdk_version=$("$dotnet_host" --version)
+case "$sdk_version" in
+  10.*) ;;
+  *) echo "The managed runner requires a .NET 10 SDK; selected $sdk_version." >&2; exit 1 ;;
+esac
+
+exec "$dotnet_host" run --file "$cs_file" "$@"

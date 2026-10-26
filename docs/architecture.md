@@ -79,18 +79,18 @@ Codex CLI（OpenAI）・Claude Code CLI（Anthropic）は npm バックエンド
 プロジェクト固有の指示（`AGENTS.md` / `.github/copilot-instructions.md`）はリポジトリ側で管理し、
 ここでは全プロジェクト共通のユーザーレベル指示のみを dotfiles に含めます。
 
-#### Claude Code のフックとコンテキスト圧縮
+#### Claude Code hooks and context compaction
 
-- フック・statusLine のスクリプトは `home/dot_claude/hooks/` から `~/.claude/hooks/` に配布し、`settings.json` の管理断片内では `.chezmoi.homeDir` から組み立てた絶対パス（`$claudeHome`）で参照する
-- 自動圧縮のしきい値は `env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE = "60"` で、コンテキストウィンドウ使用率 60% に設定する（フックからは `/compact` を実行できないため、圧縮そのものは Claude Code に任せる）
-- 圧縮の前後処理は .NET 10 のファイルベースプログラム（`dotnet run <file>.cs`）で行う
-  - `compaction-recovery.cs`（PostCompact）: `compact_summary` を `~/.claude/hooks-state/{session_id}.summary` に保存する
-  - `userpromptsubmit-compaction-recovery.cs`（UserPromptSubmit）: 保存済みサマリーを次のプロンプトに `additionalContext` として 1 回だけ注入し、ファイルを削除する
-- `dotnet run` は初回にビルドが走るため（30 秒程度）、C# フックの `timeout` は 60 秒にしている
+Repository hooks are deployed under `~/.claude/hooks`; managed hook entries use absolute paths derived from the home directory. Automatic compaction remains at 60 percent, and C# hook timeouts remain 60 seconds.
+
+PostCompact and UserPromptSubmit remain .NET 10 file-based programs: the former stores compact_summary by session and the latter injects it once and removes the saved summary. On macOS they invoke the absolute `dotfiles-dotnet10` runner. That runner selects SDK 10 from its own managed global.json directory, preserves JSON stdin/stdout and exit status, and is independent of a caller project's SDK 8 pin. It does not install SDKs. Other operating systems keep their existing invocation.
+
+The four global mise cleanup tasks use the same macOS runner. Native apphosts without environment variables use the user-maintained architecture-specific system registration. CLI PATH, apphost runtime discovery, and project SDK selection remain distinct responsibilities. See [macOS .NET management](macos-dotnet-management.md) for ownership, registration, retention, and user-run migration.
 
 #### Claude Code の作業フォルダー外の読み取り
 
 - `permissions.blockReadsOutsideWorkingDirectories = true` のため、作業フォルダー外のログなどの読み取りは承認が必要になる
+- macOS では mise の SDK・設定と NuGet のキャッシュを Claude Code から利用できるよう、`~/.local/share/mise`、`~/.config/mise`、`~/.dotnet`、`~/.nuget` を `permissions.additionalDirectories` と `sandbox.filesystem.allowRead` の両方に登録する。前者は Claude Code の作業フォルダーとして扱われ Edit / Write も許可する。後者は shell sandbox 内の読み取りを許可する
 - Windows のみ、Visual Studio / Codex for Visual Studio のログ置き場を `permissions.additionalDirectories` に登録して承認を省く。パスは `.chezmoi.homeDir` から組み立てる
 - Visual Studio のインスタンス ID を含む `VisualStudio/*/VSExtensions` は、`additionalDirectories` にワイルドカードを書かず、chezmoi の `glob` 関数で `chezmoi apply` 時に実在フォルダーへ展開する。新しいインスタンスが増えたら再度 `chezmoi apply` する
 - `additionalDirectories` のフォルダーは読み取りだけでなく Edit / Write の対象にもなる
@@ -164,3 +164,9 @@ dotfiles/
 | 依存関係自動更新 | 記載なし | Renovate Bot |
 | エディタ設定 | 記載なし | VS Code / Rider / Visual Studio |
 | Python ツール実行 | 記載なし | uv で管理 |
+
+## .NET decision change history
+
+| Date | Previous decision | New decision | Reason | Approval |
+|---|---|---|---|---|
+| 2026-10-26 | System SDK and inherited PATH; shared OS tool hook execution | Stable mise root, one updater per OS, explicit agent environment and isolated SDK 10 runner | Manual migration design review; see macos-dotnet-management.md | User approved design; host migration remains an explicit user-run operation |
