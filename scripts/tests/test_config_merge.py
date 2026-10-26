@@ -223,7 +223,15 @@ class ClaudeMergeTest(MergeTestCase):
             self.assertNotIn("DOTNET_ROOT", env)
             self.assertNotIn("PATH", env)
             self.assertNotIn("allowRead", data.get("sandbox", {}).get("filesystem", {}))
-            self.assertNotIn("additionalDirectories", data["permissions"])
+            dotnet_paths = {
+                "~/.local/share/mise",
+                "~/.config/mise",
+                "~/.dotnet",
+                "~/.nuget",
+            }
+            self.assertTrue(
+                dotnet_paths.isdisjoint(data["permissions"].get("additionalDirectories", []))
+            )
 
     def test_local_keys_and_extras_survive(self):
         target = self.write(

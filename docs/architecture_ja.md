@@ -90,6 +90,7 @@ PostCompact と UserPromptSubmit は .NET 10 のファイルベースプログ�
 #### Claude Code の作業フォルダー外の読み取り
 
 - `permissions.blockReadsOutsideWorkingDirectories = true` のため、作業フォルダー外のログなどの読み取りは承認が必要になる
+- macOS では mise の SDK・設定と NuGet のキャッシュを Claude Code から利用できるよう、`~/.local/share/mise`、`~/.config/mise`、`~/.dotnet`、`~/.nuget` を `permissions.additionalDirectories` と `sandbox.filesystem.allowRead` の両方に登録する。前者は Claude Code の作業フォルダーとして扱われ Edit / Write も許可する。後者は shell sandbox 内の読み取りを許可する
 - Windows のみ、Visual Studio / Codex for Visual Studio のログ置き場を `permissions.additionalDirectories` に登録して承認を省く。パスは `.chezmoi.homeDir` から組み立てる
 - Visual Studio のインスタンス ID を含む `VisualStudio/*/VSExtensions` は、`additionalDirectories` にワイルドカードを書かず、chezmoi の `glob` 関数で `chezmoi apply` 時に実在フォルダーへ展開する。新しいインスタンスが増えたら再度 `chezmoi apply` する
 - `additionalDirectories` のフォルダーは読み取りだけでなく Edit / Write の対象にもなる

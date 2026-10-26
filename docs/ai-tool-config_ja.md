@@ -77,6 +77,8 @@ OS の差分は overlay にあります。Windows overlay は `permissions.allow
 
 Windows overlay は `permissions.additionalDirectories` に Visual Studio と Codex for Visual Studio のログフォルダーも設定し、`blockReadsOutsideWorkingDirectories` による読み取りブロックを避けます。`VisualStudio/*/VSExtensions` 配下のフォルダーはインスタンスごとの ID を含み、この設定が glob に対応するとは文書化されていないため、overlay は chezmoi の `glob` 関数で apply 時にパターンを展開します。新しい Visual Studio インスタンスが増えたら、もう一度 `chezmoi apply` を実行します。`additionalDirectories` のフォルダーは読み取りだけでなく書き込みもできます。
 
+macOS overlay は `~/.local/share/mise`、`~/.config/mise`、`~/.dotnet`、`~/.nuget` を `permissions.additionalDirectories` と `sandbox.filesystem.allowRead` の両方に追加します。`additionalDirectories` は Claude Code の作業フォルダーとして扱われるため、Claude のファイルツールで読み書きできます。`allowRead` は shell sandbox 内のコマンドに読み取りを許可します。前者は書き込みも許可するため、必要な場所だけに限定します。
+
 MCP サーバー名はツール名に含まれる（`permissions.allow` の `mcp__microsoft-learn__*`）ため、サーバーはその名前で登録する必要があります。`~/.claude.json` はセッション状態を含むため、このリポジトリでは管理しません。`home/run_after_70-setup-claude-mcp.{sh,ps1}` が、ユーザースコープの `microsoft-learn` サーバーが未登録なら `chezmoi apply` のたびに登録し、`claude` が PATH にない場合はスキップします。
 
 ### sandbox 外で実行する git / gh
