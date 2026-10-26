@@ -1,6 +1,13 @@
 {{- /* Managed Claude Code settings shared by every OS. Emits JSON. */ -}}
 {{- $p := includeTemplate "claude/paths" . | fromJson -}}
 {{- $claudeHome := $p.claudeHome -}}
+{{- $dotnetRoot := printf "%s/.local/share/mise/dotnet-root" (.chezmoi.homeDir | replace "\\" "/") -}}
+{{- $claudePath := list $dotnetRoot (printf "%s/.dotnet/tools" (.chezmoi.homeDir | replace "\\" "/")) (printf "%s/.local/bin" (.chezmoi.homeDir | replace "\\" "/")) (printf "%s/.local/share/mise/shims" (.chezmoi.homeDir | replace "\\" "/")) -}}
+{{- if eq .chezmoi.os "darwin" -}}
+{{- range $entry := splitList ":" (env "PATH") -}}
+{{- if and $entry (not (has $entry $claudePath)) -}}{{- $claudePath = append $claudePath $entry -}}{{- end -}}
+{{- end -}}
+{{- end -}}
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "model": "opusplan",
@@ -8,7 +15,10 @@
   "effortLevel": "medium",
   "env": {
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
-    "CLAUDE_CODE_THRIFTY_SONIC": "0"
+    "CLAUDE_CODE_THRIFTY_SONIC": "0"{{ if eq .chezmoi.os "darwin" }},
+    "DOTNET_ROOT": {{ $dotnetRoot | toJson }},
+    {{ if eq .chezmoi.arch "arm64" }}"DOTNET_ROOT_ARM64": {{ $dotnetRoot | toJson }},{{ else }}"DOTNET_ROOT_X64": {{ $dotnetRoot | toJson }},{{ end }}
+    "PATH": {{ join ":" $claudePath | toJson }}{{ end }}
   },
   "permissions": {
     "defaultMode": "auto",
@@ -134,8 +144,13 @@
         "hooks": [
           {
             "type": "command",
+            {{ if eq .chezmoi.os "darwin" }}
+            "command": {{ printf "%s/.local/bin/dotfiles-dotnet10" (.chezmoi.homeDir | replace "\\" "/") | toJson }},
+            "args": ["run", "--file", "{{ $claudeHome }}/hooks/compaction-recovery.cs"],
+            {{ else }}
             "command": "dotnet",
             "args": ["run", "{{ $claudeHome }}/hooks/compaction-recovery.cs"],
+            {{ end }}
             "timeout": 60
           }
         ]
@@ -146,8 +161,13 @@
         "hooks": [
           {
             "type": "command",
+            {{ if eq .chezmoi.os "darwin" }}
+            "command": {{ printf "%s/.local/bin/dotfiles-dotnet10" (.chezmoi.homeDir | replace "\\" "/") | toJson }},
+            "args": ["run", "--file", "{{ $claudeHome }}/hooks/userpromptsubmit-compaction-recovery.cs"],
+            {{ else }}
             "command": "dotnet",
             "args": ["run", "{{ $claudeHome }}/hooks/userpromptsubmit-compaction-recovery.cs"],
+            {{ end }}
             "timeout": 60
           }
         ]

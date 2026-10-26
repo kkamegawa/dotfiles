@@ -10,4 +10,20 @@
 {{- end -}}
 {{- $managed := includeTemplate "codex/common.toml" . | fromToml -}}
 {{- $managed = mergeOverwrite $managed (includeTemplate (printf "codex/%s.toml" .chezmoi.os) . | fromToml) -}}
+{{- if eq .chezmoi.os "darwin" -}}
+{{- $managedEnvironment := dig "shell_environment_policy" "set" (dict) $managed -}}
+{{- $managedPath := get $managedEnvironment "PATH" -}}
+{{- $currentEnvironment := dig "shell_environment_policy" "set" (dict) $current -}}
+{{- $currentPath := get $currentEnvironment "PATH" | default "" -}}
+{{- if not (kindIs "string" $managedPath) -}}{{ fail "Managed Codex PATH must be a string" }}{{- end -}}
+{{- if not (kindIs "string" $currentPath) -}}{{ fail "Existing Codex PATH must be a string" }}{{- end -}}
+{{- $home := .chezmoi.homeDir -}}
+{{- $pathEntries := list (printf "%s/.local/share/mise/dotnet-root" $home) (printf "%s/.dotnet/tools" $home) (printf "%s/.local/bin" $home) (printf "%s/.local/share/mise/shims" $home) -}}
+{{- range $path := list $managedPath $currentPath -}}
+{{- range $entry := splitList ":" $path -}}
+{{- if and $entry (not (has $entry $pathEntries)) -}}{{- $pathEntries = append $pathEntries $entry -}}{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $managedEnvironment "PATH" (join ":" $pathEntries) -}}
+{{- end -}}
 {{- mergeOverwrite $current $managed | toToml -}}

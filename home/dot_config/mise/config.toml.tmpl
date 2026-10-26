@@ -4,6 +4,11 @@
 [settings]
 experimental = true
 env_file = '.env'
+{{ if eq .chezmoi.os "darwin" }}
+# Keep the SDK host stable so shells, GUI apps, and apphosts share one runtime root.
+dotnet.dotnet_root = {{ printf "%s/.local/share/mise/dotnet-root" .chezmoi.homeDir | quote }}
+dotnet.isolated = false
+{{ end }}
 
 [settings.self_update]
 auto = true
@@ -38,7 +43,6 @@ auto = true
 "brew-cask:discord" = { os = ["macos"] }
 "brew-cask:docker" = { os = ["macos"] }
 "brew-cask:docker-desktop" = { os = ["macos"] }
-"brew-cask:dotnet-sdk" = { os = ["macos"] }
 "brew-cask:firefox" = { os = ["macos"] }
 "brew-cask:font-biz-udgothic" = { os = ["macos"] }
 "brew-cask:font-biz-udmincho" = { os = ["macos"] }
@@ -112,6 +116,22 @@ npm = "latest"
 python = ['3.13', '3.11', '3.12', '3.14']
 "npm:@vscode/vsce" = "latest"
 {{ if eq .chezmoi.os "darwin" }}
+{{- $dotnetVersions := list "10" "8" -}}
+{{- $pinFile := printf "%s/.config/dotfiles/dotnet-retained-sdks.json" .chezmoi.homeDir -}}
+{{- if stat $pinFile -}}
+{{- $pins := include $pinFile | fromJson -}}
+{{- if not (kindIs "map" $pins) -}}{{ fail "Invalid retained SDK manifest: expected object" }}{{- end -}}
+{{- if ne (len $pins) 2 -}}{{ fail "Invalid retained SDK manifest: unexpected properties" }}{{- end -}}
+{{- if not (kindIs "int64" $pins.schemaVersion) -}}{{ fail "Invalid retained SDK manifest: schemaVersion must be an integer" }}{{- end -}}
+{{- if ne (int $pins.schemaVersion) 1 -}}{{ fail "Unsupported retained SDK manifest schema" }}{{- end -}}
+{{- if not (kindIs "slice" $pins.versions) -}}{{ fail "Invalid retained SDK manifest: expected versions array" }}{{- end -}}
+{{- range $version := $pins.versions -}}
+{{- if not (kindIs "string" $version) -}}{{ fail "Retained SDK version must be a string" }}{{- end -}}
+{{- if not (regexMatch "^[0-9]+[.][0-9]+[.][0-9]+$" $version) -}}{{ fail "Retained SDK must use a complete stable version" }}{{- end -}}
+{{- $dotnetVersions = append $dotnetVersions $version -}}
+{{- end -}}
+{{- end -}}
+dotnet = {{ $dotnetVersions | uniq | toJson }}
 uv = "latest"
 cmake = "latest"
 gh = "latest"
@@ -176,19 +196,35 @@ copilot plugin install azure-devops-toolkit@tfsugjp-agent-skills -s user -y
 
 [tasks.clean-old-pwsh-modules]
 description = "Remove old Azure, Microsoft Entra, and Microsoft Graph PowerShell module versions."
+{{ if eq .chezmoi.os "darwin" }}
+run = '"{{ .chezmoi.homeDir }}/.local/bin/dotfiles-dotnet10" run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldpowershellmodule.cs"'
+{{ else }}
 run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldpowershellmodule.cs"'
+{{ end }}
 
 [tasks.clean-old-pwsh-modules-dry-run]
 description = "Show old PowerShell module versions that would be removed."
+{{ if eq .chezmoi.os "darwin" }}
+run = '"{{ .chezmoi.homeDir }}/.local/bin/dotfiles-dotnet10" run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldpowershellmodule.cs" -- --dry-run'
+{{ else }}
 run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldpowershellmodule.cs" -- --dry-run'
+{{ end }}
 
 [tasks.clean-old-nuget-package]
 description = "Remove old NuGet package versions."
+{{ if eq .chezmoi.os "darwin" }}
+run = '"{{ .chezmoi.homeDir }}/.local/bin/dotfiles-dotnet10" run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldnugetpackages.cs"'
+{{ else }}
 run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldnugetpackages.cs"'
+{{ end }}
 
 [tasks.clean-old-nuget-package-dry-run]
 description = "Show old NuGet package versions that would be removed."
+{{ if eq .chezmoi.os "darwin" }}
+run = '"{{ .chezmoi.homeDir }}/.local/bin/dotfiles-dotnet10" run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldnugetpackages.cs" -- --dry-run'
+{{ else }}
 run = 'dotnet run --file "{{ "{{" }} config_root {{ "}}" }}/.config/mise/oldnugetpackages.cs" -- --dry-run'
+{{ end }}
 
 [env]
 # mise 管理の Python を uv のデフォルト Python として使う

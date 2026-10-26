@@ -12,6 +12,13 @@
 
 local 層にリポジトリは書き込みません。キーがリポジトリのものになるのは、管理断片に書かれたときだけです。
 
+
+## macOS の .NET 実行環境
+
+Darwin overlay は shell_environment_policy.set に、絶対パスの管理対象 PATH と DOTNET_ROOT・アーキテクチャ別ルートを追加します。allow_login_shell=false、既存の DOTNET_CLI_HOME・NuGet キャッシュ、モデル・認証、機密変数の除外は維持します。値は chezmoi で展開し、set 表の $PATH のような文字列をシェル展開の仕組みとしては使いません。
+
+macOS のリポジトリ所有 C# フックは .NET 10 ラッパーの絶対パスを呼びます。専用 global.json・cwd によってプロジェクトの SDK 固定の影響を避け、フックの入出力を保持します。SDK 導入はユーザーが sandbox 外で実行する移行・chezmoi の担当とし、配布元の許可リストや sandbox 除外は追加しません。[macOS .NET 管理](macos-dotnet-management_ja.md) を参照してください。
+
 ## 方式
 
 各ファイルは chezmoi の `modify_` テンプレート（本文に `chezmoi:modify-template` マーカーを含み、`.tmpl` 拡張子を付けないファイル）で生成します。chezmoi は現在のターゲットを `.chezmoi.stdin` としてテンプレートに渡します。テンプレートはそれを解析し、管理断片をマージして結果を出力します。
@@ -106,4 +113,10 @@ chezmoi apply ~/.codex/config.toml ~/.claude/settings.json
 
 ## 検証
 
-`scripts/tests` は、一時的な chezmoi のソース・宛先・状態にフィクスチャを置いてテンプレートを適用し、次を確認します: 管理キーの適用、アプリ所有キーの保持、和集合と置換の挙動、フックの所有権、2回目の apply での冪等性、不正な入力で失敗してもファイルが変わらないこと。`lint.yml` が ubuntu と windows で実行します。
+`scripts/tests` は、一時的な chezmoi のソース・宛先・状態にフィクスチャを置いてテンプレートを適用し、次を確認します: 管理キーの適用、アプリ所有キーの保持、和集合と置換の挙動、フックの所有権、2回目の apply での冪等性、不正な入力で失敗してもファイルが変わらないこと。`lint.yml` が Linux・Windows・macOS で実行し、隔離した移行・ラッパーのテストも含めます。
+
+## .NET の判断変更履歴
+
+| 日付 | 従来の方針 | 新方針 | 理由 | 承認 |
+|---|---|---|---|---|
+| 2026-10-26 | システム SDK・継承 PATH、複数 OS でのツールフック実行 | 固定 mise ルート、OS 別の更新担当、明示的なエージェント環境、SDK 10 専用ラッパー | 手動移行の設計レビュー。macos-dotnet-management_ja.md を参照 | ユーザーが設計を承認。実機移行は明示的なユーザー操作として実施 |

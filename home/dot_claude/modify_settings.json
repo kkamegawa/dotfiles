@@ -38,4 +38,21 @@
 {{- $union = append $union (printf "hooks.%s" $event) -}}
 {{- end -}}
 
+{{- if eq .chezmoi.os "darwin" -}}
+{{- $managedEnvironment := get $managed "env" -}}
+{{- $managedPath := get $managedEnvironment "PATH" -}}
+{{- $currentEnvironment := get $current "env" | default (dict) -}}
+{{- $currentPath := get $currentEnvironment "PATH" | default "" -}}
+{{- if not (kindIs "string" $managedPath) -}}{{ fail "Managed Claude PATH must be a string" }}{{- end -}}
+{{- if not (kindIs "string" $currentPath) -}}{{ fail "Existing Claude PATH must be a string" }}{{- end -}}
+{{- $home := .chezmoi.homeDir | replace "\\" "/" -}}
+{{- $pathEntries := list (printf "%s/.local/share/mise/dotnet-root" $home) (printf "%s/.dotnet/tools" $home) (printf "%s/.local/bin" $home) (printf "%s/.local/share/mise/shims" $home) -}}
+{{- range $path := list $managedPath $currentPath -}}
+{{- range $entry := splitList ":" $path -}}
+{{- if and $entry (not (has $entry $pathEntries)) -}}{{- $pathEntries = append $pathEntries $entry -}}{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $managedEnvironment "PATH" (join ":" $pathEntries) -}}
+{{- end -}}
+
 {{- includeTemplate "merge/deep" (dict "dst" $current "src" $managed "union" $union "path" "") | fromJson | toPrettyJson | trim }}

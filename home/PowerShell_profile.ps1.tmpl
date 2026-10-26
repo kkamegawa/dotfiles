@@ -1,5 +1,31 @@
 # PowerShell $PROFILE — Windows 向け対話シェル設定
 
+{{ if eq .chezmoi.os "darwin" }}
+# Refresh the shared .NET runtime environment before mise activation.
+$dotnetRoot = Join-Path $HOME '.local/share/mise/dotnet-root'
+$env:DOTNET_ROOT = $dotnetRoot
+$isArm64Mac = ((sysctl -in hw.optional.arm64 2>$null) -eq '1') -or
+  ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq [System.Runtime.InteropServices.Architecture]::Arm64)
+if ($isArm64Mac) {
+  $env:DOTNET_ROOT_ARM64 = $dotnetRoot
+  Remove-Item Env:DOTNET_ROOT_X64 -ErrorAction SilentlyContinue
+} else {
+  $env:DOTNET_ROOT_X64 = $dotnetRoot
+  Remove-Item Env:DOTNET_ROOT_ARM64 -ErrorAction SilentlyContinue
+}
+
+$macPaths = @()
+if (Test-Path (Join-Path $dotnetRoot 'dotnet')) {
+  $macPaths += $dotnetRoot
+}
+$dotnetToolsPath = Join-Path $HOME '.dotnet/tools'
+if (Test-Path $dotnetToolsPath) {
+  $macPaths += $dotnetToolsPath
+}
+$existingPaths = @($env:PATH -split [IO.Path]::PathSeparator | Where-Object { $_ -and $macPaths -notcontains $_ })
+$env:PATH = (@($macPaths + $existingPaths | Select-Object -Unique) -join [IO.Path]::PathSeparator)
+{{ end }}
+
 # mise のバイナリ／shims を PATH に追加（未登録の場合のみ・OS 別）
 if ($IsWindows) {
   $misePaths = @(

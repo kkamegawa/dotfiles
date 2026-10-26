@@ -10,9 +10,18 @@ if ! command -v mise >/dev/null 2>&1; then
 fi
 
 echo "==> mise install を実行します..."
-mise install
 if [ "$(uname -s)" = "Darwin" ]; then
+  MISE_CONFIG_FILE="$HOME/.config/mise/config.toml" mise -C "$HOME" install
+  dotnet_root="$HOME/.local/share/mise/dotnet-root"
+  dotnet_host=$(MISE_CONFIG_FILE="$HOME/.config/mise/config.toml" mise -C "$HOME" which dotnet)
+  case "$dotnet_host" in
+    "$dotnet_root"/*) ;;
+    *) echo "mise selected dotnet outside the shared root: $dotnet_host" >&2; exit 1 ;;
+  esac
+  [ -x "$dotnet_host" ] || { echo "Managed dotnet host is missing: $dotnet_host" >&2; exit 1; }
   echo "==> mise bootstrap packages を適用します..."
-  mise bootstrap packages apply
+  MISE_CONFIG_FILE="$HOME/.config/mise/config.toml" mise -C "$HOME" bootstrap packages apply
+else
+  mise install
 fi
 echo "==> mise install 完了"

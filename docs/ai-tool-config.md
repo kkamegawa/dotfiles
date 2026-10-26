@@ -12,6 +12,13 @@
 
 The local layer is never written by the repository. A key belongs to the repository only when it appears in a managed fragment.
 
+
+## macOS .NET execution environment
+
+The Darwin overlay adds an absolute managed PATH and DOTNET_ROOT/architecture-specific runtime root under shell_environment_policy.set. It retains allow_login_shell=false, the existing DOTNET_CLI_HOME/NuGet cache values, model/auth settings and secret exclusions. Values are rendered by chezmoi; shell expressions such as a literal $PATH are not expansion mechanisms in the set table.
+
+macOS repository-owned Claude C# hooks invoke the absolute .NET 10 runner. Its private global.json/cwd avoids an unrelated project's SDK pin while preserving hook input/output. SDK installation stays in user-run migration/chezmoi operations outside agent sandboxes; this change adds no installer-host allowlist or sandbox bypass. See [macOS .NET management](macos-dotnet-management.md).
+
 ## Mechanism
 
 Each file is produced by a chezmoi `modify_` template (a file whose body contains the `chezmoi:modify-template` marker, without a `.tmpl` suffix). chezmoi passes the current target to the template as `.chezmoi.stdin`; the template parses it, merges the managed fragments into it, and prints the result.
@@ -106,4 +113,10 @@ chezmoi apply ~/.codex/config.toml ~/.claude/settings.json
 
 ## Verification
 
-`scripts/tests` applies the templates to fixture files in a scratch chezmoi source, destination, and state, and checks: managed keys applied, app-owned keys preserved, union and replace behavior, hook ownership, idempotence on a second apply, and that invalid input fails without changing the file. The `lint.yml` workflow runs it on ubuntu and windows.
+`scripts/tests` applies the templates to fixture files in a scratch chezmoi source, destination, and state, and checks: managed keys applied, app-owned keys preserved, union and replace behavior, hook ownership, idempotence on a second apply, and that invalid input fails without changing the file. The `lint.yml` workflow runs it on Linux, Windows, and macOS, including isolated migration/runner tests.
+
+## .NET decision change history
+
+| Date | Previous decision | New decision | Reason | Approval |
+|---|---|---|---|---|
+| 2026-10-26 | System SDK and inherited PATH; shared OS tool hook execution | Stable mise root, one updater per OS, explicit agent environment and isolated SDK 10 runner | Manual migration design review; see macos-dotnet-management.md | User approved design; host migration remains an explicit user-run operation |

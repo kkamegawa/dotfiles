@@ -19,9 +19,9 @@ chezmoi diff
 chezmoi add ~/.zshrc
 ```
 
-`chezmoi update` / `chezmoi apply` 実行時は `run_after_20-mise-upgrade.*` が動き、
-`mise install` と `mise upgrade` もあわせて実行されます。
-Windows では続けて `mise bootstrap packages apply` を実行し、`winget:` エントリのうち未インストールのパッケージを入れます
+`chezmoi update` / `chezmoi apply` の後に OS 別の mise 更新フックが動きます。
+macOS/Linux はシェル版、Windows は PowerShell 版を使い、Windows ではその後に
+`mise bootstrap packages apply` を実行して `winget:` エントリのうち未インストールのパッケージを入れます
 （詳細は [mise による Windows のパッケージ管理](winget_ja.md)）。
 
 ---
@@ -85,20 +85,13 @@ sudo apt update && sudo apt upgrade claude-code
 curl -fsSL https://chatgpt.com/codex/install.sh | sh
 ```
 
-### dotnet global tool の管理
+### .NET SDK and global tools
 
-このリポジトリでは、dotnet global tool も `home/run_after_20-mise-upgrade.*` で一覧管理しています。
-`chezmoi apply` / `chezmoi update` 実行時に、一覧にあるツールを順に確認し、未導入なら `dotnet tool install --global`、導入済みなら `dotnet tool update --global` します。
+On macOS, core mise owns the shared .NET SDK root. Only `run_after_20-mise-upgrade.sh` updates the tool set: SDK installation/update must succeed before tools are processed. The PowerShell updater is Windows-only, including when invoked directly. Linux uses the shell updater.
 
-現在管理中の dotnet global tool:
+The macOS dotnet upgrade runs separately with `mise upgrade --global --no-prune dotnet`; do not use `--bump` or an automatic dotnet prune. Exact project SDK requirements are retained in the local manifest and rendered into the global tool declaration. Maintain the existing `~/.dotnet/tools` directory explicitly even when DOTNET_CLI_HOME differs. The native GCM cask owns Git credentials on macOS; retain, but do not automatically update, the duplicate dotnet tool.
 
-| ツール名               | 用途 |
-| ---------------------- | ---- |
-| `dotnet-ef`            | EF Core CLI |
-| `csharpier`            | C# formatter |
-| `dotnet-outdated-tool` | .NET パッケージ更新確認ツール |
-
-追加・削除したい場合は、`home/run_after_20-mise-upgrade.ps1` または `home/run_after_20-mise-upgrade.sh` 内の管理対象一覧を更新してください。
+Both initial setup and routine updates install the SDK before global tools. Bootstrap apply does not remove installed packages omitted from the declaration; only the explicit user-run migration finalization removes the old SDK cask. For migration phases, .NET 10 task execution, registration, rollback, and verification, see [macOS .NET management](macos-dotnet-management.md). Migration is not an automatic chezmoi hook.
 
 ---
 
@@ -238,3 +231,9 @@ gh auth login
 mise install
 apm install
 ```
+
+## .NET decision change history
+
+| Date | Previous decision | New decision | Reason | Approval |
+|---|---|---|---|---|
+| 2026-10-26 | System SDK and inherited PATH; shared OS tool hook execution | Stable mise root, one updater per OS, explicit agent environment and isolated SDK 10 runner | Manual migration design review; see macos-dotnet-management.md | User approved design; host migration remains an explicit user-run operation |

@@ -2,6 +2,7 @@
 {{ if ne .chezmoi.os "windows" }}
 .lastexecrecord/config.json
 .wslconfig
+20-mise-upgrade.ps1
 60-setup-apm-profile.ps1
 05-setup-mise-path.ps1
 10-install-packages.ps1
@@ -32,6 +33,8 @@
 
 {{ if ne .chezmoi.os "darwin" }}
 .local/bin/gsed
+.local/bin/dotfiles-dotnet10
+.local/share/dotfiles/dotnet10-runner/global.json
 {{ end }}
 
 {{ if .isDevContainer }}
