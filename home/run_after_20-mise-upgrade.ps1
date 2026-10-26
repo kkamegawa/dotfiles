@@ -13,9 +13,6 @@ function Update-DotnetGlobalToolSet {
     return
   }
 
-  $toolPath = Join-Path $HOME '.dotnet/tools'
-  New-Item -ItemType Directory -Path $toolPath -Force | Out-Null
-
   $managedTools = @(
     'dotnet-ef',
     'csharpier',
@@ -36,20 +33,26 @@ function Update-DotnetGlobalToolSet {
   )
 
   Write-Output '==> Ensuring managed dotnet global tools...'
-  foreach ($toolName in $managedTools) {
-    $installed = dotnet tool list --tool-path $toolPath 2>$null | Select-String -Pattern "^$([regex]::Escape($toolName))\s" -SimpleMatch:$false
-    if ($installed) {
-      if ($PSCmdlet.ShouldProcess($toolName, 'Update dotnet global tool')) {
-        Write-Output "==> Updating dotnet global tool: $toolName"
-        dotnet tool update --tool-path $toolPath $toolName
+  Push-Location ([System.IO.Path]::GetTempPath())
+  try {
+    foreach ($toolName in $managedTools) {
+      $installed = dotnet tool list --global 2>$null | Select-String -Pattern "^$([regex]::Escape($toolName))\s" -SimpleMatch:$false
+      if ($installed) {
+        if ($PSCmdlet.ShouldProcess($toolName, 'Update dotnet global tool')) {
+          Write-Output "==> Updating dotnet global tool: $toolName"
+          dotnet tool update --global $toolName
+        }
+      }
+      else {
+        if ($PSCmdlet.ShouldProcess($toolName, 'Install dotnet global tool')) {
+          Write-Output "==> Installing dotnet global tool: $toolName"
+          dotnet tool install --global $toolName
+        }
       }
     }
-    else {
-      if ($PSCmdlet.ShouldProcess($toolName, 'Install dotnet global tool')) {
-        Write-Output "==> Installing dotnet global tool: $toolName"
-        dotnet tool install --tool-path $toolPath $toolName
-      }
-    }
+  }
+  finally {
+    Pop-Location
   }
 }
 
@@ -143,7 +146,6 @@ if (-not $isWindowsHost) {
 }
 
 # This hook owns package and global-tool updates only on Windows.
-Update-DotnetGlobalToolSet
 
 if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
   Write-Warning 'Skipping mise upgrade because mise was not found in PATH.'
@@ -161,6 +163,8 @@ mise upgrade
 if ($LASTEXITCODE -ne 0) {
   throw "mise upgrade failed with exit code $LASTEXITCODE."
 }
+
+Update-DotnetGlobalToolSet
 
 Write-Output '==> Applying mise bootstrap packages...'
 mise bootstrap packages apply --yes

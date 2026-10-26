@@ -208,6 +208,10 @@ class ClaudeMergeTest(MergeTestCase):
                 data["sandbox"]["filesystem"]["allowRead"],
                 ["~/.local/share/mise", "~/.config/mise", "~/.dotnet", "~/.nuget"],
             )
+            self.assertEqual(
+                data["permissions"]["additionalDirectories"],
+                ["~/.local/share/mise", "~/.config/mise", "~/.dotnet", "~/.nuget"],
+            )
             self.assertIn("DOTNET_ROOT_ARM64" if platform.machine() == "arm64" else "DOTNET_ROOT_X64", env)
             managed_path = env["PATH"].split(os.pathsep)
             self.assertEqual(managed_path[0], shared_root)
@@ -219,6 +223,7 @@ class ClaudeMergeTest(MergeTestCase):
             self.assertNotIn("DOTNET_ROOT", env)
             self.assertNotIn("PATH", env)
             self.assertNotIn("allowRead", data.get("sandbox", {}).get("filesystem", {}))
+            self.assertNotIn("additionalDirectories", data["permissions"])
 
     def test_local_keys_and_extras_survive(self):
         target = self.write(
@@ -228,7 +233,11 @@ class ClaudeMergeTest(MergeTestCase):
                     "model": "sonnet",
                     "env": {"APP_OWNED_VALUE": "preserve", "DOTNET_CLI_HOME": "/app/cache"},
                     "enabledPlugins": {"x@inline": True},
-                    "permissions": {"allow": ["Bash(make:*)"], "deny": ["Bash(local-deny)"]},
+                    "permissions": {
+                        "allow": ["Bash(make:*)"],
+                        "deny": ["Bash(local-deny)"],
+                        "additionalDirectories": ["/tmp/user-workspace"],
+                    },
                     "sandbox": {"filesystem": {"allowRead": ["/tmp/user-readable"]}},
                     "hooks": {
                         "SessionStart": [{"hooks": [{"type": "command", "command": "/opt/orca/hook"}]}],
@@ -246,12 +255,23 @@ class ClaudeMergeTest(MergeTestCase):
         self.assertIn("Bash(make:*)", data["permissions"]["allow"])
         self.assertIn("Bash(git status:*)", data["permissions"]["allow"])
         self.assertIn("Bash(local-deny)", data["permissions"]["deny"])
+        self.assertIn("/tmp/user-workspace", data["permissions"]["additionalDirectories"])
         self.assertIn("/tmp/user-readable", data["sandbox"]["filesystem"]["allowRead"])
         if platform.system() == "Darwin":
             self.assertEqual(
                 set(data["sandbox"]["filesystem"]["allowRead"]),
                 {
                     "/tmp/user-readable",
+                    "~/.local/share/mise",
+                    "~/.config/mise",
+                    "~/.dotnet",
+                    "~/.nuget",
+                },
+            )
+            self.assertEqual(
+                set(data["permissions"]["additionalDirectories"]),
+                {
+                    "/tmp/user-workspace",
                     "~/.local/share/mise",
                     "~/.config/mise",
                     "~/.dotnet",

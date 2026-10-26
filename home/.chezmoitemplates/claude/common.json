@@ -22,7 +22,13 @@
   },
   "permissions": {
     "defaultMode": "auto",
-    "blockReadsOutsideWorkingDirectories": true,
+    "blockReadsOutsideWorkingDirectories": true{{ if eq .chezmoi.os "darwin" }},
+    "additionalDirectories": [
+      "~/.local/share/mise",
+      "~/.config/mise",
+      "~/.dotnet",
+      "~/.nuget"
+    ]{{ end }},
     "allow": [
       "Read",
       "Glob",

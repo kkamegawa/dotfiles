@@ -47,12 +47,12 @@ git-credential-manager"
     trap 'rm -rf "$tools_cwd"' EXIT HUP INT TERM
     cd "$tools_cwd"
     for tool_name in $managed_tools; do
-      if "$dotnet_host" tool list --tool-path "$tool_dir" 2>/dev/null | awk 'NR > 2 {print $1}' | grep -Fxq "$tool_name"; then
+      if "$dotnet_host" tool list --global 2>/dev/null | awk 'NR > 2 {print $1}' | grep -Fxq "$tool_name"; then
         echo "==> Updating dotnet tool: $tool_name"
-        "$dotnet_host" tool update --tool-path "$tool_dir" "$tool_name"
+        "$dotnet_host" tool update --global "$tool_name"
       else
         echo "==> Installing dotnet tool: $tool_name"
-        "$dotnet_host" tool install --tool-path "$tool_dir" "$tool_name"
+        "$dotnet_host" tool install --global "$tool_name"
       fi
     done
   )

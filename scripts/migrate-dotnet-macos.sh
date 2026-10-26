@@ -126,7 +126,7 @@ migration_runtime_list() {
   else return 0; fi
 }
 migration_cask_status() {
-  local inventory cask_inventory
+  local inventory cask_inventory=''
   if inventory=$("$MIGRATION_BREW_BIN" list --cask --versions dotnet-sdk 2>&1); then
     if printf '%s\n' "$inventory" | awk '$1=="dotnet-sdk" { found=1 } END { exit(found ? 0 : 1) }'; then printf 'installed\n'; else printf 'absent\n'; fi
     return 0

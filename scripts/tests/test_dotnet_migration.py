@@ -50,6 +50,7 @@ case "$*" in
     elif [ "${BREW_SILENT_ABSENT:-0}" = 1 ]; then exit 1
     else echo "Error: Cask 'dotnet-sdk' is not installed." >&2; exit 1; fi ;;
   "list --cask")
+    if [ "${BREW_LIST_CASK_FAIL:-0}" = 1 ]; then echo 'Homebrew inventory failed' >&2; exit 42; fi
     if [ "${BREW_DOTNET_SDK_INSTALLED:-0}" = 1 ]; then echo 'dotnet-sdk'; else echo 'orchard'; fi ;;
   "list --cask --versions") echo "Error: Cask 'orchard' is not installed." >&2; exit 1 ;;
 esac''')
@@ -176,6 +177,15 @@ exec /usr/bin/stat "$@"'''
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "absent")
         self.assertIn("brew:list --cask\n", self.call_log())
+
+    def test_cask_status_reports_full_inventory_failure_without_unbound_variable(self):
+        self.env["BREW_SILENT_ABSENT"] = "1"
+        self.env["BREW_LIST_CASK_FAIL"] = "1"
+        result = self.run_api("migration_cask_status")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Homebrew inventory failed", result.stderr)
+        self.assertIn("Homebrew dotnet-sdk cask inventory failed", result.stderr)
+        self.assertNotIn("unbound variable", result.stderr)
 
     def test_empty_sdk_list_keeps_runtime_label_on_its_own_line(self):
         host_root = self.scratch / "sdk host"

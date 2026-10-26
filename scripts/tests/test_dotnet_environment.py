@@ -253,6 +253,18 @@ class MiseHookContractTest(unittest.TestCase):
         self.assertEqual(powershell_tools, shell_tools | {"git-credential-manager"})
         self.assertIn("git-credential-manager", hook)
         self.assertIn('if ! is_macos; then', hook)
+        self.assertIn('"$dotnet_host" tool list --global', hook)
+        self.assertIn('"$dotnet_host" tool update --global "$tool_name"', hook)
+        self.assertIn('"$dotnet_host" tool install --global "$tool_name"', hook)
+        self.assertNotIn("--tool-path", hook)
+
+        ps_hook = (REPO / "home/run_after_20-mise-upgrade.ps1").read_text(encoding="utf-8")
+        tool_update = ps_hook.rfind("\nUpdate-DotnetGlobalToolSet\n")
+        self.assertGreater(tool_update, ps_hook.index("==> Running mise upgrade..."))
+        self.assertIn("dotnet tool list --global", ps_hook)
+        self.assertIn("dotnet tool update --global $toolName", ps_hook)
+        self.assertIn("dotnet tool install --global $toolName", ps_hook)
+        self.assertNotIn("--tool-path", ps_hook)
 
     def test_non_windows_chezmoi_filter_excludes_powershell_upgrade_hook(self):
         ignore = (REPO / "home/.chezmoiignore").read_text(encoding="utf-8")
