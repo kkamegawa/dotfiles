@@ -1,0 +1,21 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $managed := includeTemplate "lastexecrecord/config.json" . | fromJson -}}
+{{- $current := dict -}}
+{{- if .chezmoi.stdin -}}
+{{- $current = .chezmoi.stdin | fromJson -}}
+{{- end -}}
+{{- $existing := get $current "commands" | default (list) -}}
+{{- range $command := $managed.commands -}}
+{{- range $old := $existing -}}
+{{- if and (eq (get $command "name") (get $old "name")) (eq (get $command "exe") (get $old "exe")) (eq (toJson (get $command "args")) (toJson (get $old "args"))) -}}
+{{- range $field := list "lastRunUtc" "lastExitCode" -}}
+{{- if hasKey $old $field -}}{{- $_ := set $command $field (get $old $field) -}}{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- if and .chezmoi.stdin (eq (toJson $current) (toJson $managed)) -}}
+{{ .chezmoi.stdin }}
+{{- else -}}
+{{ $managed | toPrettyJson }}
+{{- end -}}
