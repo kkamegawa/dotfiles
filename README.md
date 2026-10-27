@@ -42,7 +42,38 @@ Windows / Linux（サーバー）/ macOS / WSL / Dev Container を一つのリ�
 | `run_after_70-setup-claude-mcp.ps1` | `%USERPROFILE%/.claude.json` | Claude Code の `microsoft-learn` MCP サーバーをユーザースコープに登録（Windows） |
 | `dot_wslconfig` | `~/.wslconfig` | WSL2 メモリ・CPU 設定（Windows のみ） |
 | `dot_lastexecrecord/config.json` | `~/.lastexecrecord/config.json` | lastexecrecord スケジュール設定 |
-| `dot_gitconfig.tmpl` | `~/.gitconfig` | Git グローバル設定 |
+| `modify_dot_gitconfig` | `~/.gitconfig` | Git グローバル設定 |
+| `dot_config/git/dotfiles.gitconfig.tmpl` | `~/.config/git/dotfiles.gitconfig` | Managed Git settings |
+
+### Linux Git credentials
+
+Install Git Credential Manager and make `git-credential-manager` available on
+`PATH`. The .NET global tool requires the .NET 10 SDK and `~/.dotnet/tools` on
+`PATH`. Configure a credential store in the main `~/.gitconfig`: use
+`secretservice` with an available D-Bus Secret Service, or `gpg` after setting up
+GPG and `pass`. Choose one store per machine. The managed configuration enables
+GCM when the executable and a directly configured global store are present;
+otherwise existing helpers remain unchanged. After changing the store, apply
+the managed config again.
+
+Bash / zsh:
+
+```sh
+dotnet tool install --global git-credential-manager
+git config --global credential.credentialStore secretservice
+chezmoi apply ~/.config/git/dotfiles.gitconfig
+```
+
+PowerShell 7:
+
+```powershell
+dotnet tool install --global git-credential-manager
+git config --global credential.credentialStore secretservice
+chezmoi apply "$HOME/.config/git/dotfiles.gitconfig"
+```
+
+Replace `secretservice` with `gpg` for a prepared headless environment. Git
+HTTPS and the GitHub CLI use separate authentication; sign in to `gh` separately.
 
 ## Repository Structure
 

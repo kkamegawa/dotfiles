@@ -1,0 +1,52 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $current := get .chezmoi "stdin" | default "" -}}
+{{- $validated := fromIni $current -}}
+{{- $includePath := "~/.config/git/dotfiles.gitconfig" -}}
+{{- $inInclude := false -}}
+{{- $inCredential := false -}}
+{{- $included := false -}}
+{{- $relocateInclude := false -}}
+{{- range $line := splitList "\n" $current -}}
+{{- $line = trimSuffix "\r" $line -}}
+{{- if regexMatch "(?i)^[[:space:]]*\\[.*\\][[:space:]]*$" $line -}}
+{{- $section := trimSuffix "]" (trimPrefix "[" (trim $line)) -}}
+{{- $inInclude = eq (lower $section) "include" -}}
+{{- $inCredential = regexMatch "(?i)^credential([[:space:]]|$)" $section -}}
+{{- else if and $inInclude (regexMatch "(?i)^[[:space:]]*path[[:space:]]*=" $line) -}}
+{{- $value := trim (regexReplaceAll "(?i)^[[:space:]]*path[[:space:]]*=[[:space:]]*" $line "") -}}
+{{- $value = trimPrefix "\"" $value -}}
+{{- $value = trimSuffix "\"" $value -}}
+{{- if eq $value $includePath -}}{{- $included = true -}}{{- $relocateInclude = false -}}{{- end -}}
+{{- else if and $included $inCredential (regexMatch "(?i)^[[:space:]]*helper[[:space:]]*=" $line) -}}
+{{- $relocateInclude = true -}}
+{{- end -}}
+{{- end -}}
+{{- if and $included (not $relocateInclude) -}}
+{{- $current -}}
+{{- else -}}
+{{- $newline := "\n" -}}
+{{- if contains "\r\n" $current -}}{{- $newline = "\r\n" -}}{{- end -}}
+{{- $result := $current -}}
+{{- if and $included $relocateInclude -}}
+{{- $remainingLines := list -}}
+{{- $inInclude = false -}}
+{{- range $rawLine := splitList "\n" $current -}}
+{{- $line := trimSuffix "\r" $rawLine -}}
+{{- if regexMatch "(?i)^[[:space:]]*\\[.*\\][[:space:]]*$" $line -}}
+{{- $section := trimSuffix "]" (trimPrefix "[" (trim $line)) -}}
+{{- $inInclude = eq (lower $section) "include" -}}
+{{- $remainingLines = append $remainingLines $rawLine -}}
+{{- else if and $inInclude (regexMatch "(?i)^[[:space:]]*path[[:space:]]*=" $line) -}}
+{{- $value := trim (regexReplaceAll "(?i)^[[:space:]]*path[[:space:]]*=[[:space:]]*" $line "") -}}
+{{- $value = trimPrefix "\"" $value -}}
+{{- $value = trimSuffix "\"" $value -}}
+{{- if ne $value $includePath -}}{{- $remainingLines = append $remainingLines $rawLine -}}{{- end -}}
+{{- else -}}
+{{- $remainingLines = append $remainingLines $rawLine -}}
+{{- end -}}
+{{- end -}}
+{{- $result = join "\n" $remainingLines -}}
+{{- end -}}
+{{- if and $result (not (hasSuffix "\n" $result)) -}}{{- $result = printf "%s%s" $result $newline -}}{{- end -}}
+{{- printf "%s[include]%s  path = %s%s" $result $newline $includePath $newline -}}
+{{- end -}}
