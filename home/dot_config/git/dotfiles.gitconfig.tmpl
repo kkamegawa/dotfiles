@@ -1,8 +1,27 @@
-{{- $ghCredHelper := "!gh auth git-credential" -}}
+{{- $useGcm := false -}}
+{{- $gcmHelper := "manager" -}}
 {{- if .isWindows -}}
-{{- $ghCredHelper = "!'C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe' auth git-credential" -}}
-{{- else if .isWSL -}}
-{{- $ghCredHelper = "!'/mnt/c/Program Files/GitHub CLI/gh.exe' auth git-credential" -}}
+{{- $useGcm = true -}}
+{{- else if .isMac -}}
+{{- if lookPath "git-credential-manager" -}}
+{{- $useGcm = true -}}
+{{- else if and (eq .chezmoi.arch "arm64") (stat "/opt/homebrew/share/gcm-core/git-credential-manager") -}}
+{{- $useGcm = true -}}
+{{- $gcmHelper = "/opt/homebrew/share/gcm-core/git-credential-manager" -}}
+{{- else if stat "/usr/local/share/gcm-core/git-credential-manager" -}}
+{{- $useGcm = true -}}
+{{- $gcmHelper = "/usr/local/share/gcm-core/git-credential-manager" -}}
+{{- end -}}
+{{- else if .isLinux -}}
+{{- $gcmPath := lookPath "git-credential-manager" -}}
+{{- $homeGitconfig := printf "%s/.gitconfig" (.chezmoi.homeDir | replace "\\" "/") -}}
+{{- $configuredStore := "" -}}
+{{- if stat $homeGitconfig -}}
+{{- $configuredStore = output "git" "config" "--file" $homeGitconfig "--no-includes" "--default=" "--get" "credential.credentialStore" | trim -}}
+{{- end -}}
+{{- if and $gcmPath $configuredStore -}}
+{{- $useGcm = true -}}
+{{- end -}}
 {{- end -}}
 {{- $sshSignProgram := "" -}}
 {{- if .isMac -}}
@@ -15,18 +34,6 @@
 {{- $sshSignProgram = "/opt/1Password/op-ssh-sign" -}}
 {{- end -}}
 {{- $sshSigningKey := printf "%s/.ssh/id_ed25519.pub" .chezmoi.homeDir -}}
-{{- $dotnetCredentialHelper := "/usr/local/share/gcm-core/git-credential-manager" -}}
-{{- if and .isMac (eq .chezmoi.arch "arm64") (stat "/opt/homebrew/share/gcm-core/git-credential-manager") -}}
-{{- $dotnetCredentialHelper = "/opt/homebrew/share/gcm-core/git-credential-manager" -}}
-{{- else if and .isMac (ne .chezmoi.arch "arm64") (stat "/usr/local/share/gcm-core/git-credential-manager") -}}
-{{- $dotnetCredentialHelper = "/usr/local/share/gcm-core/git-credential-manager" -}}
-{{- else if and .isMac (stat "/opt/homebrew/share/gcm-core/git-credential-manager") -}}
-{{- $dotnetCredentialHelper = "/opt/homebrew/share/gcm-core/git-credential-manager" -}}
-{{- else if and .isMac (stat "/usr/local/share/gcm-core/git-credential-manager") -}}
-{{- $dotnetCredentialHelper = "/usr/local/share/gcm-core/git-credential-manager" -}}
-{{- else if and .isMac (eq .chezmoi.arch "arm64") -}}
-{{- $dotnetCredentialHelper = "/opt/homebrew/share/gcm-core/git-credential-manager" -}}
-{{- end -}}
 {{- $enableCommitSigning := false -}}
 {{- if and (not .isDevContainer) $sshSignProgram (stat $sshSignProgram) (stat $sshSigningKey) -}}
 {{- $enableCommitSigning = true -}}
@@ -81,19 +88,16 @@
   cm  = commit -m
   psh = push --set-upstream origin HEAD
 
+{{- if $useGcm }}
+[credential]
+  helper =
+  helper = {{ $gcmHelper }}
+
 [credential "https://github.com"]
   helper =
-  helper = {{ $ghCredHelper }}
+  helper = {{ $gcmHelper }}
 
 [credential "https://gist.github.com"]
   helper =
-  helper = {{ $ghCredHelper }}
-
-{{- if .isMac -}}
-[credential]
-  helper =
-  helper = {{ $dotnetCredentialHelper }}
-
-[credential "https://dev.azure.com"]
-  useHttpPath = true
+  helper = {{ $gcmHelper }}
 {{- end -}}
