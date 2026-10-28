@@ -17,8 +17,16 @@ function Add-ClaudeHttpMcpServer {
     [Parameter(Mandatory = $true)] [string] $Url
   )
 
-  & claude mcp get $Name *> $null
-  if ($LASTEXITCODE -eq 0) {
+  # Windows PowerShell 5.1 turns redirected native stderr into a terminating error under 'Stop'.
+  $previousPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    & claude mcp get $Name *> $null
+    $exists = ($LASTEXITCODE -eq 0)
+  } finally {
+    $ErrorActionPreference = $previousPreference
+  }
+  if ($exists) {
     return
   }
 
