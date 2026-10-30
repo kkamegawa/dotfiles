@@ -50,12 +50,9 @@ docs/ 以下のADR・アーキテクチャ・インフラ・テスト・セッ�
 
 - 認証が必要な`gh`と`git`(push/fetch/pull/clone/ls-remote)は、sandbox外で実行する`excludedCommands`で許可しています。この除外はコマンドの先頭一致のため、`cd ... && gh ...`や`echo ...; gh ...`のように前へ別のコマンドを付けたり、パイプや連結で他のコマンドと1行にまとめたりすると、sandbox内で実行されて失敗します(ghの起動拒否、GCMのクラッシュ)。これらは必ず単独のコマンドとして実行してください。
 
-### Diagnosing GitHub CLI authentication
+### コマンド実行時のパス
 
-- Treat `gh` authentication separately from Git HTTPS credential helpers such as GCM. A working Git helper does not prove that `gh` API calls can authenticate.
-- When `gh` reports that authentication is missing, run `gh auth status` and then `gh api user --jq .login` as separate, standalone commands. The authenticated user endpoint verifies which account the API token represents; `gh api rate_limit` can succeed anonymously and is not an authentication check. Do not prefix either command with another command, pipe it, or combine it with another command; the sandbox rule only matches a command that starts with `gh`.
-- If status reports a logged-in account but the API call returns 401, do not conclude that no login exists. Check whether `GH_TOKEN` or `GITHUB_TOKEN` is set, because an environment token can take precedence over the stored login. Report only whether each variable is set; never print its value.
-- Distinguish authentication errors from insufficient permissions, host/network failures, and resource-specific access errors. Do not run `gh auth login` or `gh auth refresh` unless the user asks to change credentials.
+- `cd`でディレクトリを移動しない。コマンドは絶対パスで指定する。相対パスは利用禁止。
 
 ### 作業に関する記録
 
@@ -74,4 +71,4 @@ docs/ 以下のADR・アーキテクチャ・インフラ・テスト・セッ�
 
 - URLやIPアドレスをissueやドキュメントに書かない。必ずプレースホルダにする。ソースコードやスクリプト中にプレースホルダにした場合、置換するスクリプトも用意する。Wiki内のissueおよび、認証なしでアクセス可能なURLはプレースホルダにしない。
 - SECURITY.mdやLICENSEに関するファイルを日本語で作らない。
-- C#/XAMLの編集は必ずEdit/Writeツールで行う。python/sedによる書き換えは禁止
+- 編集は必ずEdit/Writeツールで行う。python/sedによる書き換えは禁止
