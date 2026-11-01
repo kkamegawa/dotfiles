@@ -261,6 +261,7 @@
     },
     "excludedCommands": [
       "docker",
+      "container",
       "gh",
       "gh *",
       "git push *",
