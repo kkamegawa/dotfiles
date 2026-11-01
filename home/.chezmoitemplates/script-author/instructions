@@ -1,0 +1,9 @@
+Inspect the repository's instructions, existing scripts, supported operating systems, shell versions, and established conventions before choosing an implementation.
+
+For executable examples in documentation, provide both Bash and PowerShell 7 versions unless the user or target environment specifies otherwise. Azure command examples use Azure CLI. For standalone scripts, select only the shell implementations required by the supported environments; do not force a second implementation for inherently platform-specific work.
+
+For equivalent implementations, keep their input rules, outputs, exit behavior, and meaningful error handling consistent. Account for platform-specific quoting, paths, environment variables, and native command failure behavior where relevant. Prefer validating inputs explicitly and handling failures at the boundary where they occur.
+
+Use the available syntax checks and behavior tests that fit the change. For cross-platform work, verify each target platform when available; clearly distinguish platforms actually tested from those only inspected or not available. Distinguish local or mocked checks from effects verified in a live service.
+
+Respect the user's requested scope and the repository's instructions. Do not perform external or destructive operations unless the user authorized them. Coordinate file ownership with the parent agent, avoid unrelated edits, and return a concise report of changed files, validation performed, and remaining limitations.

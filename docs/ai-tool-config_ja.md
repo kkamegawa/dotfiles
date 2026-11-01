@@ -1,6 +1,6 @@
-# Codex と Claude Code の設定の所有権
+# AI コーディングエージェント設定の所有権
 
-`~/.codex/config.toml` と `~/.claude/settings.json` は、このリポジトリとアプリ自身の両方が書き込みます。そのためリポジトリはファイル全体を所有しません。リポジトリが持つのは**管理キー**の集合だけで、`chezmoi apply` のたびに実ファイルへマージします。それ以外のキーは、ローカルのアプリが書いたままです。
+`~/.codex/config.toml` と `~/.claude/settings.json` は、このリポジトリとアプリ自身の両方が書き込みます。そのためリポジトリはどちらもファイル全体を所有しません。リポジトリが持つのは**管理キー**の集合だけで、`chezmoi apply` のたびに実ファイルへマージします。それ以外のキーは、ローカルのアプリが書いたままです。Codex、Claude Code、GitHub Copilot CLI のエージェント定義は、各ツール固有の形式で別ファイルとして配布します。
 
 ## 所有権モデル
 
@@ -35,6 +35,10 @@ macOS のリポジトリ所有 C# フックは .NET 10 ラッパーの絶対パ�
 | `home/.chezmoitemplates/claude/{common,unix,windows}.json` | Claude の管理断片 |
 | `home/.chezmoitemplates/merge/deep` | 配列の和集合パスを持つ共通のディープマージテンプレート |
 | `home/.chezmoitemplates/{codex,claude}/paths` | 共通のパス補助（ホーム、キャッシュルート、Claude ホーム） |
+| `home/.chezmoitemplates/script-author/instructions` | 各ツールのエージェント形式へ展開する共通指示 |
+| `home/dot_codex/agents/script-author.toml.tmpl` | `~/.codex/agents/script-author.toml` |
+| `home/dot_claude/agents/script-author.md.tmpl` | `~/.claude/agents/script-author.md` |
+| `home/dot_copilot/agents/script-author.agent.md.tmpl` | `~/.copilot/agents/script-author.agent.md` |
 
 断片は common を先に適用し、続けて `.chezmoi.os` に対応する overlay を適用します。衝突したときは overlay が優先されます。
 
@@ -122,3 +126,20 @@ chezmoi apply ~/.codex/config.toml ~/.claude/settings.json
 | 日付 | 従来の方針 | 新方針 | 理由 | 承認 |
 |---|---|---|---|---|
 | 2026-10-26 | システム SDK・継承 PATH、複数 OS でのツールフック実行 | 固定 mise ルート、OS 別の更新担当、明示的なエージェント環境、SDK 10 専用ラッパー | 手動移行の設計レビュー。macos-dotnet-management_ja.md を参照 | ユーザーが設計を承認。実機移行は明示的なユーザー操作として実施 |
+
+
+## 共通スクリプト作成エージェント
+
+スクリプト作成・変更の共通指示は `home/.chezmoitemplates/script-author/instructions` で管理し、Codex TOML、Claude Code Markdown、GitHub Copilot CLI Markdown の各形式へ展開します。ツール固有のメタデータは各定義ファイルに残します。共通の指示文からスクリプト作業をこのエージェントへ委任し、委任できない場合は親エージェントが同じ指示に従います。
+
+ドキュメント内の実行例は、ユーザーまたは実行環境の指定がなければ Bash と PowerShell 7 の両方を用意します。Azure コマンド例は Azure CLI を使います。独立したスクリプトでは、実際の要件と既存プロジェクトの規約に合わせて shell と対象 OS を選び、本質的に OS 固有の処理に別実装を追加しません。複数の実装が同じ操作を行う場合、入力、出力、終了状態、エラー処理を揃えて同等性を検証します。選択した OS に合わせて引用符、パス、環境変数、ネイティブコマンドの失敗も確認します。実際に検証した OS とチェック、および未検証の環境を報告します。
+
+エージェントは各ツールの個人用エージェントディレクトリへ配布します。Copilot CLI は `~/.copilot/agents/` を使います。別途存在する `~/.github/agents` の互換リンクは APM 管理の `~/.config/apm/agents` を指したままとし、このリポジトリのエージェント配置には使いません。
+
+この配置は Codex（Subagents: `<CODEX_SUBAGENT_DOC_URL>`）、Claude Code（Sub-agents: `<CLAUDE_SUBAGENT_DOC_URL>`）、GitHub Copilot CLI（CLI configuration directory reference: `<COPILOT_CONFIG_DOC_URL>`）の製品別エージェント形式と配置先に従います（2026-11-01 確認）。
+
+### 変更履歴
+
+| 日付 | 従来の方針 | 新方針 | 理由 | 承認 |
+|---|---|---|---|---|
+| 2026-11-01 | Codex と Claude の設定所有権を記録し、エージェント指示では Bash と PowerShell 7 の両方を要求 | 共通の chezmoi 指示から Codex、Claude Code、Copilot CLI 向けの個人エージェントを生成し、Copilot の APM 管理リンク外に配置 | 各ツールのネイティブ形式と既存 APM 所有権を守りつつ、依頼されたツール間でクロスプラットフォームのスクリプト規則を共有する | 会話で実装計画と文書差分を承認 |
