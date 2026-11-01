@@ -44,7 +44,7 @@ docs/ 以下のADR・アーキテクチャ・インフラ・テスト・セッ�
 
 ### ドキュメント内のスクリプト
 
-- bash(macOS/Linux)とPowerShell 7用のスクリプト両方作ります。Azureのコマンドを例示で作る場合、Azure CLIを前提にします。
+- スクリプトまたはドキュメント内の実行例を作成・変更する場合は、`script-author` サブエージェントに委任します。委任できない場合は、そのエージェント定義の作成・検証ルールに従います。
 
 ### sandboxでのgit/gh
 
@@ -59,6 +59,14 @@ docs/ 以下のADR・アーキテクチャ・インフラ・テスト・セッ�
 - ファイル変更が依頼の範囲に含まれ、`docs/task.md`がある場合は、作業終了時に承認済みのplanに基づく作業内容と検証結果を記録します。関連IssueまたはWork Itemがある場合はリンクを貼ります。調査・レビューのみの依頼では、`docs/task.md`を変更しません。
 - 当初の`docs/task.md`, `docs/plan.md`にない仕様変更が生じた場合のADR記録は、project-documentationスキルの手順（`docs/adr/`以下、承認ゲート・変更履歴）に従います。
 - 実装計画のWiki登録は、上記の「Gitリモートレポジトリありの場合」に従います。GitHub・Azure DevOps以外のリモートには、個別の指示がない限りWiki登録を行いません。
+
+## Who does what
+
+- Searching the code or reading more than 3 files: send it to the Explore subagent.
+- Running tests, builds or linters: send it to test-runner. I only want failures back.
+- After code is written: reviewer checks the diff before you say done.
+- Before a plan is final, after the same error twice, and before a big change is done: ask architect.
+- Pick the model at the start of the session. Don't switch models in the middle of a task.
 
 ## 補足
 

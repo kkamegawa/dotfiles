@@ -1,6 +1,6 @@
-# Codex and Claude Code configuration ownership
+# AI coding agent configuration ownership
 
-`~/.codex/config.toml` and `~/.claude/settings.json` are written by both this repository and the apps themselves. The repository therefore does not own the whole file. It owns a set of **managed keys** and merges them into the real file on every `chezmoi apply`; every other key stays as the local app left it.
+`~/.codex/config.toml` and `~/.claude/settings.json` are written by both this repository and the apps themselves. The repository does not own either whole file. It owns a set of **managed keys** and merges them into the real file on every `chezmoi apply`; every other key stays as the local app left it. Codex, Claude Code, and GitHub Copilot CLI agent definitions are deployed as separate files in each tool’s native format.
 
 ## Ownership model
 
@@ -35,6 +35,10 @@ Each file is produced by a chezmoi `modify_` template (a file whose body contain
 | `home/.chezmoitemplates/claude/{common,unix,windows}.json` | managed Claude fragments |
 | `home/.chezmoitemplates/merge/deep` | shared deep-merge template with array-union paths |
 | `home/.chezmoitemplates/{codex,claude}/paths` | shared path helpers (home, cache root, Claude home) |
+| `home/.chezmoitemplates/script-author/instructions` | shared script-author instructions rendered into native agent definitions |
+| `home/dot_codex/agents/script-author.toml.tmpl` | `~/.codex/agents/script-author.toml` |
+| `home/dot_claude/agents/script-author.md.tmpl` | `~/.claude/agents/script-author.md` |
+| `home/dot_copilot/agents/script-author.agent.md.tmpl` | `~/.copilot/agents/script-author.agent.md` |
 
 A fragment set is common first, then the overlay for `.chezmoi.os`. The overlay wins on conflicts.
 
@@ -122,3 +126,20 @@ chezmoi apply ~/.codex/config.toml ~/.claude/settings.json
 | Date | Previous decision | New decision | Reason | Approval |
 |---|---|---|---|---|
 | 2026-10-26 | System SDK and inherited PATH; shared OS tool hook execution | Stable mise root, one updater per OS, explicit agent environment and isolated SDK 10 runner | Manual migration design review; see macos-dotnet-management.md | User approved design; host migration remains an explicit user-run operation |
+
+
+## Shared script-author agent
+
+The same script-authoring guidance is maintained in `home/.chezmoitemplates/script-author/instructions` and rendered into the Codex TOML, Claude Code Markdown, and GitHub Copilot CLI Markdown definitions. Tool-specific metadata stays in each native file. The common instruction routes script creation and edits to this agent; when delegation is unavailable, the parent follows the same guidance directly.
+
+For executable examples in documentation, provide Bash and PowerShell 7 variants unless the user or target environment specifies otherwise. Azure command examples use Azure CLI. For standalone scripts, choose the shell and operating systems from the actual requirements and existing project conventions; do not create a parallel implementation for an inherently platform-specific task. Where multiple implementations cover the same operation, align inputs, outputs, exit behavior, and error handling, and validate parity. Consider quoting, paths, environment variables, and native command failures for the selected platform. Report which operating systems and checks were actually exercised, and identify unverified environments.
+
+The agents are deployed to each tool’s personal agent directory. Copilot CLI uses `~/.copilot/agents/`; its separate `~/.github/agents` compatibility link continues to point to the APM-managed `~/.config/apm/agents` directory and is not used for this repository-owned agent.
+
+This routing follows the product-specific agent formats and paths documented by Codex (Subagents: `<CODEX_SUBAGENT_DOC_URL>`), Claude Code (Sub-agents: `<CLAUDE_SUBAGENT_DOC_URL>`), and GitHub Copilot CLI (CLI configuration directory reference: `<COPILOT_CONFIG_DOC_URL>`), checked 2026-11-01.
+
+### Change history
+
+| Date | Previous decision | New decision | Reason | Approval |
+|---|---|---|---|---|
+| 2026-11-01 | Codex and Claude configuration ownership documented; script examples required Bash and PowerShell 7 in agent instructions | Add native personal script-author agents for Codex, Claude Code, and Copilot CLI, generated from common chezmoi guidance; keep Copilot agent outside APM-managed links | Apply the same cross-platform script rules across requested tools while respecting their native formats and existing APM ownership | Implementation plan and documentation diff approved in conversation |
