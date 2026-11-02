@@ -18,8 +18,15 @@
     "additionalDirectories": [
       "{{ $homeDir }}/AppData/Local/Temp/Kkamegawa.CodexForVisualStudio",
       "{{ $homeDir }}/AppData/Local/Temp/VSLogs",
-      "{{ $homeDir }}/AppData/Local/Temp/servicehub/logs"
-{{- range glob (printf "%s/AppData/Local/Microsoft/VisualStudio/*/VSExtensions" $homeDir) }},
+      "{{ $homeDir }}/AppData/Local/Temp/servicehub/logs",
+      "{{ $homeDir }}/.nuget/packages",
+      "{{ $homeDir }}/.dotnet/tools",
+      "{{ $homeDir }}/AppData/Local/NuGet/v3-cache"
+{{- range glob (printf "%s/AppData/Local/Microsoft/VisualStudio/*/Settings" $homeDir) }},
+      "{{ . | replace "\\" "/" }}"
+{{- end }}{{- range glob (printf "%s/AppData/Local/Microsoft/VisualStudio/*/Extensions" $homeDir) }},
+      "{{ . | replace "\\" "/" }}"
+{{- end }}{{- range glob (printf "%s/AppData/Local/Microsoft/VisualStudio/*/VSExtensions" $homeDir) }},
       "{{ . | replace "\\" "/" }}"
 {{- end }}
     ]
