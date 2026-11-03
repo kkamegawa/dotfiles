@@ -136,26 +136,16 @@ git log --show-signature -1
 
 ## APM の操作
 
-```sh
-# Copilot CLI 設定を適用
-apm install
+`chezmoi apply` / `chezmoi update` のたびに APM 更新フックが動きます。再試行する場合も `apm install` ではなく、`chezmoi apply` を実行してください。
 
-# 設定を更新
-apm update
+フックは `~/apm.yml` を一時候補フォルダーにコピーし、`apm install --refresh --root <候補フォルダー> --target claude,codex,copilot` で依存関係を更新します。取得と出力の検証が成功した後にだけ、候補の実ファイルを各ツールのユーザープロファイルへコピーします。
 
-# 適用済み設定を確認
-apm list
-```
+- Codex と Copilot の共有スキル: `~/.agents/skills`
+- Claude Code のスキル・エージェント・ルール・コマンド: `~/.claude/`
+- Copilot のエージェント、指示、フック、カスタム指示、MCP サーバー設定: `~/.copilot/`
+- Visual Studio との互換用エージェント: `~/.github/agents`（シンボリックリンクではなく実ファイル）
 
-APM のユーザープロファイル管理では、スキル・エージェントを次のディレクトリに配置します。
-
-- `~/.config/apm/skills`
-- `~/.config/apm/agents`
-
-互換性のため、次のパスは上記ディレクトリへのリンクとして作成されます。
-
-- `~/.copilot/skills` -> `~/.config/apm/skills`
-- `~/.github/agents` -> `~/.config/apm/agents`
+Copilot の MCP サーバーは `~/.copilot/mcp-config.json` の `mcpServers` に名前単位で統合し、APM が所有する項目だけを更新します。APM の取得に失敗した場合は、既存のユーザープロファイルを変更しません。反映先の競合や未対応の出力がある場合は処理を中止し、既存ファイルを自動削除しません。
 
 ---
 
@@ -229,7 +219,7 @@ chezmoi init --apply kkamegawa
 winget configure -f "$(chezmoi source-path)\reference\windows\configuration.dsc.yaml"
 gh auth login
 mise install
-apm install
+chezmoi apply
 ```
 
 ## .NET の判断変更履歴

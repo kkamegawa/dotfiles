@@ -134,7 +134,7 @@ chezmoi apply ~/.codex/config.toml ~/.claude/settings.json
 
 ドキュメント内の実行例は、ユーザーまたは実行環境の指定がなければ Bash と PowerShell 7 の両方を用意します。Azure コマンド例は Azure CLI を使います。独立したスクリプトでは、実際の要件と既存プロジェクトの規約に合わせて shell と対象 OS を選び、本質的に OS 固有の処理に別実装を追加しません。複数の実装が同じ操作を行う場合、入力、出力、終了状態、エラー処理を揃えて同等性を検証します。選択した OS に合わせて引用符、パス、環境変数、ネイティブコマンドの失敗も確認します。実際に検証した OS とチェック、および未検証の環境を報告します。
 
-エージェントは各ツールの個人用エージェントディレクトリへ配布します。Copilot CLI は `~/.copilot/agents/` を使います。別途存在する `~/.github/agents` の互換リンクは APM 管理の `~/.config/apm/agents` を指したままとし、このリポジトリのエージェント配置には使いません。
+エージェントは各ツールの個人用エージェントディレクトリへ配布します。Copilot CLI は `~/.copilot/agents/` を使います。APM が生成したエージェントは `~/.copilot/agents` と Visual Studio 互換用の `~/.github/agents` の両方に実ファイルとして配置し、シンボリックリンクは使いません。
 
 この配置は Codex（Subagents: `<CODEX_SUBAGENT_DOC_URL>`）、Claude Code（Sub-agents: `<CLAUDE_SUBAGENT_DOC_URL>`）、GitHub Copilot CLI（CLI configuration directory reference: `<COPILOT_CONFIG_DOC_URL>`）の製品別エージェント形式と配置先に従います（2026-11-01 確認）。
 
@@ -143,3 +143,4 @@ chezmoi apply ~/.codex/config.toml ~/.claude/settings.json
 | 日付 | 従来の方針 | 新方針 | 理由 | 承認 |
 |---|---|---|---|---|
 | 2026-11-01 | Codex と Claude の設定所有権を記録し、エージェント指示では Bash と PowerShell 7 の両方を要求 | 共通の chezmoi 指示から Codex、Claude Code、Copilot CLI 向けの個人エージェントを生成し、Copilot の APM 管理リンク外に配置 | 各ツールのネイティブ形式と既存 APM 所有権を守りつつ、依頼されたツール間でクロスプラットフォームのスクリプト規則を共有する | 会話で実装計画と文書差分を承認 |
+| 2026-11-03 | APM の skills と agents を `~/.config/apm/` からのリンクで共有 | APM の出力を候補フォルダーで検証してから `~/.agents/skills`、`~/.claude/`、Copilot のユーザーフォルダーへ実コピーし、`~/.github/agents` も実フォルダー化 | 各アプリのユーザープロファイルへ安全に配置し、chezmoi の更新時にマーケットプレースを更新する | 会話で計画・構成を承認 |

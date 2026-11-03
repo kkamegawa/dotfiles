@@ -1,109 +1,109 @@
-# AI coding agent configuration ownership
+# AI コーディングエージェント設定の所有権
 
-`~/.codex/config.toml` and `~/.claude/settings.json` are written by both this repository and the apps themselves. The repository does not own either whole file. It owns a set of **managed keys** and merges them into the real file on every `chezmoi apply`; every other key stays as the local app left it. Codex, Claude Code, and GitHub Copilot CLI agent definitions are deployed as separate files in each tool’s native format.
+`~/.codex/config.toml` と `~/.claude/settings.json` は、このリポジトリとアプリ自身の両方が書き込みます。そのためリポジトリはどちらもファイル全体を所有しません。リポジトリが持つのは**管理キー**の集合だけで、`chezmoi apply` のたびに実ファイルへマージします。それ以外のキーは、ローカルのアプリが書いたままです。Codex、Claude Code、GitHub Copilot CLI のエージェント定義は、各ツール固有の形式で別ファイルとして配布します。
 
-## Ownership model
+## 所有権モデル
 
-| Layer | Content | Owner |
+| 層 | 内容 | 所有者 |
 | --- | --- | --- |
-| common | OS-independent shared settings (sub-agents, model, approval policy, allowed domains) | repository |
-| os overlay | Windows / macOS / Linux specifics (paths, sandbox, notify, permission lists) | repository |
-| local | Values the apps rewrite: plugins, project trust, app version values, injected hooks | local machine |
+| common | OS 非依存の共通設定（サブエージェント、モデル、承認方針、許可ドメイン） | リポジトリ |
+| os overlay | Windows / macOS / Linux 固有（パス、sandbox、notify、権限リスト） | リポジトリ |
+| local | アプリが書き換える値: プラグイン、プロジェクト trust、アプリのバージョン値、注入されたフック | ローカルマシン |
 
-The local layer is never written by the repository. A key belongs to the repository only when it appears in a managed fragment.
+local 層にリポジトリは書き込みません。キーがリポジトリのものになるのは、管理断片に書かれたときだけです。
 
 
-## macOS .NET execution environment
+## macOS の .NET 実行環境
 
-The Darwin overlay adds an absolute managed PATH and DOTNET_ROOT/architecture-specific runtime root under shell_environment_policy.set. It retains allow_login_shell=false, the existing DOTNET_CLI_HOME/NuGet cache values, model/auth settings and secret exclusions. Values are rendered by chezmoi; shell expressions such as a literal $PATH are not expansion mechanisms in the set table.
+Darwin overlay は shell_environment_policy.set に、絶対パスの管理対象 PATH と DOTNET_ROOT・アーキテクチャ別ルートを追加します。allow_login_shell=false、既存の DOTNET_CLI_HOME・NuGet キャッシュ、モデル・認証、機密変数の除外は維持します。値は chezmoi で展開し、set 表の $PATH のような文字列をシェル展開の仕組みとしては使いません。
 
-macOS repository-owned Claude C# hooks invoke the absolute .NET 10 runner. Its private global.json/cwd avoids an unrelated project's SDK pin while preserving hook input/output. SDK installation stays in user-run migration/chezmoi operations outside agent sandboxes; this change adds no installer-host allowlist or sandbox bypass. See [macOS .NET management](macos-dotnet-management.md).
+macOS のリポジトリ所有 C# フックは .NET 10 ラッパーの絶対パスを呼びます。専用 global.json・cwd によってプロジェクトの SDK 固定の影響を避け、フックの入出力を保持します。SDK 導入はユーザーが sandbox 外で実行する移行・chezmoi の担当とし、配布元の許可リストや sandbox 除外は追加しません。[macOS .NET 管理](macos-dotnet-management_ja.md) を参照してください。
 
-## Mechanism
+## 方式
 
-Each file is produced by a chezmoi `modify_` template (a file whose body contains the `chezmoi:modify-template` marker, without a `.tmpl` suffix). chezmoi passes the current target to the template as `.chezmoi.stdin`; the template parses it, merges the managed fragments into it, and prints the result.
+各ファイルは chezmoi の `modify_` テンプレート（本文に `chezmoi:modify-template` マーカーを含み、`.tmpl` 拡張子を付けないファイル）で生成します。chezmoi は現在のターゲットを `.chezmoi.stdin` としてテンプレートに渡します。テンプレートはそれを解析し、管理断片をマージして結果を出力します。
 
-- No interpreter, Python, or uv is needed, so the same source works on Windows, macOS, Linux/WSL, and Dev Containers.
-- `modify_` targets are not subject to the "has changed since chezmoi last wrote it" prompt, so an app rewriting the file never breaks `chezmoi apply`.
-- `chezmoi diff` and `chezmoi apply --dry-run` show the merge result.
+- インタープリタ、Python、uv は不要です。同じソースが Windows、macOS、Linux/WSL、Dev Container で動きます。
+- `modify_` のターゲットには「前回書き込んだ後に変更された」という確認が出ないため、アプリがファイルを書き換えても `chezmoi apply` は壊れません。
+- `chezmoi diff` と `chezmoi apply --dry-run` でマージ結果を確認できます。
 
-| Source | Target |
+| ソース | ターゲット |
 | --- | --- |
 | `home/dot_codex/modify_private_config.toml` | `~/.codex/config.toml` |
 | `home/dot_claude/modify_settings.json` | `~/.claude/settings.json` |
-| `home/.chezmoitemplates/codex/{common,darwin,linux,windows}.toml` | managed Codex fragments |
-| `home/.chezmoitemplates/claude/{common,unix,windows}.json` | managed Claude fragments |
-| `home/.chezmoitemplates/merge/deep` | shared deep-merge template with array-union paths |
-| `home/.chezmoitemplates/{codex,claude}/paths` | shared path helpers (home, cache root, Claude home) |
-| `home/.chezmoitemplates/script-author/instructions` | shared script-author instructions rendered into native agent definitions |
+| `home/.chezmoitemplates/codex/{common,darwin,linux,windows}.toml` | Codex の管理断片 |
+| `home/.chezmoitemplates/claude/{common,unix,windows}.json` | Claude の管理断片 |
+| `home/.chezmoitemplates/merge/deep` | 配列の和集合パスを持つ共通のディープマージテンプレート |
+| `home/.chezmoitemplates/{codex,claude}/paths` | 共通のパス補助（ホーム、キャッシュルート、Claude ホーム） |
+| `home/.chezmoitemplates/script-author/instructions` | 各ツールのエージェント形式へ展開する共通指示 |
 | `home/dot_codex/agents/script-author.toml.tmpl` | `~/.codex/agents/script-author.toml` |
 | `home/dot_claude/agents/script-author.md.tmpl` | `~/.claude/agents/script-author.md` |
 | `home/dot_copilot/agents/script-author.agent.md.tmpl` | `~/.copilot/agents/script-author.agent.md` |
 
-A fragment set is common first, then the overlay for `.chezmoi.os`. The overlay wins on conflicts.
+断片は common を先に適用し、続けて `.chezmoi.os` に対応する overlay を適用します。衝突したときは overlay が優先されます。
 
-## Merge rules
+## マージ規則
 
-- Tables and scalars: the managed value overwrites the local value; unmanaged keys are preserved.
-- Arrays: replaced by the managed value, except at the union paths below, where managed items are always present and local extras are kept.
-- Repository-owned Claude hooks: an entry whose command references the repository hook directory under the Claude home is repository-owned. It is removed and re-added from the fragment, so edits do not leave duplicates. Other hook entries (for example, ones injected by other tools) are kept.
-- An empty or missing target is treated as an empty document.
-- A target that cannot be parsed makes the template fail, so `chezmoi apply` stops with an error and the file is not overwritten.
+- テーブルとスカラー: 管理値がローカル値を上書きします。管理外のキーは保持されます。
+- 配列: 管理値で置換します。ただし下記の和集合パスでは、管理側の要素は必ず存在し、ローカルの追加要素は残ります。
+- リポジトリ所有の Claude フック: コマンドが Claude ホーム配下のリポジトリ用フックディレクトリを参照するエントリは、リポジトリ所有です。削除して断片から再追加するので、編集しても重複が残りません。それ以外のフックエントリ（他のツールが注入したものなど）は保持されます。
+- ターゲットが空または存在しない場合は、空のドキュメントとして扱います。
+- ターゲットを解析できない場合はテンプレートが失敗し、`chezmoi apply` はエラーで止まります。ファイルは上書きされません。
 
-Because the result is re-serialized, comments in the target are dropped, tables are re-indented, and keys are sorted. This is a known cost of the template mechanism.
+結果は再シリアライズされるため、ターゲット内のコメントは消え、テーブルはインデントし直され、キーは並べ替えられます。これはテンプレート方式の既知のコストです。
 
-Removing an item from a union array in the repository does not remove it from machines that already have it. Remove it by hand, or temporarily move it to a managed replace path.
+和集合の配列からリポジトリ側で項目を削除しても、すでにその項目を持つマシンからは削除されません。手動で削除するか、一時的に置換パスの管理キーへ移してください。
 
-## Key classification
+## キー分類
 
-### Codex (`config.toml`)
+### Codex（`config.toml`）
 
-| Managed (repository) | Local (app-owned) |
+| 管理（リポジトリ） | ローカル（アプリ所有） |
 | --- | --- |
-| `approval_policy`, `approvals_reviewer`, `default_permissions`, `allow_login_shell`, `model`, `model_reasoning_effort`, `web_search` | `mcp_servers.node_repl` and its `env` (`BROWSER_USE_*`, `NODE_REPL_*`, `CODEX_*`, `SKY_*`) |
-| `notify` (macOS only) | `marketplaces.*` |
-| `permissions.*`, `features.*`, `shell_environment_policy.*`, `windows.sandbox` (Windows only) | `plugins.*` |
-| `agents.*`, `desktop.*`, `mcp_servers.learn_mcp` | `projects.*` |
+| `approval_policy`、`approvals_reviewer`、`default_permissions`、`allow_login_shell`、`model`、`model_reasoning_effort`、`web_search` | `mcp_servers.node_repl` とその `env`（`BROWSER_USE_*`、`NODE_REPL_*`、`CODEX_*`、`SKY_*`） |
+| `notify`（macOS のみ） | `marketplaces.*` |
+| `permissions.*`、`features.*`、`shell_environment_policy.*`、`windows.sandbox`（Windows のみ） | `plugins.*` |
+| `agents.*`、`desktop.*`、`mcp_servers.learn_mcp` | `projects.*` |
 
-Codex has no union paths; all arrays are replaced.
+Codex に和集合パスはなく、配列はすべて置換です。
 
-### Claude Code (`settings.json`)
+### Claude Code（`settings.json`）
 
-| Managed (repository) | Local |
+| 管理（リポジトリ） | ローカル |
 | --- | --- |
-| `model`, `advisorModel`, `effortLevel`, `env`, `language`, `cleanupPeriodDays`, `subagentPromptCacheTtl`, `attribution`, notification flags, `enableWorkflows` | `enabledPlugins` |
-| `permissions`, `sandbox`, `statusLine`, `extraKnownMarketplaces` | hook entries not owned by the repository |
-| `hooks` entries for the repository hook scripts | any other key the app adds |
+| `model`、`advisorModel`、`effortLevel`、`env`、`language`、`cleanupPeriodDays`、`subagentPromptCacheTtl`、`attribution`、通知フラグ、`enableWorkflows` | `enabledPlugins` |
+| `permissions`、`sandbox`、`statusLine`、`extraKnownMarketplaces` | リポジトリ所有でないフックエントリ |
+| リポジトリのフックスクリプトに対する `hooks` エントリ | アプリが追加するその他のキー |
 
-Union paths: `permissions.allow`, `permissions.ask`, `permissions.deny`, `permissions.additionalDirectories`, `sandbox.network.allowedDomains`, `sandbox.filesystem.allowWrite`, `sandbox.excludedCommands`, and each `hooks.<event>` array.
+和集合パス: `permissions.allow`、`permissions.ask`、`permissions.deny`、`permissions.additionalDirectories`、`sandbox.network.allowedDomains`、`sandbox.filesystem.allowWrite`、`sandbox.excludedCommands`、および各 `hooks.<event>` 配列。
 
-OS differences live in the overlays: the Windows overlay uses PowerShell read-only commands in `permissions.allow` and denies `curl` / `wget`; the Unix overlay uses the POSIX equivalents. Hook paths are built from `.chezmoi.homeDir` with backslashes replaced by slashes.
+OS の差分は overlay にあります。Windows overlay は `permissions.allow` に PowerShell の読み取りコマンドを使い、`curl` / `wget` を拒否します。Unix overlay は POSIX の同等コマンドを使います。フックのパスは `.chezmoi.homeDir` から組み立て、バックスラッシュをスラッシュに置換します。
 
-The Windows overlay also adds the user-profile NuGet global packages directory (`~/.nuget/packages`), .NET global tools (`~/.dotnet/tools`), and NuGet HTTP cache (`~/AppData/Local/NuGet/v3-cache`) to `permissions.additionalDirectories`. It expands each Visual Studio instance’s `Settings` and `Extensions` directories at apply time with chezmoi’s `glob`, alongside the existing Visual Studio and Codex for Visual Studio logs and `VSExtensions` paths. Apply again after installing a new Visual Studio instance. Every `additionalDirectories` folder is writable, so this grants write access to these development data paths. Microsoft documents [NuGet global packages and HTTP cache](https://learn.microsoft.com/nuget/consume-packages/managing-the-global-packages-and-cache-folders), [.NET global tool locations](https://learn.microsoft.com/dotnet/core/tools/dotnet-tool-install#installation-locations), [Visual Studio user settings](https://learn.microsoft.com/visualstudio/ide/personalizing-the-visual-studio-ide?view=visualstudio), and [per-user Visual Studio extensions](https://learn.microsoft.com/visualstudio/ide/finding-and-using-visual-studio-extensions?view=visualstudio#manage-extensions). Sources checked on 2026-11-02.
+Windows overlay は、ユーザープロファイル内の NuGet global packages（`~/.nuget/packages`）、.NET global tools（`~/.dotnet/tools`）、NuGet HTTP cache（`~/AppData/Local/NuGet/v3-cache`）を `permissions.additionalDirectories` に追加します。既存の Visual Studio / Codex for Visual Studio のログと `VSExtensions` に加え、Visual Studio インスタンスごとの `Settings` と `Extensions` を chezmoi の `glob` で apply 時に展開します。Visual Studio の新しいインスタンスをインストールした後は、もう一度 apply してください。`additionalDirectories` は書き込みも許可するため、これらの開発データへの書き込み権限が加わります。Microsoftの資料: [NuGet global packages と HTTP cache](https://learn.microsoft.com/nuget/consume-packages/managing-the-global-packages-and-cache-folders)、[.NET global tools の保存場所](https://learn.microsoft.com/dotnet/core/tools/dotnet-tool-install#installation-locations)、[Visual Studio ユーザー設定](https://learn.microsoft.com/visualstudio/ide/personalizing-the-visual-studio-ide?view=visualstudio)、[ユーザー単位の Visual Studio 拡張機能](https://learn.microsoft.com/visualstudio/ide/finding-and-using-visual-studio-extensions?view=visualstudio#manage-extensions)。確認日: 2026-11-02。
 
-On macOS, the overlay adds `~/.local/share/mise`, `~/.config/mise`, `~/.dotnet`, and `~/.nuget` to both `permissions.additionalDirectories` and `sandbox.filesystem.allowRead`. `additionalDirectories` makes them Claude Code working directories, allowing its file tools to read and edit files there; `allowRead` allows shell commands inside the sandbox to read them. The former therefore also grants write access and should be limited to these required locations.
+macOS overlay は `~/.local/share/mise`、`~/.config/mise`、`~/.dotnet`、`~/.nuget` を `permissions.additionalDirectories` と `sandbox.filesystem.allowRead` の両方に追加します。`additionalDirectories` は Claude Code の作業フォルダーとして扱われるため、Claude のファイルツールで読み書きできます。`allowRead` は shell sandbox 内のコマンドに読み取りを許可します。前者は書き込みも許可するため、必要な場所だけに限定します。
 
-The MCP server name appears in the tool name (`mcp__microsoft-learn__*` in `permissions.allow`), so the server must be registered under that name. `~/.claude.json` holds session state and is not managed by this repository; `home/run_after_70-setup-claude-mcp.{sh,ps1}` register the user-scope `microsoft-learn` server on every apply when it does not exist yet, and skip when `claude` is not in PATH.
+MCP サーバー名はツール名に含まれる（`permissions.allow` の `mcp__microsoft-learn__*`）ため、サーバーはその名前で登録する必要があります。`~/.claude.json` はセッション状態を含むため、このリポジトリでは管理しません。`home/run_after_70-setup-claude-mcp.{sh,ps1}` が、ユーザースコープの `microsoft-learn` サーバーが未登録なら `chezmoi apply` のたびに登録し、`claude` が PATH にない場合はスキップします。
 
-### Git / gh outside the sandbox
+### sandbox 外で実行する git / gh
 
-Credential manager access (keychain, GUI) and the `gh` TLS trust store are blocked inside the sandbox, and .NET needs a fixed `/tmp/.dotnet/shm` work directory. Both tools are relaxed the same way:
+認証情報マネージャー（キーチェーン、GUI）と `gh` の TLS 信頼ストアは sandbox 内で遮断され、.NET は固定の作業ディレクトリ `/tmp/.dotnet/shm` を必要とします。Claude Code と Codex の両方で次のように緩めます。
 
-| Tool | Networked git and `gh` outside the sandbox | `/tmp/.dotnet` writable |
+| ツール | 通信する git と `gh` を sandbox 外で実行 | `/tmp/.dotnet` を書き込み可能に |
 | --- | --- | --- |
-| Claude Code | `sandbox.excludedCommands`: `gh *`, `git push/fetch/pull/clone/ls-remote *` (common fragment) | `sandbox.filesystem.allowWrite` (Unix overlay) |
-| Codex | `home/dot_codex/rules/dotfiles.rules` (`prefix_rule` with `decision = "allow"`; `config.toml` has no equivalent option) | `permissions.dotnet-dev.filesystem` (darwin / linux fragments) |
+| Claude Code | `sandbox.excludedCommands`: `gh *`、`git push/fetch/pull/clone/ls-remote *`（common フラグメント） | `sandbox.filesystem.allowWrite`（Unix オーバーレイ） |
+| Codex | `home/dot_codex/rules/dotfiles.rules`（`decision = "allow"` の `prefix_rule`。`config.toml` に同等の項目はありません） | `permissions.dotnet-dev.filesystem`（darwin / linux フラグメント） |
 
-Excluded commands run without sandbox restrictions. Local-only git operations such as `git commit` and `git status` are not excluded. Force pushes stay behind a prompt in Codex and are denied in Claude Code.
+除外されたコマンドは sandbox の制限なしで動きます。`git commit` や `git status` などローカルだけの操作は対象外です。force push は Codex では確認を求め、Claude Code では拒否されます。
 
-## Operations
+## 運用
 
-- Add or change a shared setting: edit the fragment, then run `chezmoi diff` and `chezmoi apply`.
-- Let an app own a key: leave it out of the fragments. Nothing else is needed.
-- Move a key from local to managed: add it to a fragment. The next apply overwrites the local value.
-- First apply after migration: the file is re-serialized once (comments dropped, keys sorted); app-owned keys are kept.
+- 共通設定を追加・変更する: 断片を編集し、`chezmoi diff` と `chezmoi apply` を実行します。
+- キーをアプリ所有にする: 断片に書かないだけです。ほかの作業は要りません。
+- キーを local から管理へ移す: 断片に追加します。次回の apply でローカル値が上書きされます。
+- 移行後の最初の apply: ファイルが一度再シリアライズされます（コメントは消え、キーは並べ替えられます）。アプリ所有のキーは保持されます。
 
-bash (macOS / Linux):
+bash（macOS / Linux）:
 
 ```bash
 chezmoi diff ~/.codex/config.toml
@@ -117,29 +117,30 @@ chezmoi diff ~/.codex/config.toml
 chezmoi apply ~/.codex/config.toml ~/.claude/settings.json
 ```
 
-## Verification
+## 検証
 
-`scripts/tests` applies the templates to fixture files in a scratch chezmoi source, destination, and state, and checks: managed keys applied, app-owned keys preserved, union and replace behavior, hook ownership, idempotence on a second apply, and that invalid input fails without changing the file. The `lint.yml` workflow runs it on Linux, Windows, and macOS, including isolated migration/runner tests.
+`scripts/tests` は、一時的な chezmoi のソース・宛先・状態にフィクスチャを置いてテンプレートを適用し、次を確認します: 管理キーの適用、アプリ所有キーの保持、和集合と置換の挙動、フックの所有権、2回目の apply での冪等性、不正な入力で失敗してもファイルが変わらないこと。`lint.yml` が Linux・Windows・macOS で実行し、隔離した移行・ラッパーのテストも含めます。
 
-## .NET decision change history
+## .NET の判断変更履歴
 
-| Date | Previous decision | New decision | Reason | Approval |
+| 日付 | 従来の方針 | 新方針 | 理由 | 承認 |
 |---|---|---|---|---|
-| 2026-10-26 | System SDK and inherited PATH; shared OS tool hook execution | Stable mise root, one updater per OS, explicit agent environment and isolated SDK 10 runner | Manual migration design review; see macos-dotnet-management.md | User approved design; host migration remains an explicit user-run operation |
+| 2026-10-26 | システム SDK・継承 PATH、複数 OS でのツールフック実行 | 固定 mise ルート、OS 別の更新担当、明示的なエージェント環境、SDK 10 専用ラッパー | 手動移行の設計レビュー。macos-dotnet-management_ja.md を参照 | ユーザーが設計を承認。実機移行は明示的なユーザー操作として実施 |
 
 
-## Shared script-author agent
+## 共通スクリプト作成エージェント
 
-The same script-authoring guidance is maintained in `home/.chezmoitemplates/script-author/instructions` and rendered into the Codex TOML, Claude Code Markdown, and GitHub Copilot CLI Markdown definitions. Tool-specific metadata stays in each native file. The common instruction routes script creation and edits to this agent; when delegation is unavailable, the parent follows the same guidance directly.
+スクリプト作成・変更の共通指示は `home/.chezmoitemplates/script-author/instructions` で管理し、Codex TOML、Claude Code Markdown、GitHub Copilot CLI Markdown の各形式へ展開します。ツール固有のメタデータは各定義ファイルに残します。共通の指示文からスクリプト作業をこのエージェントへ委任し、委任できない場合は親エージェントが同じ指示に従います。
 
-For executable examples in documentation, provide Bash and PowerShell 7 variants unless the user or target environment specifies otherwise. Azure command examples use Azure CLI. For standalone scripts, choose the shell and operating systems from the actual requirements and existing project conventions; do not create a parallel implementation for an inherently platform-specific task. Where multiple implementations cover the same operation, align inputs, outputs, exit behavior, and error handling, and validate parity. Consider quoting, paths, environment variables, and native command failures for the selected platform. Report which operating systems and checks were actually exercised, and identify unverified environments.
+ドキュメント内の実行例は、ユーザーまたは実行環境の指定がなければ Bash と PowerShell 7 の両方を用意します。Azure コマンド例は Azure CLI を使います。独立したスクリプトでは、実際の要件と既存プロジェクトの規約に合わせて shell と対象 OS を選び、本質的に OS 固有の処理に別実装を追加しません。複数の実装が同じ操作を行う場合、入力、出力、終了状態、エラー処理を揃えて同等性を検証します。選択した OS に合わせて引用符、パス、環境変数、ネイティブコマンドの失敗も確認します。実際に検証した OS とチェック、および未検証の環境を報告します。
 
-The agents are deployed to each tool’s personal agent directory. Copilot CLI uses `~/.copilot/agents/`; its separate `~/.github/agents` compatibility link continues to point to the APM-managed `~/.config/apm/agents` directory and is not used for this repository-owned agent.
+エージェントは各ツールの個人用エージェントディレクトリへ配布します。Copilot CLI は `~/.copilot/agents/` を使います。APM が生成したエージェントは `~/.copilot/agents` と Visual Studio 互換用の `~/.github/agents` の両方に実ファイルとして配置し、シンボリックリンクは使いません。
 
-This routing follows the product-specific agent formats and paths documented by Codex (Subagents: `<CODEX_SUBAGENT_DOC_URL>`), Claude Code (Sub-agents: `<CLAUDE_SUBAGENT_DOC_URL>`), and GitHub Copilot CLI (CLI configuration directory reference: `<COPILOT_CONFIG_DOC_URL>`), checked 2026-11-01.
+この配置は Codex（Subagents: `<CODEX_SUBAGENT_DOC_URL>`）、Claude Code（Sub-agents: `<CLAUDE_SUBAGENT_DOC_URL>`）、GitHub Copilot CLI（CLI configuration directory reference: `<COPILOT_CONFIG_DOC_URL>`）の製品別エージェント形式と配置先に従います（2026-11-01 確認）。
 
-### Change history
+### 変更履歴
 
-| Date | Previous decision | New decision | Reason | Approval |
+| 日付 | 従来の方針 | 新方針 | 理由 | 承認 |
 |---|---|---|---|---|
-| 2026-11-01 | Codex and Claude configuration ownership documented; script examples required Bash and PowerShell 7 in agent instructions | Add native personal script-author agents for Codex, Claude Code, and Copilot CLI, generated from common chezmoi guidance; keep Copilot agent outside APM-managed links | Apply the same cross-platform script rules across requested tools while respecting their native formats and existing APM ownership | Implementation plan and documentation diff approved in conversation |
+| 2026-11-01 | Codex と Claude の設定所有権を記録し、エージェント指示では Bash と PowerShell 7 の両方を要求 | 共通の chezmoi 指示から Codex、Claude Code、Copilot CLI 向けの個人エージェントを生成し、Copilot の APM 管理リンク外に配置 | 各ツールのネイティブ形式と既存 APM 所有権を守りつつ、依頼されたツール間でクロスプラットフォームのスクリプト規則を共有する | 会話で実装計画と文書差分を承認 |
+| 2026-11-03 | APM の skills と agents を `~/.config/apm/` からのリンクで共有 | APM の出力を候補フォルダーで検証してから `~/.agents/skills`、`~/.claude/`、Copilot のユーザーフォルダーへ実コピーし、`~/.github/agents` も実フォルダー化 | 各アプリのユーザープロファイルへ安全に配置し、chezmoi の更新時にマーケットプレースを更新する | 会話で計画・構成を承認 |

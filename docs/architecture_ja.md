@@ -103,12 +103,13 @@ PostCompact と UserPromptSubmit は .NET 10 のファイルベースプログ�
 
 ### APM（AI エージェント設定）
 
-- Copilot CLI 向けのカスタム指示・フック・スキル・MCP サーバーは別リポジトリで管理
-- `apm.yml` に依存関係を宣言し `apm install` で適用
-- スキル・エージェントはユーザープロファイル配下で一元管理
-  - `~/.config/apm/skills`
-  - `~/.config/apm/agents`
-- 互換性のため `~/.copilot/skills` と `~/.github/agents` は上記ディレクトリへのリンクとして作成
+- Copilot CLI の追加設定は別リポジトリで管理し、利用する7つのマーケットプレースを chezmoi 管理の `~/apm.yml` に宣言
+- macOS / Linux では mise、Windows では mise の WinGet パッケージ管理で APM CLI を導入
+- `chezmoi apply` / `chezmoi update` のたびに `run_after_60-update-apm-profile` が候補フォルダーへ `apm install --refresh` を実行し、取得・検証に成功した内容だけをユーザープロファイルへ反映
+- Codex と Copilot が共有するスキルは `~/.agents/skills`、Claude Code のスキルは `~/.claude/skills` に実ファイルとして配置
+- Copilot のエージェントなどは `~/.copilot/` 配下へ配置し、Visual Studio との互換性のため `~/.github/agents` にも実ファイルをコピー
+- Copilot の MCP サーバーは `~/.copilot/mcp-config.json` のサーバー名単位で統合し、所有台帳により APM 管理分だけを更新
+- 既存のリンクは処理成功後に実フォルダーへ移行する。候補作成や検証に失敗した場合は既存プロファイルを変更せず、未対応の出力・所有権のないファイルとの競合・不明なリンクがある場合は反映を中止
 
 ### GitHub Actions（仕様変更ウォッチ）
 

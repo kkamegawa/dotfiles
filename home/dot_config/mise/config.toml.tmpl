@@ -144,7 +144,6 @@ oh-my-posh = "latest"
 azd = "latest"
 "pypi:docker-squash" = "latest"
 azure-functions-core-tools = "4"
-"github:microsoft/apm" = { version = "latest", asset_pattern = "apm-darwin-{{ if eq .chezmoi.arch "arm64" }}arm64{{ else }}x86_64{{ end }}.tar.gz" }
 "github:Azure/bicep" = { version = "latest", asset_pattern = "bicep-osx-{{ if eq .chezmoi.arch "arm64" }}arm64{{ else }}x64{{ end }}", format = "raw", bin = "bicep" }
 "github:russellbanks/Komac" = { version = "latest", asset_pattern = "komac-*-{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-apple-darwin.tar.gz", rename_exe = "komac" }
 "github:veeso/termscp" = { version = "latest", asset_pattern = "termscp-v*-{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-apple-darwin.tar.gz", rename_exe = "termscp" }
@@ -161,6 +160,7 @@ azure-cli = { version = "latest", with = ["pip"], uvx_args = "--python 3.14" }
 {{ end }}
 {{ if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") }}
 go = "latest"
+"github:microsoft/apm" = { version = "latest", asset_pattern = "apm-{{ .chezmoi.os }}-{{ if eq .chezmoi.arch "arm64" }}arm64{{ else }}x86_64{{ end }}.tar.gz" }
 {{ end }}
 
 {{ if eq .chezmoi.os "darwin" }}

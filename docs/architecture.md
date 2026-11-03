@@ -79,13 +79,13 @@ Codex CLI（OpenAI）・Claude Code CLI（Anthropic）は npm バックエンド
 プロジェクト固有の指示（`AGENTS.md` / `.github/copilot-instructions.md`）はリポジトリ側で管理し、
 ここでは全プロジェクト共通のユーザーレベル指示のみを dotfiles に含めます。
 
-#### Claude Code hooks and context compaction
+#### Claude Code のフックとコンテキスト圧縮
 
-Repository hooks are deployed under `~/.claude/hooks`; managed hook entries use absolute paths derived from the home directory. Automatic compaction remains at 60 percent, and C# hook timeouts remain 60 seconds.
+リポジトリのフックは `~/.claude/hooks` へ配布し、管理対象エントリにはホームから組み立てた絶対パスを使います。自動圧縮は60パーセント、C# フックのタイムアウトは60秒を維持します。
 
-PostCompact and UserPromptSubmit remain .NET 10 file-based programs: the former stores compact_summary by session and the latter injects it once and removes the saved summary. On macOS they invoke the absolute `dotfiles-dotnet10` runner. That runner selects SDK 10 from its own managed global.json directory, preserves JSON stdin/stdout and exit status, and is independent of a caller project's SDK 8 pin. It does not install SDKs. Other operating systems keep their existing invocation.
+PostCompact と UserPromptSubmit は .NET 10 のファイルベースプログラムを維持し、前者がセッション別に compact_summary を保存、後者が一度だけ注入して保存分を削除します。macOS では絶対パスの `dotfiles-dotnet10` を呼びます。ラッパーは専用 global.json のディレクトリで SDK 10 を選択し、JSON の stdin/stdout と終了コードを保持します。呼び出し元の SDK 8 固定には依存せず、SDK の自動導入もしません。他 OS の呼び出し方式は維持します。
 
-The four global mise cleanup tasks use the same macOS runner. Native apphosts without environment variables use the user-maintained architecture-specific system registration. CLI PATH, apphost runtime discovery, and project SDK selection remain distinct responsibilities. See [macOS .NET management](macos-dotnet-management.md) for ownership, registration, retention, and user-run migration.
+グローバル mise の cleanup task 4件も同じ macOS ラッパーを使います。環境変数のない apphost はユーザーが保守するアーキテクチャ別のシステム登録を使います。CLI の PATH、apphost のランタイム探索、プロジェクトの SDK 選択は分けて管理します。管理元、登録、保持、手動移行は [macOS .NET 管理](macos-dotnet-management_ja.md) を参照してください。
 
 #### Claude Code の作業フォルダー外の読み取り
 
@@ -103,12 +103,13 @@ The four global mise cleanup tasks use the same macOS runner. Native apphosts wi
 
 ### APM（AI エージェント設定）
 
-- Copilot CLI 向けのカスタム指示・フック・スキル・MCP サーバーは別リポジトリで管理
-- `apm.yml` に依存関係を宣言し `apm install` で適用
-- スキル・エージェントはユーザープロファイル配下で一元管理
-  - `~/.config/apm/skills`
-  - `~/.config/apm/agents`
-- 互換性のため `~/.copilot/skills` と `~/.github/agents` は上記ディレクトリへのリンクとして作成
+- Copilot CLI の追加設定は別リポジトリで管理し、利用する7つのマーケットプレースを chezmoi 管理の `~/apm.yml` に宣言
+- macOS / Linux では mise、Windows では mise の WinGet パッケージ管理で APM CLI を導入
+- `chezmoi apply` / `chezmoi update` のたびに `run_after_60-update-apm-profile` が候補フォルダーへ `apm install --refresh` を実行し、取得・検証に成功した内容だけをユーザープロファイルへ反映
+- Codex と Copilot が共有するスキルは `~/.agents/skills`、Claude Code のスキルは `~/.claude/skills` に実ファイルとして配置
+- Copilot のエージェントなどは `~/.copilot/` 配下へ配置し、Visual Studio との互換性のため `~/.github/agents` にも実ファイルをコピー
+- Copilot の MCP サーバーは `~/.copilot/mcp-config.json` のサーバー名単位で統合し、所有台帳により APM 管理分だけを更新
+- 既存のリンクは処理成功後に実フォルダーへ移行する。候補作成や検証に失敗した場合は既存プロファイルを変更せず、未対応の出力・所有権のないファイルとの競合・不明なリンクがある場合は反映を中止
 
 ### GitHub Actions（仕様変更ウォッチ）
 
@@ -165,8 +166,8 @@ dotfiles/
 | エディタ設定 | 記載なし | VS Code / Rider / Visual Studio |
 | Python ツール実行 | 記載なし | uv で管理 |
 
-## .NET decision change history
+## .NET の判断変更履歴
 
-| Date | Previous decision | New decision | Reason | Approval |
+| 日付 | 従来の方針 | 新方針 | 理由 | 承認 |
 |---|---|---|---|---|
-| 2026-10-26 | System SDK and inherited PATH; shared OS tool hook execution | Stable mise root, one updater per OS, explicit agent environment and isolated SDK 10 runner | Manual migration design review; see macos-dotnet-management.md | User approved design; host migration remains an explicit user-run operation |
+| 2026-10-26 | システム SDK・継承 PATH、複数 OS でのツールフック実行 | 固定 mise ルート、OS 別の更新担当、明示的なエージェント環境、SDK 10 専用ラッパー | 手動移行の設計レビュー。macos-dotnet-management_ja.md を参照 | ユーザーが設計を承認。実機移行は明示的なユーザー操作として実施 |
