@@ -96,6 +96,15 @@ if is_macos; then
   mise_global bootstrap packages apply
   echo "==> Upgrading Homebrew runtime libraries..."
   mise_global bootstrap packages upgrade --manager brew --yes
+  echo "==> Upgrading mise-managed Homebrew casks..."
+  mise_global bootstrap packages upgrade --manager brew-cask --yes
+
+  if command -v brew >/dev/null 2>&1; then
+    echo "==> Upgrading Homebrew-managed casks..."
+    brew upgrade --cask
+  else
+    echo "Homebrew was not found; skipping Homebrew-managed cask updates." >&2
+  fi
 
   update_dotnet_global_tools "$dotnet_host"
 else
