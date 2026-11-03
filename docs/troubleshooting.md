@@ -107,16 +107,37 @@ ssh-add -L
 
 ## APM
 
-### `apm install` が失敗する
+### `chezmoi apply` 後に APM のプロファイルが更新されない
 
 ```sh
+# APM CLI と Python が使えるか確認
+apm --version
+python3 --version
+
 # GitHub 認証を確認
 gh auth status
 
-# 再認証
-gh auth login
-apm install
+# ステージングと反映を再実行
+chezmoi apply
 ```
+
+Windows PowerShell 7:
+
+```powershell
+# APM CLI と Python が使えるか確認
+apm --version
+python --version
+
+# GitHub 認証を確認し、ステージングと反映を再実行
+gh auth status
+chezmoi apply
+```
+
+APM CLI、マニフェスト、Python が見つからない場合、フックは警告を出して更新をスキップします。APM の取得または検証が失敗した場合、既存のユーザープロファイルは変更されません。必要なツールをインストールするか認証を直してから、`chezmoi apply` を再実行してください。
+
+### APM の反映が競合で中止される
+
+反映先に所有権のないファイル、手動編集された APM 管理ファイル、または想定外のシンボリックリンクがある場合、フックは上書きを中止します。エラーに表示されたパスを確認し、必要なファイルをバックアップしたうえで競合を解消してから、もう一度 `chezmoi apply` を実行してください。所有台帳 `~/.config/apm-profile/ownership.json` を手動で編集・削除しないでください。
 
 ---
 

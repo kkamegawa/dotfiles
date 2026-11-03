@@ -85,13 +85,13 @@ sudo apt update && sudo apt upgrade claude-code
 curl -fsSL https://chatgpt.com/codex/install.sh | sh
 ```
 
-### .NET SDK and global tools
+### .NET SDK と global tool の管理
 
-On macOS, core mise owns the shared .NET SDK root. Only `run_after_20-mise-upgrade.sh` updates the tool set: SDK installation/update must succeed before tools are processed. The PowerShell updater is Windows-only, including when invoked directly. Linux uses the shell updater.
+macOS は mise の組み込み機能で共有 SDK を管理し、global tool の更新は `run_after_20-mise-upgrade.sh` だけが担当します。SDK の導入・更新が成功してからツールを処理します。PowerShell の更新フックは直接呼び出した場合も Windows 限定です。Linux はシェル版が担当します。
 
-The macOS dotnet upgrade runs separately with `mise upgrade --global --no-prune dotnet`; do not use `--bump` or an automatic dotnet prune. Exact project SDK requirements are retained in the local manifest and rendered into the global tool declaration. Maintain the existing `~/.dotnet/tools` directory explicitly even when DOTNET_CLI_HOME differs. The native GCM cask owns Git credentials on macOS; retain, but do not automatically update, the duplicate dotnet tool.
+macOS の dotnet は `mise upgrade --global --no-prune dotnet` で別途更新し、`--bump` と自動 prune は使いません。プロジェクトが必要とする完全 SDK バージョンはローカルの保持リストからグローバル宣言へ反映します。DOTNET_CLI_HOME が異なっても保守先は既存の `~/.dotnet/tools` を明示します。macOS の Git はネイティブ Cask の GCM を使い、重複する dotnet tool は残しますが自動更新しません。
 
-Both initial setup and routine updates install the SDK before global tools. Bootstrap apply does not remove installed packages omitted from the declaration; only the explicit user-run migration finalization removes the old SDK cask. For migration phases, .NET 10 task execution, registration, rollback, and verification, see [macOS .NET management](macos-dotnet-management.md). Migration is not an automatic chezmoi hook.
+初回セットアップ・日常更新ともに SDK の導入を global tool より先に行います。bootstrap apply は宣言から外した導入済みパッケージを削除せず、旧 SDK Cask はユーザーの明示的な移行終了操作だけで削除します。移行フェーズ、.NET 10 task、登録、切り戻し、検証は [macOS .NET 管理](macos-dotnet-management_ja.md) を参照してください。移行は chezmoi の自動フックには登録しません。
 
 ---
 
@@ -136,26 +136,16 @@ git log --show-signature -1
 
 ## APM の操作
 
-```sh
-# Copilot CLI 設定を適用
-apm install
+`chezmoi apply` / `chezmoi update` のたびに APM 更新フックが動きます。再試行する場合も `apm install` ではなく、`chezmoi apply` を実行してください。
 
-# 設定を更新
-apm update
+フックは `~/apm.yml` を一時候補フォルダーにコピーし、`apm install --refresh --root <候補フォルダー> --target claude,codex,copilot` で依存関係を更新します。取得と出力の検証が成功した後にだけ、候補の実ファイルを各ツールのユーザープロファイルへコピーします。
 
-# 適用済み設定を確認
-apm list
-```
+- Codex と Copilot の共有スキル: `~/.agents/skills`
+- Claude Code のスキル・エージェント・ルール・コマンド: `~/.claude/`
+- Copilot のエージェント、指示、フック、カスタム指示、MCP サーバー設定: `~/.copilot/`
+- Visual Studio との互換用エージェント: `~/.github/agents`（シンボリックリンクではなく実ファイル）
 
-APM のユーザープロファイル管理では、スキル・エージェントを次のディレクトリに配置します。
-
-- `~/.config/apm/skills`
-- `~/.config/apm/agents`
-
-互換性のため、次のパスは上記ディレクトリへのリンクとして作成されます。
-
-- `~/.copilot/skills` -> `~/.config/apm/skills`
-- `~/.github/agents` -> `~/.config/apm/agents`
+Copilot の MCP サーバーは `~/.copilot/mcp-config.json` の `mcpServers` に名前単位で統合し、APM が所有する項目だけを更新します。APM の取得に失敗した場合は、既存のユーザープロファイルを変更しません。反映先の競合や未対応の出力がある場合は処理を中止し、既存ファイルを自動削除しません。
 
 ---
 
@@ -229,11 +219,11 @@ chezmoi init --apply kkamegawa
 winget configure -f "$(chezmoi source-path)\reference\windows\configuration.dsc.yaml"
 gh auth login
 mise install
-apm install
+chezmoi apply
 ```
 
-## .NET decision change history
+## .NET の判断変更履歴
 
-| Date | Previous decision | New decision | Reason | Approval |
+| 日付 | 従来の方針 | 新方針 | 理由 | 承認 |
 |---|---|---|---|---|
-| 2026-10-26 | System SDK and inherited PATH; shared OS tool hook execution | Stable mise root, one updater per OS, explicit agent environment and isolated SDK 10 runner | Manual migration design review; see macos-dotnet-management.md | User approved design; host migration remains an explicit user-run operation |
+| 2026-10-26 | システム SDK・継承 PATH、複数 OS でのツールフック実行 | 固定 mise ルート、OS 別の更新担当、明示的なエージェント環境、SDK 10 専用ラッパー | 手動移行の設計レビュー。macos-dotnet-management_ja.md を参照 | ユーザーが設計を承認。実機移行は明示的なユーザー操作として実施 |

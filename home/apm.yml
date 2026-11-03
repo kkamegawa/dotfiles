@@ -2,14 +2,14 @@ name: dotfiles
 version: 1.0.0
 dependencies:
   apm:
-    # GitHub Copilot CLI 向け設定（別リポジトリで管理）
-    # apm install で Copilot CLI のカスタム指示・フック・スキル・MCP サーバーが適用される
+    # Copilot CLI 向け設定（別リポジトリで管理）
+    # apm install で Copilot CLI のカスタム指示・フック・スキル・MCP サーバーを適用する
     - kkamegawa/copilot-settings
-    # marketplace
-    - github/awesome-copilot
+    # 利用するマーケットプレース
     - tfsugjp/skills
-    - microsoft/azure-skills
-    - microsoft/win-dev-skills
-    - dotnet/skills
     - microsoft/skills
-    - microsoft/agent365-skills
+    - dotnet/skills
+    - microsoft/azure-skills
+    - microsoft/azure-sql-database-container
+    - Azure/azure-functions-skills
+    - microsoft/win-dev-skills

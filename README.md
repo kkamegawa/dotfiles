@@ -35,26 +35,21 @@ Windows / Linux（サーバー）/ macOS / WSL / Dev Container を一つのリ�
 | `dot_config/git/hooks/` | `~/.config/git/hooks/` | Git グローバルフック |
 | `dot_config/Code/User/` | `~/.config/Code/User/` | VS Code ユーザー設定 |
 | `dot_codex/modify_private_config.toml` | `~/.codex/config.toml` | OpenAI Codex CLI 設定（管理キーのみマージ） |
-| `dot_claude/modify_settings.json` | `~/.claude/settings.json` | Claude Code settings（管理キーのみマージ） |
-| `run_once_after_60-setup-apm-profile.sh` | `~/.config/apm/{skills,agents}` | APM スキル/エージェント管理ディレクトリ作成とリンク設定（Linux/macOS/WSL） |
-| `run_once_after_60-setup-apm-profile.ps1` | `%USERPROFILE%/.config/apm/{skills,agents}` | APM スキル/エージェント管理ディレクトリ作成とリンク設定（Windows） |
+| `dot_claude/modify_settings.json` | `~/.claude/settings.json` | Claude Code の設定（管理キーのみマージ） |
+| `apm.yml` | `~/apm.yml` | APM の依存関係（Copilot 設定リポジトリと利用する7つのマーケットプレース） |
+| `run_after_60-update-apm-profile.sh` | `~/.agents/skills`、`~/.claude/`、`~/.copilot/` | APM を候補フォルダーへ更新し、成功後に反映（Linux/macOS/WSL） |
+| `run_after_60-update-apm-profile.ps1` | `~/.agents/skills`、`~/.claude/`、`~/.copilot/` | APM を候補フォルダーへ更新し、成功後に反映（Windows） |
+| `dot_config/apm-profile/apm-profile-publish.py` | `~/.config/apm-profile/` | APM の反映と所有台帳の管理 |
 | `run_after_70-setup-claude-mcp.sh` | `~/.claude.json` | Claude Code の `microsoft-learn` MCP サーバーをユーザースコープに登録（Linux/macOS/WSL） |
 | `run_after_70-setup-claude-mcp.ps1` | `%USERPROFILE%/.claude.json` | Claude Code の `microsoft-learn` MCP サーバーをユーザースコープに登録（Windows） |
 | `dot_wslconfig` | `~/.wslconfig` | WSL2 メモリ・CPU 設定（Windows のみ） |
 | `dot_lastexecrecord/config.json` | `~/.lastexecrecord/config.json` | lastexecrecord スケジュール設定 |
 | `modify_dot_gitconfig` | `~/.gitconfig` | Git グローバル設定 |
-| `dot_config/git/dotfiles.gitconfig.tmpl` | `~/.config/git/dotfiles.gitconfig` | Managed Git settings |
+| `dot_config/git/dotfiles.gitconfig.tmpl` | `~/.config/git/dotfiles.gitconfig` | 管理対象の Git 設定 |
 
-### Linux Git credentials
+### Linux の Git 認証情報
 
-Install Git Credential Manager and make `git-credential-manager` available on
-`PATH`. The .NET global tool requires the .NET 10 SDK and `~/.dotnet/tools` on
-`PATH`. Configure a credential store in the main `~/.gitconfig`: use
-`secretservice` with an available D-Bus Secret Service, or `gpg` after setting up
-GPG and `pass`. Choose one store per machine. The managed configuration enables
-GCM when the executable and a directly configured global store are present;
-otherwise existing helpers remain unchanged. After changing the store, apply
-the managed config again.
+Git Credential Manager をインストールし、`git-credential-manager` を `PATH` から実行できるようにします。.NET global tool の実行には .NET 10 SDK と `~/.dotnet/tools` の `PATH` 登録が必要です。メインの `~/.gitconfig` で認証情報ストアを設定します。利用可能な D-Bus Secret Service がある場合は `secretservice` を、GPG と `pass` を設定している場合は `gpg` を使います。1台のマシンではどちらか一方を選んでください。管理設定は、実行ファイルと明示的に設定されたグローバルストアがある場合に GCM を有効にし、それ以外では既存の helper 設定を維持します。ストアを変更した後は、管理設定を再適用してください。
 
 Bash / zsh:
 
@@ -72,28 +67,27 @@ git config --global credential.credentialStore secretservice
 chezmoi apply "$HOME/.config/git/dotfiles.gitconfig"
 ```
 
-Replace `secretservice` with `gpg` for a prepared headless environment. Git
-HTTPS and the GitHub CLI use separate authentication; sign in to `gh` separately.
+ヘッドレス環境で GPG を設定済みの場合は、`secretservice` を `gpg` に置き換えます。Git HTTPS と GitHub CLI は認証を別々に管理するため、`gh` にも個別にサインインしてください。
 
-## Repository Structure
+## レポジトリ構成
 
 ```
-dotfile/
-├── home/                          # chezmoi source root (.chezmoiroot)
-│   ├── dot_config/                # ~/.config/ (starship, oh-my-posh, mise, micro, git, VS Code)
-│   ├── dot_codex/                 # ~/.codex/ (Codex CLI config)
-│   ├── dot_lastexecrecord/        # ~/.lastexecrecord/ (scheduled command config)
-│   ├── dot_visualstudio/          # ~/.visualstudio/ (Visual Studio settings export)
-│   ├── private_dot_ssh/           # ~/.ssh/ (SSH config, excluded in Dev Containers)
-│   ├── run_once_before_*/         # Bootstrap scripts (packages, mise, uv)
-│   ├── run_once_after_*/          # Post-apply scripts (git hooks, 1Password, APM, VS settings)
-│   └── dot_*, *.tmpl              # Dotfiles and chezmoi templates
-├── docs/                          # Architecture and operation guides
-├── reference/                     # Reference configs (Windows DSC, etc.)
-├── scripts/                       # Helper scripts
-├── .github/                       # GitHub Actions workflows
-├── install.ps1 / install.sh       # Bootstrap installer
-└── .chezmoiroot                   # Points chezmoi source root to home/
+dotfiles/
+├── home/                          # chezmoi のソースルート（.chezmoiroot）
+│   ├── dot_config/                # ~/.config/（starship、oh-my-posh、mise、micro、git、VS Code）
+│   ├── dot_codex/                 # ~/.codex/（Codex CLI 設定）
+│   ├── dot_lastexecrecord/        # ~/.lastexecrecord/（スケジュール済みコマンド設定）
+│   ├── dot_visualstudio/          # ~/.visualstudio/（Visual Studio 設定のエクスポート）
+│   ├── private_dot_ssh/           # ~/.ssh/（SSH 設定、Dev Container では除外）
+│   ├── run_once_before_*/         # 初期セットアップスクリプト（パッケージ、mise、uv）
+│   ├── run_once_after_*/          # 初期適用後のスクリプト（Git フック、1Password、APM、VS 設定）
+│   └── dot_*, *.tmpl              # dotfile と chezmoi テンプレート
+├── docs/                          # アーキテクチャと運用のガイド
+├── reference/                     # 参照設定（Windows DSC など）
+├── scripts/                       # 補助スクリプト
+├── .github/                       # GitHub Actions ワークフロー
+├── install.ps1 / install.sh       # 初期セットアップ用インストーラー
+└── .chezmoiroot                   # chezmoi のソースルートを home/ に指定
 ```
 
 ## セットアップ
@@ -110,8 +104,7 @@ apt ベースの Linux / WSL では、ブートストラップ中に PowerShell 
 `Az` / `Microsoft.Entra` / `Microsoft.Graph` モジュールもセットアップします。
 macOS の PowerShell 7 は Intune で管理します。
 
-On macOS, mise installs the packages declared in `home/dot_config/mise/config.toml.tmpl`.
-See [macOS package management](docs/homebrew_en.md) for migration and troubleshooting details.
+macOS では mise が `home/dot_config/mise/config.toml.tmpl` に宣言したパッケージをインストールします。移行とトラブルシューティングは[macOS のパッケージ管理](docs/homebrew_ja.md)を参照してください。
 
 ### Windows
 
@@ -134,14 +127,14 @@ mise bootstrap packages apply
 # 5. PowerShell モジュール（Az / Microsoft.Entra / Microsoft.Graph）は
 #    winget configure でセットアップ済み
 
-# 6. APM で Copilot CLI 設定を適用
-apm install
+# 6. APM のユーザー設定を反映（`chezmoi apply` / `chezmoi update` のたびに自動更新）
+chezmoi apply
 
-# 6.1 APM 管理先を確認（skills/agents はユーザープロファイル配下）
-Get-ChildItem "$HOME/.config/apm"
+# 6.1 APM の候補と所有台帳を確認
+Get-ChildItem "$HOME/.config/apm-profile"
 
 # 7. Visual Studio の設定をインポート（手動）
-#    Tools > Import and Export Settings > Import selected environment settings
+#    ツール > インポートとエクスポートの設定 > 選択した環境設定をインポート
 #    ファイル: ~/.visualstudio/vscode2026insider.vssettings
 ```
 
@@ -154,7 +147,7 @@ Get-ChildItem "$HOME/.config/apm"
 - [Windows 固有の設定](docs/windows.md)
 - [トラブルシューティング](docs/troubleshooting.md)
 
-## GitHub Actions
+## GitHub Actions の自動処理
 
 - `lint.yml`: Linux / Windows の Shell / PowerShell / YAML / chezmoi / WinGet Configuration を検証し、push-to-main の失敗は GitHub Issue を自動作成
 - `tool-spec-watch.yml`: 毎月 1 日・15 日に upstream ツールの仕様変更候補を検知し、対応用の GitHub Issue を自動作成
