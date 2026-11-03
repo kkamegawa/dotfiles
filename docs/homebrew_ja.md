@@ -1,16 +1,10 @@
 # Homebrew パッケージ管理
 
-## macOS の自動更新 cask
+## macOS cask の更新
 
-macOS のブートストラップでは、先に Homebrew formula をインストールし、その後で Homebrew cask をインストールします。
+macOS のコマンドラインツール、アプリケーション、フォントは `home/dot_config/mise/config.toml.tmpl` の `[bootstrap.packages]` に宣言し、初回セットアップでは mise の `brew` / `brew-cask` manager で導入します。`chezmoi apply` または `chezmoi update` のたびに `run_after_20-mise-upgrade.sh` が実行され、mise のグローバルツール、設定済み formula、mise 管理 cask を mise で更新します。
 
-一部の cask アプリケーションは Homebrew の外側で自動更新されます。そのようなアプリが既に存在する状態で `brew install --cask` を再実行すると、Homebrew が記録している cask バージョンと、既に自動更新済みのアプリを比較してしまい、dotfiles のブートストラップでは無駄な処理になります。
-
-dotfiles のセットアップでは、cask をインストール専用として扱います。Homebrew がその cask をインストール済みとして認識している場合はスキップし、ブートストラップ中の `brew install --cask` が暗黙的なアップグレードを始めないようにします。
-
-Homebrew メタデータで `auto_updates` として扱われる cask は、初回の正常なインストールだけを Homebrew 管理のインストールとして扱います。以降の実行では、Homebrew メタデータがインストール済みと記録していればスキップします。Homebrew 以外の方法でインストール済みの場合も、cask が宣言しているアプリケーション bundle が `/Applications`、`~/Applications`、または cask メタデータ内の絶対 `.app` パスに存在すればスキップします。
-
-これにより、新しいマシンでの初回セットアップは維持しつつ、自分で更新機能を持つアプリに対する Homebrew の再処理を避けます。未インストールの cask は、従来どおり `brew install --cask` を実行します。
+Homebrew が管理する cask は mise では更新されないため、Homebrew が利用可能な場合は同じフックから `brew upgrade --cask` を実行します。mise 管理 cask は mise が、Homebrew 管理 cask は Homebrew が更新し、既存の管理元は変更しません。Homebrew の通常の更新ルールを使い、`--greedy` は指定しません。
 
 ## Azure CLI preview cask
 

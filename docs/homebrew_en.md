@@ -1,6 +1,6 @@
 # macOS package management with mise
 
-macOS command-line tools, applications, and fonts listed under `[bootstrap.packages]` in `home/dot_config/mise/config.toml.tmpl` are installed by mise's `brew` and `brew-cask` package managers. The `run_once_after_20-mise-install.sh` script applies this configuration after mise itself has been installed. Later `chezmoi apply` runs also apply the package configuration from `run_after_20-mise-upgrade.sh`.
+macOS command-line tools, applications, and fonts listed under `[bootstrap.packages]` in `home/dot_config/mise/config.toml.tmpl` are installed by mise's `brew` and `brew-cask` package managers. The `run_once_after_20-mise-install.sh` script applies this configuration after mise itself has been installed. Later `chezmoi apply` and `chezmoi update` runs invoke `run_after_20-mise-upgrade.sh`: it updates global mise tools, configured `brew` formulae, and mise-owned casks through mise, then runs `brew upgrade --cask` when Homebrew is available to update Homebrew-owned casks. Each manager skips packages owned by the other manager. Homebrew's normal upgrade rules remain in effect; the hook does not pass `--greedy`.
 
 The package configuration only targets macOS. It does not install Homebrew itself. mise's Homebrew package managers use Homebrew-compatible package metadata and install packages into the standard Homebrew locations.
 
