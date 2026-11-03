@@ -24,6 +24,7 @@
 20-mise-upgrade.sh
 30-install-uv.sh
 30-setup-1password.sh
+35-install-apple-container.sh
 70-setup-claude-mcp.sh
 {{ end }}
 

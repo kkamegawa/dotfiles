@@ -18,3 +18,9 @@ preview 期間中は `azure-cli` formula をインストールせず、cask ベ�
 ## cask の sudo 処理
 
 Formula のインストール中は sudo を維持しません。cask のインストールを開始する直前に `sudo -v` を一度だけ実行し、cask の一括処理が続いている間だけ sudo のタイムスタンプを維持します。これにより、cask インストーラーによるパスワードの再入力を避けつつ、ブートストラップ完了後に sudo 維持プロセスを残しません。
+
+## Apple Container の署名付き pkg
+
+Apple Container は Apple silicon と macOS 26 以降を対象に、`run_once_after_35-install-apple-container.sh` が Apple 署名済みのバージョン付きインストーラ pkg から一度だけ導入します。フックは `com.apple.container-installer` の pkg receipt があれば何も変更せず、未導入の場合はリリースの SHA-256 とインストーラ署名を確認してから導入します。Docker / Docker Desktop の削除や、別の `container` インストールの上書きは行いません。通常の chezmoi 実行では Apple Container を更新しません。
+
+更新する場合は、先に `container system stop` でサービスを停止してから `/usr/local/bin/update-container.sh` を実行します。更新には管理者権限が必要で、サービス実行中は updater が更新を拒否します。フックは未署名 pkg へフォールバックしません。
