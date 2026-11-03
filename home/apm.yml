@@ -7,6 +7,9 @@ dependencies:
     - kkamegawa/copilot-settings
     # 利用するマーケットプレース
     - tfsugjp/skills
+    - microsoft/azure-skills
+    - microsoft/win-dev-skills
+    - dotnet/skills
     - microsoft/skills
     - dotnet/skills
     - microsoft/azure-sql-database-container
