@@ -1,4 +1,4 @@
-# Windows: APM 依存関係をステージングし、インストール成功後に反映する。
+﻿# Windows: APM 依存関係をステージングし、インストール成功後に反映する。
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
