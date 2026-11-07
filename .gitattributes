@@ -13,6 +13,9 @@
 *.psm1 text eol=crlf
 *.psd1 text eol=crlf
 
+# Claude assignment hook explicitly uses LF on every platform.
+home/dot_claude/hooks/leading-assignment.ps1 text eol=lf
+
 # Binary files: do not modify
 *.png binary
 *.jpg binary
