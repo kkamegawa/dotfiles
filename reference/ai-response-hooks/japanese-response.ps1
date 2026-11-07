@@ -1,4 +1,6 @@
 #Requires -Version 7.0
+[System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseBOMForUnicodeEncodedFile', '',
+    Justification = 'PowerShell 7 reads UTF-8 without BOM; this hook intentionally uses BOMless UTF-8.')]
 param(
     [Parameter(Mandatory)][ValidateSet('claude', 'codex', 'copilot')][string]$Client
 )
@@ -31,17 +33,17 @@ try {
         } catch { throw 'Copilot transcript is not a readable UTF-8 file.' }
         foreach ($line in $lines) {
             if ([string]::IsNullOrWhiteSpace($line)) { continue }
-            try { $event = ConvertFrom-Json -AsHashtable -InputObject $line }
+            try { $sessionEvent = ConvertFrom-Json -AsHashtable -InputObject $line }
             catch { throw 'cannot parse Copilot transcript JSONL.' }
-            if ($event -isnot [System.Collections.IDictionary]) { throw 'invalid Copilot event.' }
-            $data = $event['data']
-            if ($null -ne $event['agentId'] -or $event['checkpoint'] -eq $true -or
+            if ($sessionEvent -isnot [System.Collections.IDictionary]) { throw 'invalid Copilot event.' }
+            $data = $sessionEvent['data']
+            if ($null -ne $sessionEvent['agentId'] -or $sessionEvent['checkpoint'] -eq $true -or
                 ($data -is [System.Collections.IDictionary] -and $null -ne $data['parentToolCallId'])) {
                 continue
             }
-            if ($event['type'] -cin @('user.message', 'assistant.turn_start')) {
+            if ($sessionEvent['type'] -cin @('user.message', 'assistant.turn_start')) {
                 $text = $null
-            } elseif ($event['type'] -ceq 'assistant.message') {
+            } elseif ($sessionEvent['type'] -ceq 'assistant.message') {
                 $text = $null
                 if ($data -is [System.Collections.IDictionary] -and $data['content'] -is [string] -and
                     @($data['toolRequests']).Where({ $null -ne $_ }).Count -eq 0 -and
