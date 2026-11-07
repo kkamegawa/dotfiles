@@ -97,7 +97,9 @@ class ClientHooksTest(MergeTestCase):
                 self.deploy(os_name, root, codex, copilot)
                 data = tomllib.loads(codex.read_text(encoding="utf-8"))
                 hooks = data["hooks"]
-                self.assertEqual(set(hooks), {"PreToolUse", "PostToolUse", "PostCompact", "UserPromptSubmit", "Stop"})
+                self.assertEqual(
+                    set(hooks), {"PreToolUse", "PostToolUse", "PostCompact", "UserPromptSubmit", "Stop", "state"},
+                )
                 self.assertEqual(hooks["PreToolUse"][1]["hooks"], [
                     {"type": "command", "command": "foreign"},
                     {"type": "mcp_tool", "server": "foreign-server", "tool": "check"},
