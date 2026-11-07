@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "agentStop": [
+      {
+        "type": "command",
+        "bash": "sh '/ABSOLUTE/PATH/ai-response-hooks/japanese-response.sh' copilot",
+        "powershell": "pwsh -NoLogo -NoProfile -NonInteractive -File 'C:/ABSOLUTE/PATH/ai-response-hooks/japanese-response.ps1' -Client copilot",
+        "timeoutSec": 30
+      }
+    ]
+  }
+}

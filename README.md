@@ -71,6 +71,10 @@ chezmoi apply "$HOME/.config/git/dotfiles.gitconfig"
 
 ## レポジトリ構成
 
+Claude Code・Codex・Copilot CLI の日本語最終応答チェックは
+[任意導入用フックテンプレート](docs/ai-response-hooks_ja.md)を参照してください。
+`reference/ai-response-hooks/` に配置しており、自動配布・登録はしません。
+
 ```
 dotfiles/
 ├── home/                          # chezmoi のソースルート（.chezmoiroot）

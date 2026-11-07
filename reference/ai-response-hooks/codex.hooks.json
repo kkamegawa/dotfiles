@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh '/ABSOLUTE/PATH/ai-response-hooks/japanese-response.sh' codex",
+            "commandWindows": "pwsh -NoLogo -NoProfile -NonInteractive -File \"C:/ABSOLUTE/PATH/ai-response-hooks/japanese-response.ps1\" -Client codex",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

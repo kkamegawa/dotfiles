@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh '/ABSOLUTE/PATH/ai-response-hooks/japanese-response.sh' claude",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
