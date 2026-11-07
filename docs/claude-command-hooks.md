@@ -1,11 +1,12 @@
-# Claude Code leading-assignment hooks
+# Claude Code command hooks
 
 [日本語](claude-command-hooks_ja.md)
 
-The managed `PreToolUse` assignment guard asks Claude Code to use direct
-absolute paths instead of starting a command by assigning a path to a variable.
-It is a syntax preference, **not an all-purpose shell security boundary**.
-It does not execute any command from the hook payload.
+The managed `PreToolUse` guards ask Claude Code to use direct absolute paths
+instead of leading variable assignments or directory changes such as
+`cd /repo && python3 script.py`. The assignment and directory guards are
+independent syntax preferences, **not an all-purpose shell security boundary**.
+Neither executes any command from the hook payload.
 
 ## Installation
 
@@ -23,7 +24,7 @@ Replace the source-directory placeholder below with your checkout. Preview
 first, then apply **only the managed hook directory and settings file**. The
 explicit script exclusion avoids unrelated chezmoi lifecycle scripts. Applying
 settings still merges the repository's other managed settings; it is not a
-patch that changes only this one hook.
+patch that changes only these two guards.
 
 Bash (macOS/Linux):
 
@@ -52,17 +53,17 @@ as separate interpreter arguments.
 
 No real user settings change merely by editing this repository or running the
 scratch-destination tests. Settings change when you explicitly run chezmoi apply.
-Open `/hooks` in Claude Code afterward and confirm the assignment guard appears
+Open `/hooks` in Claude Code afterward and confirm both guards appear
 under `PreToolUse`. Restart Claude Code if necessary to reload settings.
 
 ## Registration and permissions
 
 | Host | Interpreter and script | Exact tool-name matcher |
 | --- | --- | --- |
-| Windows | `pwsh -NoLogo -NoProfile -NonInteractive -File` with `leading-assignment.ps1` | `^(Bash\|PowerShell\|powershell)$` |
-| macOS/Linux | `sh` with `leading-assignment.sh` | `^Bash$` |
+| Windows | `pwsh -NoLogo -NoProfile -NonInteractive -File` separately for `leading-assignment.ps1` and `deny-cd.ps1` | `^(Bash\|PowerShell\|powershell)$` |
+| macOS/Linux | `sh` separately for `leading-assignment.sh` and `deny-cd.sh` | `^Bash$` |
 
-Only the host's assignment script is deployed. The script path is absolute,
+Only the host's versions of the two scripts are deployed. Each script path is absolute,
 derived from the chezmoi Claude home template; the timeout is 10 seconds.
 `PowerShell` and `powershell` are explicit Windows tool-name spellings, not a
 wildcard for all MCP tools. If a client exposes a differently named tool or
@@ -72,11 +73,11 @@ the registration and payload validation.
 The original `guard.mjs` remains a separate hook with its original logic.
 Other user-owned hooks survive the merge; repository-owned entries are
 recreated without accumulating duplicates on repeated apply. Existing permission
-allow/ask/deny rules retain their merge behavior. This guard never emits an
+allow/ask/deny rules retain their merge behavior. Neither guard emits an
 `allow` decision: success leaves the normal permission flow intact. Its blocking
 exit takes precedence over another hook's approval in Claude Code.
 
-## Exact coverage
+## Leading-assignment coverage (unchanged)
 
 After optional leading whitespace (including newlines):
 
@@ -100,16 +101,53 @@ command, after a comment, within a script block/subshell, or inside a nested
 `pwsh`/shell invocation are not scanned. Neither PowerShell member/index
 assignments (`$object.Path=...`, `$root[0]=...`), unusual braced names, nor
 `Set-Variable`/`New-Variable` is covered. Unix does not inspect PowerShell syntax.
-Existing variable references in arguments are allowed. There are **no new
-restrictions on `cd`, chaining, or other shell constructs**. This deliberately
-does not prevent every equivalent variable use.
+Existing variable references in arguments are allowed. The assignment guard
+deliberately does not prevent every equivalent variable use.
+
+## Directory-change coverage
+
+`deny-cd.sh` rejects `cd`, `pushd`, `popd`, and `chdir` (case-sensitive).
+`deny-cd.ps1` additionally rejects `sl`, `Set-Location`, `Push-Location`, and
+`Pop-Location`; all its command-name checks are case-insensitive, including
+when Windows's Bash tool supplies the command. Unix only inspects the `Bash`
+tool; the Windows entrypoint inspects the three exact tool names above.
+
+The guard checks a command at the beginning or after `;`, `&&`, `||`, `|`, `&`,
+actual CR/LF newlines, parentheses, braces, or backticks. This covers grouping,
+script blocks and common command substitutions. It allows horizontal whitespace
+and repeated whole control tokens `if`, `then`, `elif`, `else`, `while`, `until`,
+`do`, and `!` immediately after such boundaries. Tokens must end at whitespace,
+end of input, or a shell delimiter (including redirection). Argument-free `cd`,
+`cd -`, and `cd -- /repo` are rejected too. `cdrom`, `pushdown`, and
+`echo then cd` are not matches; control-keyword substrings inside identifiers
+are not treated as boundaries.
+
+Use `git -C '/absolute/repo' status` or `python3 '/absolute/path/script.py'`
+instead. Ordinary absolute-path commands and unrelated tools pass silently.
+Chaining itself is still allowed if no covered directory change occurs.
+
+**Intentional limitations:** this is a conservative syntactic check, not a
+quote-aware or recursive shell parser. Quoted text containing a boundary,
+such as `echo "text; cd /repo"`, can be a false positive. Escapes, quoted
+command names (`'cd' /repo`), wrappers (`env cd`, `command cd`, `builtin cd`),
+module-qualified names, custom aliases/functions, and nested interpreter
+semantics are not resolved. Nested invocation text may match if it contains a
+recognized boundary, but is not comprehensively parsed. Library calls such as
+Python `os.chdir(...)`, external scripts and other equivalent working-directory
+changes are intentional bypasses. This hook does not establish a security sandbox.
+
+The Unix guard reuses Node.js for strict JSON parsing and matching, without jq
+or any new dependency. PowerShell 7 uses strict `JsonDocument` validation before
+`ConvertFrom-Json -AsHashtable`. The shell script stays LF per `.gitattributes`
+and is explicitly run through `sh`, not through its executable bit or shebang.
 
 ## Outcomes and testing
 
-- Exit **0**, with no stdout/stderr: no covered leading assignment, or a
+- Exit **0**, with no stdout/stderr: no covered syntax for that guard, or a
   well-formed payload for an unrelated tool. This is not permission approval.
-- Exit **2**, no stdout, actionable stderr: covered leading assignment.
-  Claude should rewrite the command with direct absolute paths.
+- Exit **2**, no stdout, actionable stderr: covered leading assignment or
+  directory change. Claude should rewrite the command with direct absolute
+  paths; directory diagnostics include `git -C` and `python3` alternatives.
 - Exit **2**, no stdout, diagnostic stderr: malformed JSON, a non-object payload,
   missing/invalid `tool_name`, or missing/non-string `tool_input.command` for a
   covered tool. Fix the hook integration rather than silently allowing it.
@@ -124,14 +162,14 @@ Bash, from the repository root:
 
 ```bash
 set -e
-python -m unittest discover -s scripts/tests -p 'test_claude_assignment_hooks.py' -v
-python -m unittest discover -s scripts/tests -p 'test_config_merge.py' -v
+python3 -m unittest discover -s scripts/tests -p 'test_claude_*hooks.py' -v
+python3 -m unittest discover -s scripts/tests -p 'test_config_merge.py' -v
 ```
 
 PowerShell 7, from the repository root:
 
 ```powershell
-python -m unittest discover -s scripts/tests -p 'test_claude_assignment_hooks.py' -v
+python -m unittest discover -s scripts/tests -p 'test_claude_*hooks.py' -v
 if ($LASTEXITCODE -ne 0) { throw "Hook tests failed" }
 python -m unittest discover -s scripts/tests -p 'test_config_merge.py' -v
 if ($LASTEXITCODE -ne 0) { throw "Merge tests failed" }

@@ -10,6 +10,7 @@
 50-import-vs-settings.ps1
 70-setup-claude-mcp.ps1
 .claude/hooks/leading-assignment.ps1
+.claude/hooks/deny-cd.ps1
 {{ end }}
 
 {{ if eq .chezmoi.os "windows" }}
@@ -28,6 +29,7 @@
 35-install-apple-container.sh
 70-setup-claude-mcp.sh
 .claude/hooks/leading-assignment.sh
+.claude/hooks/deny-cd.sh
 {{ end }}
 
 {{ if ne .chezmoi.os "linux" }}

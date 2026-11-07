@@ -8,6 +8,7 @@ Run: python -m unittest discover -s scripts/tests
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import tempfile
@@ -179,7 +180,7 @@ class CodexMergeTest(MergeTestCase):
 class ClaudeMergeTest(MergeTestCase):
     REL = ".claude/settings.json"
 
-    def test_assignment_hook_registration_and_deployment(self):
+    def test_command_hook_registration_and_deployment(self):
         # Override homeDir as well as destination: all hook paths are scratch paths.
         self.dest = self.tmp / "home space 日本語"
         self.dest.mkdir()
@@ -193,7 +194,15 @@ class ClaudeMergeTest(MergeTestCase):
             "matcher": "Bash",
             "hooks": [{"type": "command", "command": "old", "args": [script.as_posix()]}],
         }
-        target.write_text(json.dumps({"hooks": {"PreToolUse": [foreign, stale]}}), encoding="utf-8")
+        directory_script = script.with_name(f"deny-cd.{suffix}")
+        stale_directory = {
+            "matcher": "Bash",
+            "hooks": [{"type": "command", "command": "old", "args": [directory_script.as_posix()]}],
+        }
+        target.write_text(
+            json.dumps({"hooks": {"PreToolUse": [foreign, stale, stale_directory]}}),
+            encoding="utf-8",
+        )
         argv = [
             CHEZMOI, "--source", str(REPO), "--destination", str(self.dest),
             "--persistent-state", str(self.tmp / "state.boltdb"),
@@ -205,34 +214,38 @@ class ClaudeMergeTest(MergeTestCase):
         first = target.read_bytes()
         data = self.load()
         entries = data["hooks"]["PreToolUse"]
-        assignments = [
-            entry for entry in entries
-            if any(script.as_posix() in hook.get("args", []) for hook in entry["hooks"])
-        ]
-        self.assertEqual(len(assignments), 1)
-        entry = assignments[0]
-        hook = entry["hooks"][0]
-        self.assertEqual(entry["matcher"], "^(Bash|PowerShell|powershell)$" if IS_WINDOWS else "^Bash$")
-        self.assertEqual(hook["command"], "pwsh" if IS_WINDOWS else "sh")
-        self.assertEqual(
-            hook["args"],
-            ["-NoLogo", "-NoProfile", "-NonInteractive", "-File", script.as_posix()]
-            if IS_WINDOWS else [script.as_posix()],
-        )
-        self.assertEqual(hook["timeout"], 10)
-        self.assertEqual(hook["type"], "command")
+        for managed_script in (script, directory_script):
+            with self.subTest(script=managed_script.name):
+                managed_entries = [
+                    entry for entry in entries
+                    if any(managed_script.as_posix() in hook.get("args", []) for hook in entry["hooks"])
+                ]
+                self.assertEqual(len(managed_entries), 1)
+                entry = managed_entries[0]
+                hook = entry["hooks"][0]
+                self.assertEqual(entry["matcher"], "^(Bash|PowerShell|powershell)$" if IS_WINDOWS else "^Bash$")
+                self.assertEqual(hook["command"], "pwsh" if IS_WINDOWS else "sh")
+                self.assertEqual(
+                    hook["args"],
+                    ["-NoLogo", "-NoProfile", "-NonInteractive", "-File", managed_script.as_posix()]
+                    if IS_WINDOWS else [managed_script.as_posix()],
+                )
+                self.assertEqual(hook["timeout"], 10)
+                self.assertEqual(hook["type"], "command")
+                self.assertTrue(managed_script.is_file())
+                other = managed_script.with_suffix(".sh" if IS_WINDOWS else ".ps1")
+                self.assertFalse(other.exists())
         self.assertIn(foreign, entries)
-        self.assertTrue(script.is_file())
-        other = script.with_suffix(".sh" if IS_WINDOWS else ".ps1")
-        self.assertFalse(other.exists())
+        self.assertEqual(len(entries), 4)  # Three independent managed hooks + foreign.
         guards = [h for h in self.hook_commands(data, "PreToolUse") if h["command"] == "node"]
         self.assertEqual(len(guards), 1)
         self.assertEqual(guards[0]["args"], [f"{self.dest.as_posix()}/.claude/hooks/guard.mjs"])
+        self.assertTrue((script.parent / "guard.mjs").is_file())
         result = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(target.read_bytes(), first)
 
-    def test_assignment_hook_templates_for_all_operating_systems(self):
+    def test_command_hook_templates_for_all_operating_systems(self):
         home = 'C:/home space 日本語 "quoted"'
         for os_name in ("windows", "darwin", "linux"):
             with self.subTest(os=os_name):
@@ -249,15 +262,45 @@ class ClaudeMergeTest(MergeTestCase):
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
                 # Other legacy paths are interpolated without JSON escaping.
-                # Render only the new entry to avoid changing unrelated templates.
-                start = result.stdout.index('"matcher": "^')
-                end = result.stdout.index('\n      }\n', start)
-                entry = json.loads("{" + result.stdout[start:end] + "}")
-                hook = entry["hooks"][0]
+                # Parse only the two serialized command entries, leaving legacy
+                # interpolation unchanged, including the original node guard.
+                entries = []
+                for match in re.finditer(r'"matcher": "\^', result.stdout):
+                    start = match.start()
+                    end = result.stdout.index('\n      }\n', start)
+                    entries.append(json.loads("{" + result.stdout[start:end] + "}"))
+                self.assertEqual(len(entries), 2)
                 windows = os_name == "windows"
-                self.assertEqual(hook["command"], "pwsh" if windows else "sh")
-                self.assertEqual(hook["args"][-1], f"{home}/.claude/hooks/leading-assignment." + ("ps1" if windows else "sh"))
-                self.assertEqual(entry["matcher"], "^(Bash|PowerShell|powershell)$" if windows else "^Bash$")
+                for name, entry in zip(("leading-assignment", "deny-cd"), entries):
+                    hook = entry["hooks"][0]
+                    path = f"{home}/.claude/hooks/{name}." + ("ps1" if windows else "sh")
+                    self.assertEqual(hook["command"], "pwsh" if windows else "sh")
+                    self.assertEqual(
+                        hook["args"],
+                        ["-NoLogo", "-NoProfile", "-NonInteractive", "-File", path]
+                        if windows else [path],
+                    )
+                    self.assertEqual(hook["timeout"], 10)
+                    self.assertEqual(hook["type"], "command")
+                    self.assertEqual(entry["matcher"], "^(Bash|PowerShell|powershell)$" if windows else "^Bash$")
+                ignored = subprocess.run(
+                    [
+                        CHEZMOI, "--source", str(REPO),
+                        "--destination", str(self.dest),
+                        "--persistent-state", str(self.tmp / "state.boltdb"),
+                        "--config", str(self.config), "--no-tty",
+                        "--override-data", json.dumps({"chezmoi": {"os": os_name}}),
+                        "execute-template",
+                        (REPO / "home/.chezmoiignore").read_text(encoding="utf-8"),
+                    ],
+                    capture_output=True, text=True, encoding="utf-8",
+                )
+                self.assertEqual(ignored.returncode, 0, ignored.stderr)
+                excluded = ignored.stdout.splitlines()
+                for name in ("leading-assignment", "deny-cd"):
+                    self.assertIn(f".claude/hooks/{name}." + ("sh" if windows else "ps1"), excluded)
+                    self.assertNotIn(f".claude/hooks/{name}." + ("ps1" if windows else "sh"), excluded)
+                self.assertNotIn(".claude/hooks/guard.mjs", excluded)
 
     def load(self) -> dict:
         return json.loads((self.dest / self.REL).read_text(encoding="utf-8"))

@@ -145,7 +145,7 @@ Get-ChildItem "$HOME/.config/apm-profile"
 - [winget パッケージ管理](docs/winget_ja.md)
 - [日常操作ガイド](docs/operations.md)
 - [Windows 固有の設定](docs/windows.md)
-- [Claude Code leading-assignment hooks](docs/claude-command-hooks.md) / [日本語](docs/claude-command-hooks_ja.md)
+- [Claude Code command hooks](docs/claude-command-hooks.md) / [日本語](docs/claude-command-hooks_ja.md)
 - [トラブルシューティング](docs/troubleshooting.md)
 
 ## GitHub Actions の自動処理

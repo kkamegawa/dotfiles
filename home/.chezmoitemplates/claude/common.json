@@ -149,6 +149,26 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        {{ if eq .chezmoi.os "windows" }}
+        "matcher": "^(Bash|PowerShell|powershell)$",
+        {{ else }}
+        "matcher": "^Bash$",
+        {{ end }}
+        "hooks": [
+          {
+            "type": "command",
+            {{ if eq .chezmoi.os "windows" }}
+            "command": "pwsh",
+            "args": {{ list "-NoLogo" "-NoProfile" "-NonInteractive" "-File" (printf "%s/hooks/deny-cd.ps1" $claudeHome) | toJson }},
+            {{ else }}
+            "command": "sh",
+            "args": {{ list (printf "%s/hooks/deny-cd.sh" $claudeHome) | toJson }},
+            {{ end }}
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
