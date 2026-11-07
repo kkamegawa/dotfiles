@@ -49,7 +49,7 @@ class MergeTestCase(unittest.TestCase):
                 "--persistent-state", str(self.tmp / "state.boltdb"),
                 "--config", str(self.config),
                 "--no-tty",
-                "apply", str(target),
+                "apply", "--exclude", "scripts", str(target),
             ],
             capture_output=True,
             text=True,
@@ -178,6 +178,86 @@ class CodexMergeTest(MergeTestCase):
 
 class ClaudeMergeTest(MergeTestCase):
     REL = ".claude/settings.json"
+
+    def test_assignment_hook_registration_and_deployment(self):
+        # Override homeDir as well as destination: all hook paths are scratch paths.
+        self.dest = self.tmp / "home space 日本語"
+        self.dest.mkdir()
+        target = self.dest / self.REL
+        target.parent.mkdir(parents=True)
+        foreign = {"matcher": "^Bash$", "hooks": [{"type": "command", "command": "user-hook"}]}
+        override = json.dumps({"chezmoi": {"homeDir": self.dest.as_posix()}})
+        suffix = "ps1" if IS_WINDOWS else "sh"
+        script = self.dest / ".claude/hooks" / f"leading-assignment.{suffix}"
+        stale = {
+            "matcher": "Bash",
+            "hooks": [{"type": "command", "command": "old", "args": [script.as_posix()]}],
+        }
+        target.write_text(json.dumps({"hooks": {"PreToolUse": [foreign, stale]}}), encoding="utf-8")
+        argv = [
+            CHEZMOI, "--source", str(REPO), "--destination", str(self.dest),
+            "--persistent-state", str(self.tmp / "state.boltdb"),
+            "--config", str(self.config), "--override-data", override, "--no-tty",
+            "apply", "--exclude", "scripts", str(self.dest / ".claude/hooks"), str(target),
+        ]
+        result = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        first = target.read_bytes()
+        data = self.load()
+        entries = data["hooks"]["PreToolUse"]
+        assignments = [
+            entry for entry in entries
+            if any(script.as_posix() in hook.get("args", []) for hook in entry["hooks"])
+        ]
+        self.assertEqual(len(assignments), 1)
+        entry = assignments[0]
+        hook = entry["hooks"][0]
+        self.assertEqual(entry["matcher"], "^(Bash|PowerShell|powershell)$" if IS_WINDOWS else "^Bash$")
+        self.assertEqual(hook["command"], "pwsh" if IS_WINDOWS else "sh")
+        self.assertEqual(
+            hook["args"],
+            ["-NoLogo", "-NoProfile", "-NonInteractive", "-File", script.as_posix()]
+            if IS_WINDOWS else [script.as_posix()],
+        )
+        self.assertEqual(hook["timeout"], 10)
+        self.assertEqual(hook["type"], "command")
+        self.assertIn(foreign, entries)
+        self.assertTrue(script.is_file())
+        other = script.with_suffix(".sh" if IS_WINDOWS else ".ps1")
+        self.assertFalse(other.exists())
+        guards = [h for h in self.hook_commands(data, "PreToolUse") if h["command"] == "node"]
+        self.assertEqual(len(guards), 1)
+        self.assertEqual(guards[0]["args"], [f"{self.dest.as_posix()}/.claude/hooks/guard.mjs"])
+        result = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(target.read_bytes(), first)
+
+    def test_assignment_hook_templates_for_all_operating_systems(self):
+        home = 'C:/home space 日本語 "quoted"'
+        for os_name in ("windows", "darwin", "linux"):
+            with self.subTest(os=os_name):
+                result = subprocess.run(
+                    [
+                        CHEZMOI, "--source", str(REPO),
+                        "--destination", str(self.dest),
+                        "--persistent-state", str(self.tmp / "state.boltdb"),
+                        "--config", str(self.config), "--no-tty",
+                        "--override-data", json.dumps({"chezmoi": {"os": os_name, "homeDir": home}}),
+                        "execute-template", '{{ includeTemplate "claude/common.json" . }}',
+                    ],
+                    capture_output=True, text=True, encoding="utf-8",
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                # Other legacy paths are interpolated without JSON escaping.
+                # Render only the new entry to avoid changing unrelated templates.
+                start = result.stdout.index('"matcher": "^')
+                end = result.stdout.index('\n      }\n', start)
+                entry = json.loads("{" + result.stdout[start:end] + "}")
+                hook = entry["hooks"][0]
+                windows = os_name == "windows"
+                self.assertEqual(hook["command"], "pwsh" if windows else "sh")
+                self.assertEqual(hook["args"][-1], f"{home}/.claude/hooks/leading-assignment." + ("ps1" if windows else "sh"))
+                self.assertEqual(entry["matcher"], "^(Bash|PowerShell|powershell)$" if windows else "^Bash$")
 
     def load(self) -> dict:
         return json.loads((self.dest / self.REL).read_text(encoding="utf-8"))
