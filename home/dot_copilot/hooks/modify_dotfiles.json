@@ -1,0 +1,5 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $current := dict -}}
+{{- if .chezmoi.stdin -}}{{- $current = .chezmoi.stdin | fromJson -}}{{- end -}}
+{{- $_ := set $current "version" 1 -}}
+{{- includeTemplate "ai-hooks/merge" (dict "current" $current "client" "copilot" "chezmoi" .chezmoi) | fromJson | toPrettyJson | trim }}

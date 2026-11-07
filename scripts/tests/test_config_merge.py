@@ -266,9 +266,8 @@ class ClaudeMergeTest(MergeTestCase):
                 # interpolation unchanged, including the original node guard.
                 entries = []
                 for match in re.finditer(r'"matcher": "\^', result.stdout):
-                    start = match.start()
-                    end = result.stdout.index('\n      }\n', start)
-                    entries.append(json.loads("{" + result.stdout[start:end] + "}"))
+                    entry, _ = json.JSONDecoder().raw_decode("{" + result.stdout[match.start():])
+                    entries.append(entry)
                 self.assertEqual(len(entries), 2)
                 windows = os_name == "windows"
                 for name, entry in zip(("leading-assignment", "deny-cd"), entries):

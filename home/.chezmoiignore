@@ -11,6 +11,9 @@
 70-setup-claude-mcp.ps1
 .claude/hooks/leading-assignment.ps1
 .claude/hooks/deny-cd.ps1
+.local/share/dotfiles/ai-hooks/adapter.ps1
+.local/share/dotfiles/ai-hooks/leading-assignment.ps1
+.local/share/dotfiles/ai-hooks/deny-cd.ps1
 {{ end }}
 
 {{ if eq .chezmoi.os "windows" }}
@@ -30,6 +33,9 @@
 70-setup-claude-mcp.sh
 .claude/hooks/leading-assignment.sh
 .claude/hooks/deny-cd.sh
+.local/share/dotfiles/ai-hooks/adapter.sh
+.local/share/dotfiles/ai-hooks/leading-assignment.sh
+.local/share/dotfiles/ai-hooks/deny-cd.sh
 {{ end }}
 
 {{ if ne .chezmoi.os "linux" }}

@@ -146,6 +146,7 @@ Get-ChildItem "$HOME/.config/apm-profile"
 - [日常操作ガイド](docs/operations.md)
 - [Windows 固有の設定](docs/windows.md)
 - [Claude Code command hooks](docs/claude-command-hooks.md) / [日本語](docs/claude-command-hooks_ja.md)
+- [Shared Codex/Copilot CLI hooks](docs/ai-client-hooks.md) / [日本語](docs/ai-client-hooks_ja.md)
 - [トラブルシューティング](docs/troubleshooting.md)
 
 ## GitHub Actions の自動処理

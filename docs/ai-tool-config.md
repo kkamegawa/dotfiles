@@ -4,6 +4,10 @@
 
 ## 所有権モデル
 
+Codex と Copilot CLI の共通フックも管理します。Codex は既存 config.toml の
+inline hooks、Copilot は `~/.copilot/hooks/dotfiles.json` に追加し、外部ハンドラーや
+別イベントを保持します。[共通フックの対応範囲と制限](ai-client-hooks_ja.md) を参照してください。
+
 | 層 | 内容 | 所有者 |
 | --- | --- | --- |
 | common | OS 非依存の共通設定（サブエージェント、モデル、承認方針、許可ドメイン） | リポジトリ |

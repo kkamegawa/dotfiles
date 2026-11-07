@@ -1,0 +1,30 @@
+{{- /* Remove only owned handlers, never their foreign siblings or events. */ -}}
+{{- $hooks := get .current "hooks" | default (dict) -}}
+{{- if not (kindIs "map" $hooks) -}}{{ fail "Existing hooks must be an object" }}{{- end -}}
+{{- $owned := ".local/share/dotfiles/ai-hooks/adapter." -}}
+{{- range $event, $entries := $hooks -}}
+{{- if not (kindIs "slice" $entries) -}}{{ fail "Existing hook event must be an array" }}{{- end -}}
+{{- $kept := list -}}
+{{- range $entry := $entries -}}
+{{- if eq $.client "codex" -}}
+{{- $handlers := list -}}
+{{- range $handler := $entry.hooks -}}
+{{- $commands := printf "%s %s %s" (get $handler "command" | default "") (get $handler "commandWindows" | default "") (get $handler "command_windows" | default "") | replace "\\" "/" -}}
+{{- if not (contains $owned $commands) -}}{{- $handlers = append $handlers $handler -}}{{- end -}}
+{{- end -}}
+{{- if $handlers -}}
+{{- $_ := set $entry "hooks" $handlers -}}
+{{- $kept = append $kept $entry -}}
+{{- end -}}
+{{- else -}}
+{{- if not (contains $owned (toJson $entry | replace "\\\\" "/")) -}}{{- $kept = append $kept $entry -}}{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $hooks $event $kept -}}
+{{- end -}}
+{{- $managed := includeTemplate "ai-hooks/config" . | fromJson -}}
+{{- range $event, $entries := $managed.hooks -}}
+{{- $_ := set $hooks $event (concat $entries (get $hooks $event | default (list))) -}}
+{{- end -}}
+{{- $_ := set .current "hooks" $hooks -}}
+{{- .current | toJson -}}

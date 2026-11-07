@@ -4,6 +4,8 @@
 # Shell scripts must stay LF to avoid shebang and syntax errors
 *.sh text eol=lf
 *.mjs text eol=lf
+*.sh.tmpl text eol=lf
+*.mjs.tmpl text eol=lf
 
 # C# source files: normalize to LF and enforce LF in the working tree
 *.cs text eol=lf

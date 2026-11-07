@@ -1,0 +1,38 @@
+{{- /* Shared registration; Codex uses inline TOML, Copilot a dedicated JSON. */ -}}
+{{- $root := printf "%s/.local/share/dotfiles/ai-hooks" (.chezmoi.homeDir | replace "\\" "/") -}}
+{{- $windows := eq .chezmoi.os "windows" -}}
+{{- $events := list "PreToolUse" "PostToolUse" -}}
+{{- if eq .client "codex" -}}{{- $events = concat $events (list "PostCompact" "UserPromptSubmit") -}}{{- end -}}
+{{- $hooks := dict -}}
+{{- range $event := $events -}}
+{{- $matcher := "" -}}
+{{- if eq $event "PreToolUse" -}}{{- $matcher = "Bash|bash|powershell|PowerShell|exec_command|shell_command" -}}{{- end -}}
+{{- if eq $event "PostToolUse" -}}{{- $matcher = "Edit|Write|edit|create|apply_patch" -}}{{- end -}}
+{{- $timeout := 10 -}}
+{{- if eq $event "PostToolUse" -}}{{- $timeout = 30 -}}{{- end -}}
+{{- if eq $event "PostCompact" -}}{{- $timeout = 60 -}}{{- end -}}
+{{- $handler := dict "type" "command" -}}
+{{- if eq $.client "copilot" -}}
+{{- $_ := set $handler "exec" "sh" -}}
+{{- $_ := set $handler "args" (list (printf "%s/adapter.sh" $root) $.client $event) -}}
+{{- if $windows -}}
+{{- $_ := set $handler "exec" "pwsh" -}}
+{{- $_ := set $handler "args" (list "-NoLogo" "-NoProfile" "-NonInteractive" "-File" (printf "%s/adapter.ps1" $root) $.client $event) -}}
+{{- end -}}
+{{- $_ := set $handler "timeoutSec" $timeout -}}
+{{- $_ := set $handler "matcher" $matcher -}}
+{{- $_ := set $hooks $event (list $handler) -}}
+{{- else -}}
+{{- $quoted := printf "'%s/adapter.sh'" ($root | replace "'" "'\"'\"'") -}}
+{{- $command := printf "sh %s %s %s" $quoted $.client $event -}}
+{{- if $windows -}}
+{{- $quoted = printf "'%s/adapter.ps1'" ($root | replace "'" "''") -}}
+{{- $command = printf "pwsh -NoLogo -NoProfile -NonInteractive -File %s %s %s" $quoted $.client $event -}}
+{{- end -}}
+{{- $_ := set $handler "command" $command -}}
+{{- $_ := set $handler "timeout" $timeout -}}
+{{- if eq $event "PostToolUse" -}}{{- $_ := set $handler "async" true -}}{{- end -}}
+{{- $_ := set $hooks $event (list (dict "matcher" $matcher "hooks" (list $handler))) -}}
+{{- end -}}
+{{- end -}}
+{{- dict "hooks" $hooks | toJson -}}

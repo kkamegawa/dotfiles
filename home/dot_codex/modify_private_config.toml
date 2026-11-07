@@ -26,4 +26,5 @@
 {{- end -}}
 {{- $_ := set $managedEnvironment "PATH" (join ":" $pathEntries) -}}
 {{- end -}}
-{{- mergeOverwrite $current $managed | toToml -}}
+{{- $current = mergeOverwrite $current $managed -}}
+{{- includeTemplate "ai-hooks/merge" (dict "current" $current "client" "codex" "chezmoi" .chezmoi) | fromJson | toToml -}}
