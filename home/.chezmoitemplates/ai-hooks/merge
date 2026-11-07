@@ -3,6 +3,7 @@
 {{- if not (kindIs "map" $hooks) -}}{{ fail "Existing hooks must be an object" }}{{- end -}}
 {{- $owned := ".local/share/dotfiles/ai-hooks/adapter." -}}
 {{- range $event, $entries := $hooks -}}
+{{- if not (and (eq $.client "codex") (eq $event "state")) -}}
 {{- if not (kindIs "slice" $entries) -}}{{ fail "Existing hook event must be an array" }}{{- end -}}
 {{- $kept := list -}}
 {{- range $entry := $entries -}}
@@ -21,6 +22,7 @@
 {{- end -}}
 {{- end -}}
 {{- $_ := set $hooks $event $kept -}}
+{{- end -}}
 {{- end -}}
 {{- $managed := includeTemplate "ai-hooks/config" . | fromJson -}}
 {{- range $event, $entries := $managed.hooks -}}

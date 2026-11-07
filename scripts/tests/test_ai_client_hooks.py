@@ -80,7 +80,9 @@ class ClientHooksTest(MergeTestCase):
                     '[[hooks.PreToolUse.hooks]]\ntype = "mcp_tool"\nserver = "foreign-server"\ntool = "check"\n'
                     '[[hooks.PreToolUse.hooks]]\ntype = "command"\n'
                     'command = "sh /old/.local/share/dotfiles/ai-hooks/adapter.sh codex PreToolUse"\n'
-                    '[[hooks.Stop]]\n[[hooks.Stop.hooks]]\ntype = "command"\ncommand = "foreign-stop"\n',
+                    '[[hooks.Stop]]\n[[hooks.Stop.hooks]]\ntype = "command"\ncommand = "foreign-stop"\n'
+                    '[hooks.state."wt-agent-hooks@wt-local:hooks/hooks.json:session_start:0:0"]\n'
+                    'trusted_hash = "sha256:preserve-me"\n',
                 )
                 foreign = {"type": "command", "exec": "foreign", "args": ["日本語"]}
                 copilot = self.write(
@@ -101,6 +103,10 @@ class ClientHooksTest(MergeTestCase):
                     {"type": "mcp_tool", "server": "foreign-server", "tool": "check"},
                 ])
                 self.assertEqual(hooks["Stop"][0]["hooks"][0]["command"], "foreign-stop")
+                self.assertEqual(
+                    hooks["state"]["wt-agent-hooks@wt-local:hooks/hooks.json:session_start:0:0"]["trusted_hash"],
+                    "sha256:preserve-me",
+                )
                 handler = hooks["PreToolUse"][0]["hooks"][0]
                 self.assertIsInstance(handler["timeout"], int)
                 self.assertNotIn("args", handler)
