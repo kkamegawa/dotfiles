@@ -26,6 +26,11 @@ jobs:
           mapfile -d '' tracked_files < <(git ls-files -z)
           shell_scripts=()
           for file in "${tracked_files[@]}"; do
+            # chezmoi templates can contain shell syntax plus Go template braces; don't treat them as shell scripts.
+            if [[ "$file" == *.tmpl ]]; then
+              continue
+            fi
+
             if [[ "$file" == *.sh ]]; then
               shell_scripts+=("$file")
               continue
