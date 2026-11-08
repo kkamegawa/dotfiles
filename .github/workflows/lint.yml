@@ -15,18 +15,45 @@ jobs:
     name: ShellCheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck
       - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@master
-        with:
-          scandir: '.'
-          severity: warning
+        shell: bash
+        run: |
+          mapfile -d '' tracked_files < <(git ls-files -z)
+          shell_scripts=()
+          for file in "${tracked_files[@]}"; do
+            # chezmoi templates can contain shell syntax plus Go template braces; don't treat them as shell scripts.
+            if [[ "$file" == *.tmpl ]]; then
+              continue
+            fi
+
+            if [[ "$file" == *.sh ]]; then
+              shell_scripts+=("$file")
+              continue
+            fi
+
+            if [[ -f "$file" ]]; then
+              shebang=''
+              IFS= read -r shebang < "$file" || true
+              if [[ "$shebang" =~ ^\#\!.*(/|[[:space:]])(sh|bash|dash|ksh)([[:space:]]|$) ]]; then
+                shell_scripts+=("$file")
+              fi
+            fi
+          done
+
+          if ((${#shell_scripts[@]})); then
+            shellcheck --severity=warning --format=gcc "${shell_scripts[@]}"
+          fi
 
   psscriptanalyzer:
     name: PSScriptAnalyzer
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
       - name: Run PSScriptAnalyzer
         shell: pwsh
         run: |
@@ -43,9 +70,9 @@ jobs:
     name: yamllint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
       - name: Run yamllint
-        uses: ibiqlik/action-yamllint@v3
+        uses: ibiqlik/action-yamllint@v3.1.1
         with:
           config_data: |
             extends: default
@@ -59,11 +86,8 @@ jobs:
     name: chezmoi dry-run (Linux)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install chezmoi
-        run: |
-          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - uses: actions/checkout@v4.4.0
+      - uses: $/.github/actions/install-chezmoi
       - name: chezmoi dry-run (Linux)
         run: |
           dest="$RUNNER_TEMP/chezmoi-home"
@@ -82,11 +106,8 @@ jobs:
     name: chezmoi dry-run (macOS)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install chezmoi
-        run: |
-          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - uses: actions/checkout@v4.4.0
+      - uses: $/.github/actions/install-chezmoi
       - name: chezmoi dry-run (macOS)
         run: |
           dest="$RUNNER_TEMP/chezmoi-home"
@@ -105,14 +126,8 @@ jobs:
     name: chezmoi dry-run (Windows)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install chezmoi
-        shell: pwsh
-        run: |
-          $binDir = Join-Path $env:RUNNER_TEMP 'chezmoi-bin'
-          New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-          iex "&{$(irm 'https://get.chezmoi.io/ps1')} -b '$binDir'"
-          $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - uses: actions/checkout@v4.4.0
+      - uses: $/.github/actions/install-chezmoi
       - name: chezmoi dry-run (Windows)
         shell: pwsh
         run: |
@@ -138,7 +153,7 @@ jobs:
     name: winget configure validate
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
       - name: Install PSDscResources
         shell: pwsh
         run: Install-Module -Name PSDscResources -Force -Scope CurrentUser
@@ -159,28 +174,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v4.4.0
+      - uses: actions/setup-python@v5.6.0
         with:
           python-version: '3.13'
-      - name: Install chezmoi (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Install chezmoi (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Install chezmoi (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $binDir = Join-Path $env:RUNNER_TEMP 'chezmoi-bin'
-          New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-          iex "&{$(irm 'https://get.chezmoi.io/ps1')} -b '$binDir'"
-          $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - uses: $/.github/actions/install-chezmoi
       - name: Run configuration merge and environment tests
         run: python -m unittest discover -s scripts/tests -v
 
@@ -203,7 +201,7 @@ jobs:
       - config-merge-tests
     steps:
       - name: Upsert failure issues
-        uses: actions/github-script@v7
+        uses: actions/github-script@v7.1.0
         env:
           NEEDS_CONTEXT: ${{ toJson(needs) }}
         with:
