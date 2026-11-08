@@ -110,6 +110,7 @@ PostCompact と UserPromptSubmit は .NET 10 のファイルベースプログ�
 - Copilot のエージェントなどは `~/.copilot/` 配下へ配置し、Visual Studio との互換性のため `~/.github/agents` にも実ファイルをコピー
 - Copilot の MCP サーバーは `~/.copilot/mcp-config.json` のサーバー名単位で統合し、所有台帳により APM 管理分だけを更新
 - 既存のリンクは処理成功後に実フォルダーへ移行する。候補作成や検証に失敗した場合は既存プロファイルを変更せず、未対応の出力・所有権のないファイルとの競合・不明なリンクがある場合は反映を中止
+- 候補ルートに APM が作成する `.apm-local/` のインストール識別情報は検証後に反映対象から除外する。許可するのは `.gitignore` と `installation` のみで、未知の項目があれば反映を中止する。
 
 ### GitHub Actions（仕様変更ウォッチ）
 
