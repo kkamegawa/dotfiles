@@ -17,10 +17,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@master
-        with:
-          scandir: '.'
-          severity: warning
+        shell: bash
+        run: |
+          mapfile -d '' shell_scripts < <(git ls-files -z '*.sh')
+          if ((${#shell_scripts[@]})); then
+            shellcheck --severity=warning --format=gcc "${shell_scripts[@]}"
+          fi
 
   psscriptanalyzer:
     name: PSScriptAnalyzer
@@ -62,7 +64,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install chezmoi
         run: |
-          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+          installer="$RUNNER_TEMP/chezmoi-install.sh"
+          curl --fail --location --silent --show-error \
+            --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
+            https://get.chezmoi.io --output "$installer"
+          sh "$installer" -b "$HOME/.local/bin"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: chezmoi dry-run (Linux)
         run: |
@@ -85,7 +91,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install chezmoi
         run: |
-          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+          installer="$RUNNER_TEMP/chezmoi-install.sh"
+          curl --fail --location --silent --show-error \
+            --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
+            https://get.chezmoi.io --output "$installer"
+          sh "$installer" -b "$HOME/.local/bin"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: chezmoi dry-run (macOS)
         run: |
@@ -111,7 +121,29 @@ jobs:
         run: |
           $binDir = Join-Path $env:RUNNER_TEMP 'chezmoi-bin'
           New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-          iex "&{$(irm 'https://get.chezmoi.io/ps1')} -b '$binDir'"
+          $installer = Join-Path $env:RUNNER_TEMP 'chezmoi-install.ps1'
+          $uri = 'https://get.chezmoi.io/ps1'
+          $maxAttempts = 6
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            try {
+              Invoke-WebRequest -Uri $uri -OutFile $installer -TimeoutSec 30 -ErrorAction Stop
+              break
+            } catch {
+              if ($attempt -eq $maxAttempts) {
+                throw
+              }
+              $delay = [Math]::Min(30, 2 * $attempt)
+              Write-Warning "chezmoi download attempt $attempt failed; retrying in $delay seconds. $_"
+              Start-Sleep -Seconds $delay
+            }
+          }
+          if (!(Test-Path -LiteralPath $installer) -or (Get-Item -LiteralPath $installer).Length -eq 0) {
+            throw 'The chezmoi installer download was empty.'
+          }
+          & $installer -b $binDir
+          if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
+            throw "chezmoi installer exited with code $LASTEXITCODE."
+          }
           $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: chezmoi dry-run (Windows)
         shell: pwsh
@@ -166,12 +198,20 @@ jobs:
       - name: Install chezmoi (Linux)
         if: runner.os == 'Linux'
         run: |
-          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+          installer="$RUNNER_TEMP/chezmoi-install.sh"
+          curl --fail --location --silent --show-error \
+            --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
+            https://get.chezmoi.io --output "$installer"
+          sh "$installer" -b "$HOME/.local/bin"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Install chezmoi (macOS)
         if: runner.os == 'macOS'
         run: |
-          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+          installer="$RUNNER_TEMP/chezmoi-install.sh"
+          curl --fail --location --silent --show-error \
+            --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
+            https://get.chezmoi.io --output "$installer"
+          sh "$installer" -b "$HOME/.local/bin"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Install chezmoi (Windows)
         if: runner.os == 'Windows'
@@ -179,7 +219,29 @@ jobs:
         run: |
           $binDir = Join-Path $env:RUNNER_TEMP 'chezmoi-bin'
           New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-          iex "&{$(irm 'https://get.chezmoi.io/ps1')} -b '$binDir'"
+          $installer = Join-Path $env:RUNNER_TEMP 'chezmoi-install.ps1'
+          $uri = 'https://get.chezmoi.io/ps1'
+          $maxAttempts = 6
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            try {
+              Invoke-WebRequest -Uri $uri -OutFile $installer -TimeoutSec 30 -ErrorAction Stop
+              break
+            } catch {
+              if ($attempt -eq $maxAttempts) {
+                throw
+              }
+              $delay = [Math]::Min(30, 2 * $attempt)
+              Write-Warning "chezmoi download attempt $attempt failed; retrying in $delay seconds. $_"
+              Start-Sleep -Seconds $delay
+            }
+          }
+          if (!(Test-Path -LiteralPath $installer) -or (Get-Item -LiteralPath $installer).Length -eq 0) {
+            throw 'The chezmoi installer download was empty.'
+          }
+          & $installer -b $binDir
+          if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
+            throw "chezmoi installer exited with code $LASTEXITCODE."
+          }
           $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Run configuration merge and environment tests
         run: python -m unittest discover -s scripts/tests -v
