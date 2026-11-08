@@ -70,7 +70,8 @@ jobs:
             rm -f "$installer"
             if curl --fail --location --silent --show-error \
               --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
-              https://get.chezmoi.io --output "$installer" \
+              https://raw.githubusercontent.com/twpayne/chezmoi/v2.74.0/assets/scripts/install.sh \
+              --output "$installer" \
               && test -s "$installer"; then
               downloaded=true
               break
@@ -89,7 +90,7 @@ jobs:
           binary="$HOME/.local/bin/chezmoi"
           installed=false
           for attempt in 1 2 3 4 5 6; do
-            if sh "$installer" -b "$HOME/.local/bin" \
+            if sh "$installer" -t v2.74.0 -b "$HOME/.local/bin" \
               && test -x "$binary" \
               && "$binary" --version >/dev/null 2>&1; then
               installed=true
@@ -134,7 +135,8 @@ jobs:
             rm -f "$installer"
             if curl --fail --location --silent --show-error \
               --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
-              https://get.chezmoi.io --output "$installer" \
+              https://raw.githubusercontent.com/twpayne/chezmoi/v2.74.0/assets/scripts/install.sh \
+              --output "$installer" \
               && test -s "$installer"; then
               downloaded=true
               break
@@ -153,7 +155,7 @@ jobs:
           binary="$HOME/.local/bin/chezmoi"
           installed=false
           for attempt in 1 2 3 4 5 6; do
-            if sh "$installer" -b "$HOME/.local/bin" \
+            if sh "$installer" -t v2.74.0 -b "$HOME/.local/bin" \
               && test -x "$binary" \
               && "$binary" --version >/dev/null 2>&1; then
               installed=true
@@ -196,7 +198,7 @@ jobs:
           $binDir = Join-Path $env:RUNNER_TEMP 'chezmoi-bin'
           New-Item -ItemType Directory -Force -Path $binDir | Out-Null
           $installer = Join-Path $env:RUNNER_TEMP 'chezmoi-install.ps1'
-          $uri = 'https://get.chezmoi.io/ps1'
+          $uri = 'https://raw.githubusercontent.com/twpayne/chezmoi/v2.74.0/assets/scripts/install.ps1'
           $maxAttempts = 6
           for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
             try {
@@ -219,7 +221,7 @@ jobs:
           $maxInstallAttempts = 6
           for ($attempt = 1; $attempt -le $maxInstallAttempts; $attempt++) {
             try {
-              & $installer -b $binDir
+              & $installer -b $binDir -Tag v2.74.0
               if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
                 throw "chezmoi installer exited with code $LASTEXITCODE."
               }
@@ -308,7 +310,8 @@ jobs:
             rm -f "$installer"
             if curl --fail --location --silent --show-error \
               --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
-              https://get.chezmoi.io --output "$installer" \
+              https://raw.githubusercontent.com/twpayne/chezmoi/v2.74.0/assets/scripts/install.sh \
+              --output "$installer" \
               && test -s "$installer"; then
               downloaded=true
               break
@@ -327,7 +330,7 @@ jobs:
           binary="$HOME/.local/bin/chezmoi"
           installed=false
           for attempt in 1 2 3 4 5 6; do
-            if sh "$installer" -b "$HOME/.local/bin" \
+            if sh "$installer" -t v2.74.0 -b "$HOME/.local/bin" \
               && test -x "$binary" \
               && "$binary" --version >/dev/null 2>&1; then
               installed=true
@@ -354,7 +357,8 @@ jobs:
             rm -f "$installer"
             if curl --fail --location --silent --show-error \
               --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
-              https://get.chezmoi.io --output "$installer" \
+              https://raw.githubusercontent.com/twpayne/chezmoi/v2.74.0/assets/scripts/install.sh \
+              --output "$installer" \
               && test -s "$installer"; then
               downloaded=true
               break
@@ -373,7 +377,7 @@ jobs:
           binary="$HOME/.local/bin/chezmoi"
           installed=false
           for attempt in 1 2 3 4 5 6; do
-            if sh "$installer" -b "$HOME/.local/bin" \
+            if sh "$installer" -t v2.74.0 -b "$HOME/.local/bin" \
               && test -x "$binary" \
               && "$binary" --version >/dev/null 2>&1; then
               installed=true
@@ -398,7 +402,7 @@ jobs:
           $binDir = Join-Path $env:RUNNER_TEMP 'chezmoi-bin'
           New-Item -ItemType Directory -Force -Path $binDir | Out-Null
           $installer = Join-Path $env:RUNNER_TEMP 'chezmoi-install.ps1'
-          $uri = 'https://get.chezmoi.io/ps1'
+          $uri = 'https://raw.githubusercontent.com/twpayne/chezmoi/v2.74.0/assets/scripts/install.ps1'
           $maxAttempts = 6
           for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
             try {
@@ -421,7 +425,7 @@ jobs:
           $maxInstallAttempts = 6
           for ($attempt = 1; $attempt -le $maxInstallAttempts; $attempt++) {
             try {
-              & $installer -b $binDir
+              & $installer -b $binDir -Tag v2.74.0
               if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
                 throw "chezmoi installer exited with code $LASTEXITCODE."
               }
