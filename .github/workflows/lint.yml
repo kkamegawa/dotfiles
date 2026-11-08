@@ -16,10 +16,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.4.0
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck
       - name: Run ShellCheck
         shell: bash
         run: |
-          mapfile -d '' shell_scripts < <(git ls-files -z '*.sh')
+          mapfile -d '' tracked_files < <(git ls-files -z)
+          shell_scripts=()
+          for file in "${tracked_files[@]}"; do
+            if [[ "$file" == *.sh ]]; then
+              shell_scripts+=("$file")
+              continue
+            fi
+
+            if [[ -f "$file" ]]; then
+              shebang=''
+              IFS= read -r shebang < "$file" || true
+              if [[ "$shebang" =~ ^\#\!.*(/|[[:space:]])(sh|bash|dash|ksh)([[:space:]]|$) ]]; then
+                shell_scripts+=("$file")
+              fi
+            fi
+          done
+
           if ((${#shell_scripts[@]})); then
             shellcheck --severity=warning --format=gcc "${shell_scripts[@]}"
           fi
@@ -62,24 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.4.0
-      - uses: actions/checkout@v4.4.0
-        with:
-          repository: twpayne/chezmoi
-          ref: v2.74.0
-          path: chezmoi-src
-      - uses: actions/setup-go@v7.0.0
-        with:
-          go-version: '1.26.10'
-          cache-dependency-path: chezmoi-src/go.mod
-      - name: Install chezmoi
-        run: |
-          bin_dir="$RUNNER_TEMP/chezmoi-bin"
-          mkdir -p "$bin_dir"
-          (cd "$GITHUB_WORKSPACE/chezmoi-src" && go build -o "$bin_dir/chezmoi" .)
-          test -x "$bin_dir/chezmoi"
-          "$bin_dir/chezmoi" --version
-          rm -rf -- "$GITHUB_WORKSPACE/chezmoi-src"
-          echo "$bin_dir" >> "$GITHUB_PATH"
+      - uses: $/.github/actions/install-chezmoi
       - name: chezmoi dry-run (Linux)
         run: |
           dest="$RUNNER_TEMP/chezmoi-home"
@@ -99,24 +102,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4.4.0
-      - uses: actions/checkout@v4.4.0
-        with:
-          repository: twpayne/chezmoi
-          ref: v2.74.0
-          path: chezmoi-src
-      - uses: actions/setup-go@v7.0.0
-        with:
-          go-version: '1.26.10'
-          cache-dependency-path: chezmoi-src/go.mod
-      - name: Install chezmoi
-        run: |
-          bin_dir="$RUNNER_TEMP/chezmoi-bin"
-          mkdir -p "$bin_dir"
-          (cd "$GITHUB_WORKSPACE/chezmoi-src" && go build -o "$bin_dir/chezmoi" .)
-          test -x "$bin_dir/chezmoi"
-          "$bin_dir/chezmoi" --version
-          rm -rf -- "$GITHUB_WORKSPACE/chezmoi-src"
-          echo "$bin_dir" >> "$GITHUB_PATH"
+      - uses: $/.github/actions/install-chezmoi
       - name: chezmoi dry-run (macOS)
         run: |
           dest="$RUNNER_TEMP/chezmoi-home"
@@ -136,37 +122,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4.4.0
-      - uses: actions/checkout@v4.4.0
-        with:
-          repository: twpayne/chezmoi
-          ref: v2.74.0
-          path: chezmoi-src
-      - uses: actions/setup-go@v7.0.0
-        with:
-          go-version: '1.26.10'
-          cache-dependency-path: chezmoi-src/go.mod
-      - name: Install chezmoi
-        shell: pwsh
-        run: |
-          $binDir = Join-Path $env:RUNNER_TEMP 'chezmoi-bin'
-          New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'chezmoi-src')
-          go build -o (Join-Path $binDir 'chezmoi.exe') .
-          $buildExitCode = $LASTEXITCODE
-          Pop-Location
-          if ($buildExitCode -ne 0) {
-            throw "go build failed with exit code $buildExitCode."
-          }
-          $chezmoi = Join-Path $binDir 'chezmoi.exe'
-          if (!(Test-Path -LiteralPath $chezmoi -PathType Leaf)) {
-            throw "chezmoi.exe was not found in $binDir."
-          }
-          & $chezmoi --version
-          if ($LASTEXITCODE -ne 0) {
-            throw "chezmoi version check failed with exit code $LASTEXITCODE."
-          }
-          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'chezmoi-src') -Recurse -Force
-          $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - uses: $/.github/actions/install-chezmoi
       - name: chezmoi dry-run (Windows)
         shell: pwsh
         run: |
@@ -214,61 +170,10 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4.4.0
-      - uses: actions/checkout@v4.4.0
-        with:
-          repository: twpayne/chezmoi
-          ref: v2.74.0
-          path: chezmoi-src
       - uses: actions/setup-python@v5.6.0
         with:
           python-version: '3.13'
-      - uses: actions/setup-go@v7.0.0
-        with:
-          go-version: '1.26.10'
-          cache-dependency-path: chezmoi-src/go.mod
-      - name: Install chezmoi (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          bin_dir="$RUNNER_TEMP/chezmoi-bin"
-          mkdir -p "$bin_dir"
-          (cd "$GITHUB_WORKSPACE/chezmoi-src" && go build -o "$bin_dir/chezmoi" .)
-          test -x "$bin_dir/chezmoi"
-          "$bin_dir/chezmoi" --version
-          rm -rf -- "$GITHUB_WORKSPACE/chezmoi-src"
-          echo "$bin_dir" >> "$GITHUB_PATH"
-      - name: Install chezmoi (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          bin_dir="$RUNNER_TEMP/chezmoi-bin"
-          mkdir -p "$bin_dir"
-          (cd "$GITHUB_WORKSPACE/chezmoi-src" && go build -o "$bin_dir/chezmoi" .)
-          test -x "$bin_dir/chezmoi"
-          "$bin_dir/chezmoi" --version
-          rm -rf -- "$GITHUB_WORKSPACE/chezmoi-src"
-          echo "$bin_dir" >> "$GITHUB_PATH"
-      - name: Install chezmoi (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $binDir = Join-Path $env:RUNNER_TEMP 'chezmoi-bin'
-          New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'chezmoi-src')
-          go build -o (Join-Path $binDir 'chezmoi.exe') .
-          $buildExitCode = $LASTEXITCODE
-          Pop-Location
-          if ($buildExitCode -ne 0) {
-            throw "go build failed with exit code $buildExitCode."
-          }
-          $chezmoi = Join-Path $binDir 'chezmoi.exe'
-          if (!(Test-Path -LiteralPath $chezmoi -PathType Leaf)) {
-            throw "chezmoi.exe was not found in $binDir."
-          }
-          & $chezmoi --version
-          if ($LASTEXITCODE -ne 0) {
-            throw "chezmoi version check failed with exit code $LASTEXITCODE."
-          }
-          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'chezmoi-src') -Recurse -Force
-          $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - uses: $/.github/actions/install-chezmoi
       - name: Run configuration merge and environment tests
         run: python -m unittest discover -s scripts/tests -v
 
