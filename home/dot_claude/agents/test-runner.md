@@ -13,3 +13,10 @@ Return only:
 - the exact command you ran
 
 Never paste the full log.
+
+## Tool rules
+
+- Use Bash only to run the build, test, or lint commands you were given.
+- Search output or files with the Grep tool and read with the Read tool. Never run `grep`, `rg`, `find`, `cat`, `head`, `tail`, `sed`, or `awk` in Bash.
+- One command per Bash call: no `;`, `&&`, `||`, or pipes.
+- No `cd`. No shell variables (`NAME=...`, `$NAME`). Write every path as a literal absolute path.
