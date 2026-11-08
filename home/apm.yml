@@ -9,7 +9,6 @@ dependencies:
     - tfsugjp/skills
     - microsoft/skills
     - dotnet/skills
-    - microsoft/azure-skills
     - microsoft/azure-sql-database-container
     - Azure/azure-functions-skills
     - microsoft/win-dev-skills
