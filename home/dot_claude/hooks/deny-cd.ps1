@@ -4,7 +4,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 try {
-    $payload = [Console]::In.ReadToEnd()
+    $reader = [System.IO.StreamReader]::new([Console]::OpenStandardInput(), [System.Text.UTF8Encoding]::new($false))
+    $payload = $reader.ReadToEnd()
     # Reject comments/trailing commas too, consistently with the Unix entrypoint.
     $jsonDocument = [System.Text.Json.JsonDocument]::Parse($payload)
     $jsonDocument.Dispose()

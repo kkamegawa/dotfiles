@@ -4,7 +4,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 try {
-    $payload = [Console]::In.ReadToEnd()
+    $reader = [System.IO.StreamReader]::new([Console]::OpenStandardInput(), [System.Text.UTF8Encoding]::new($false))
+    $payload = $reader.ReadToEnd()
     # ConvertFrom-Json also accepts comments and trailing commas. Require strict
     # JSON first so malformed input has the same blocking behavior as Unix.
     $jsonDocument = [System.Text.Json.JsonDocument]::Parse($payload)
