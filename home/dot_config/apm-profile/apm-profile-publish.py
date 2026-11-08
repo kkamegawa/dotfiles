@@ -41,6 +41,27 @@ def require_safe_tree(path: Path) -> None:
             raise PublishError(f"APM 出力にシンボリックリンクが含まれるため、反映を中止します: {item}")
 
 
+def validate_apm_local_identity(path: Path) -> None:
+    """Validate and ignore APM's local installation identity metadata."""
+    if not path.exists() and not is_reparse(path):
+        return
+    if is_reparse(path) or not path.is_dir():
+        raise PublishError(f"APM のローカル識別情報は実フォルダーである必要があります: {path}")
+
+    expected = {".gitignore", "installation"}
+    actual: set[str] = set()
+    for item in path.iterdir():
+        if item.name not in expected:
+            raise PublishError(f"APM のローカル識別情報に未対応の項目があります: {item}")
+        if is_reparse(item) or not item.is_file():
+            raise PublishError(f"APM のローカル識別情報は直下の通常ファイルのみ許可します: {item}")
+        actual.add(item.name)
+
+    if actual != expected:
+        missing = ", ".join(sorted(expected - actual))
+        raise PublishError(f"APM のローカル識別情報に必要なファイルがありません: {missing}")
+
+
 def is_reparse(path: Path) -> bool:
     try:
         mode = path.lstat()
@@ -90,10 +111,14 @@ def import_legacy_tree(source: Path, destinations: list[Path], forced_destinatio
 
 def staged_files(root: Path) -> tuple[dict[Path, bytes], dict[str, Any] | None]:
     """宛先別ファイルと、任意の Copilot MCP サーバーマップを返す。"""
-    root_allowed = {"apm.yml", "apm.lock.yaml", "apm_modules", ".gitignore", ".agents", ".claude", ".github", ".codex"}
+    root_allowed = {"apm.yml", "apm.lock.yaml", "apm_modules", ".gitignore", ".apm-local", ".agents", ".claude", ".github", ".codex"}
     for item in root.iterdir():
         if item.name not in root_allowed:
             raise PublishError(f"未対応の APM 出力です: {item.name}")
+
+    # APM writes this installation identity beside redirected --root output.
+    # It is local bookkeeping and must never be copied into user profiles.
+    validate_apm_local_identity(root / ".apm-local")
 
     output: dict[Path, bytes] = {}
     mcp: dict[str, Any] | None = None
