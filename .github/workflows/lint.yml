@@ -62,52 +62,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.26.10'
       - name: Install chezmoi
         run: |
-          installer="$RUNNER_TEMP/chezmoi-install.sh"
-          downloaded=false
-          for attempt in 1 2 3 4; do
-            rm -f "$installer"
-            if curl --fail --location --silent --show-error \
-              --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
-              https://raw.githubusercontent.com/twpayne/chezmoi/v2.74.0/assets/scripts/install.sh \
-              --output "$installer" \
-              && test -s "$installer"; then
-              downloaded=true
-              break
-            fi
-            rm -f "$installer"
-            if [ "$attempt" -lt 4 ]; then
-              delay=$((attempt * 2))
-              echo "chezmoi bootstrap download attempt $attempt failed; retrying in ${delay}s" >&2
-              sleep "$delay"
-            fi
-          done
-          if [ "$downloaded" != true ]; then
-            echo "chezmoi bootstrap script was not downloaded after 4 attempts" >&2
-            exit 1
-          fi
-          binary="$HOME/.local/bin/chezmoi"
-          installed=false
-          for attempt in 1 2 3 4 5 6; do
-            if sh "$installer" -t v2.74.0 -b "$HOME/.local/bin" \
-              && test -x "$binary" \
-              && "$binary" --version >/dev/null 2>&1; then
-              installed=true
-              break
-            fi
-            if [ "$attempt" -lt 6 ]; then
-              delay=$((attempt * 2))
-              if [ "$delay" -gt 30 ]; then delay=30; fi
-              echo "chezmoi install attempt $attempt failed; retrying in ${delay}s" >&2
-              sleep "$delay"
-            fi
-          done
-          if [ "$installed" != true ]; then
-            echo "chezmoi was not installed after 6 attempts" >&2
-            exit 1
-          fi
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          bin_dir="$RUNNER_TEMP/chezmoi-bin"
+          mkdir -p "$bin_dir"
+          GOBIN="$bin_dir" go install chezmoi.io/chezmoi/v2@v2.74.0
+          test -x "$bin_dir/chezmoi"
+          "$bin_dir/chezmoi" --version
+          echo "$bin_dir" >> "$GITHUB_PATH"
       - name: chezmoi dry-run (Linux)
         run: |
           dest="$RUNNER_TEMP/chezmoi-home"
@@ -127,52 +92,17 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.26.10'
       - name: Install chezmoi
         run: |
-          installer="$RUNNER_TEMP/chezmoi-install.sh"
-          downloaded=false
-          for attempt in 1 2 3 4; do
-            rm -f "$installer"
-            if curl --fail --location --silent --show-error \
-              --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
-              https://raw.githubusercontent.com/twpayne/chezmoi/v2.74.0/assets/scripts/install.sh \
-              --output "$installer" \
-              && test -s "$installer"; then
-              downloaded=true
-              break
-            fi
-            rm -f "$installer"
-            if [ "$attempt" -lt 4 ]; then
-              delay=$((attempt * 2))
-              echo "chezmoi bootstrap download attempt $attempt failed; retrying in ${delay}s" >&2
-              sleep "$delay"
-            fi
-          done
-          if [ "$downloaded" != true ]; then
-            echo "chezmoi bootstrap script was not downloaded after 4 attempts" >&2
-            exit 1
-          fi
-          binary="$HOME/.local/bin/chezmoi"
-          installed=false
-          for attempt in 1 2 3 4 5 6; do
-            if sh "$installer" -t v2.74.0 -b "$HOME/.local/bin" \
-              && test -x "$binary" \
-              && "$binary" --version >/dev/null 2>&1; then
-              installed=true
-              break
-            fi
-            if [ "$attempt" -lt 6 ]; then
-              delay=$((attempt * 2))
-              if [ "$delay" -gt 30 ]; then delay=30; fi
-              echo "chezmoi install attempt $attempt failed; retrying in ${delay}s" >&2
-              sleep "$delay"
-            fi
-          done
-          if [ "$installed" != true ]; then
-            echo "chezmoi was not installed after 6 attempts" >&2
-            exit 1
-          fi
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          bin_dir="$RUNNER_TEMP/chezmoi-bin"
+          mkdir -p "$bin_dir"
+          GOBIN="$bin_dir" go install chezmoi.io/chezmoi/v2@v2.74.0
+          test -x "$bin_dir/chezmoi"
+          "$bin_dir/chezmoi" --version
+          echo "$bin_dir" >> "$GITHUB_PATH"
       - name: chezmoi dry-run (macOS)
         run: |
           dest="$RUNNER_TEMP/chezmoi-home"
@@ -192,63 +122,26 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.26.10'
       - name: Install chezmoi
         shell: pwsh
         run: |
           $binDir = Join-Path $env:RUNNER_TEMP 'chezmoi-bin'
           New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-          $installer = Join-Path $env:RUNNER_TEMP 'chezmoi-install.ps1'
-          $uri = 'https://raw.githubusercontent.com/twpayne/chezmoi/v2.74.0/assets/scripts/install.ps1'
-          $maxAttempts = 6
-          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
-            try {
-              Invoke-WebRequest -Uri $uri -OutFile $installer -TimeoutSec 30 -ErrorAction Stop
-              break
-            } catch {
-              if ($attempt -eq $maxAttempts) {
-                throw
-              }
-              $delay = [Math]::Min(30, 2 * $attempt)
-              Write-Warning "chezmoi download attempt $attempt failed; retrying in $delay seconds. $_"
-              Start-Sleep -Seconds $delay
-            }
-          }
-          if (!(Test-Path -LiteralPath $installer) -or (Get-Item -LiteralPath $installer).Length -eq 0) {
-            throw 'The chezmoi installer download was empty.'
+          $env:GOBIN = $binDir
+          go install chezmoi.io/chezmoi/v2@v2.74.0
+          if ($LASTEXITCODE -ne 0) {
+            throw "go install failed with exit code $LASTEXITCODE."
           }
           $chezmoi = Join-Path $binDir 'chezmoi.exe'
-          $installed = $false
-          $maxInstallAttempts = 6
-          for ($attempt = 1; $attempt -le $maxInstallAttempts; $attempt++) {
-            try {
-              & $installer -b $binDir -Tag v2.74.0
-              if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
-                throw "chezmoi installer exited with code $LASTEXITCODE."
-              }
-            } catch {
-              Write-Warning "chezmoi install attempt $attempt failed: $_"
-            }
-
-            if (Test-Path -LiteralPath $chezmoi -PathType Leaf) {
-              try {
-                & $chezmoi --version | Out-Null
-                if ($LASTEXITCODE -eq 0) {
-                  $installed = $true
-                  break
-                }
-              } catch {
-                Write-Warning "chezmoi binary check after attempt $attempt failed: $_"
-              }
-            }
-
-            if ($attempt -lt $maxInstallAttempts) {
-              $delay = [Math]::Min(30, 2 * $attempt)
-              Write-Warning "chezmoi is not installed yet; retrying in $delay seconds."
-              Start-Sleep -Seconds $delay
-            }
+          if (!(Test-Path -LiteralPath $chezmoi -PathType Leaf)) {
+            throw "chezmoi.exe was not found in $binDir."
           }
-          if (!$installed) {
-            throw "chezmoi was not installed after $maxInstallAttempts attempts."
+          & $chezmoi --version
+          if ($LASTEXITCODE -ne 0) {
+            throw "chezmoi version check failed with exit code $LASTEXITCODE."
           }
           $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: chezmoi dry-run (Windows)
@@ -301,158 +194,45 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.26.10'
       - name: Install chezmoi (Linux)
         if: runner.os == 'Linux'
         run: |
-          installer="$RUNNER_TEMP/chezmoi-install.sh"
-          downloaded=false
-          for attempt in 1 2 3 4; do
-            rm -f "$installer"
-            if curl --fail --location --silent --show-error \
-              --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
-              https://raw.githubusercontent.com/twpayne/chezmoi/v2.74.0/assets/scripts/install.sh \
-              --output "$installer" \
-              && test -s "$installer"; then
-              downloaded=true
-              break
-            fi
-            rm -f "$installer"
-            if [ "$attempt" -lt 4 ]; then
-              delay=$((attempt * 2))
-              echo "chezmoi bootstrap download attempt $attempt failed; retrying in ${delay}s" >&2
-              sleep "$delay"
-            fi
-          done
-          if [ "$downloaded" != true ]; then
-            echo "chezmoi bootstrap script was not downloaded after 4 attempts" >&2
-            exit 1
-          fi
-          binary="$HOME/.local/bin/chezmoi"
-          installed=false
-          for attempt in 1 2 3 4 5 6; do
-            if sh "$installer" -t v2.74.0 -b "$HOME/.local/bin" \
-              && test -x "$binary" \
-              && "$binary" --version >/dev/null 2>&1; then
-              installed=true
-              break
-            fi
-            if [ "$attempt" -lt 6 ]; then
-              delay=$((attempt * 2))
-              if [ "$delay" -gt 30 ]; then delay=30; fi
-              echo "chezmoi install attempt $attempt failed; retrying in ${delay}s" >&2
-              sleep "$delay"
-            fi
-          done
-          if [ "$installed" != true ]; then
-            echo "chezmoi was not installed after 6 attempts" >&2
-            exit 1
-          fi
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          bin_dir="$RUNNER_TEMP/chezmoi-bin"
+          mkdir -p "$bin_dir"
+          GOBIN="$bin_dir" go install chezmoi.io/chezmoi/v2@v2.74.0
+          test -x "$bin_dir/chezmoi"
+          "$bin_dir/chezmoi" --version
+          echo "$bin_dir" >> "$GITHUB_PATH"
       - name: Install chezmoi (macOS)
         if: runner.os == 'macOS'
         run: |
-          installer="$RUNNER_TEMP/chezmoi-install.sh"
-          downloaded=false
-          for attempt in 1 2 3 4; do
-            rm -f "$installer"
-            if curl --fail --location --silent --show-error \
-              --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
-              https://raw.githubusercontent.com/twpayne/chezmoi/v2.74.0/assets/scripts/install.sh \
-              --output "$installer" \
-              && test -s "$installer"; then
-              downloaded=true
-              break
-            fi
-            rm -f "$installer"
-            if [ "$attempt" -lt 4 ]; then
-              delay=$((attempt * 2))
-              echo "chezmoi bootstrap download attempt $attempt failed; retrying in ${delay}s" >&2
-              sleep "$delay"
-            fi
-          done
-          if [ "$downloaded" != true ]; then
-            echo "chezmoi bootstrap script was not downloaded after 4 attempts" >&2
-            exit 1
-          fi
-          binary="$HOME/.local/bin/chezmoi"
-          installed=false
-          for attempt in 1 2 3 4 5 6; do
-            if sh "$installer" -t v2.74.0 -b "$HOME/.local/bin" \
-              && test -x "$binary" \
-              && "$binary" --version >/dev/null 2>&1; then
-              installed=true
-              break
-            fi
-            if [ "$attempt" -lt 6 ]; then
-              delay=$((attempt * 2))
-              if [ "$delay" -gt 30 ]; then delay=30; fi
-              echo "chezmoi install attempt $attempt failed; retrying in ${delay}s" >&2
-              sleep "$delay"
-            fi
-          done
-          if [ "$installed" != true ]; then
-            echo "chezmoi was not installed after 6 attempts" >&2
-            exit 1
-          fi
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          bin_dir="$RUNNER_TEMP/chezmoi-bin"
+          mkdir -p "$bin_dir"
+          GOBIN="$bin_dir" go install chezmoi.io/chezmoi/v2@v2.74.0
+          test -x "$bin_dir/chezmoi"
+          "$bin_dir/chezmoi" --version
+          echo "$bin_dir" >> "$GITHUB_PATH"
       - name: Install chezmoi (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $binDir = Join-Path $env:RUNNER_TEMP 'chezmoi-bin'
           New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-          $installer = Join-Path $env:RUNNER_TEMP 'chezmoi-install.ps1'
-          $uri = 'https://raw.githubusercontent.com/twpayne/chezmoi/v2.74.0/assets/scripts/install.ps1'
-          $maxAttempts = 6
-          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
-            try {
-              Invoke-WebRequest -Uri $uri -OutFile $installer -TimeoutSec 30 -ErrorAction Stop
-              break
-            } catch {
-              if ($attempt -eq $maxAttempts) {
-                throw
-              }
-              $delay = [Math]::Min(30, 2 * $attempt)
-              Write-Warning "chezmoi download attempt $attempt failed; retrying in $delay seconds. $_"
-              Start-Sleep -Seconds $delay
-            }
-          }
-          if (!(Test-Path -LiteralPath $installer) -or (Get-Item -LiteralPath $installer).Length -eq 0) {
-            throw 'The chezmoi installer download was empty.'
+          $env:GOBIN = $binDir
+          go install chezmoi.io/chezmoi/v2@v2.74.0
+          if ($LASTEXITCODE -ne 0) {
+            throw "go install failed with exit code $LASTEXITCODE."
           }
           $chezmoi = Join-Path $binDir 'chezmoi.exe'
-          $installed = $false
-          $maxInstallAttempts = 6
-          for ($attempt = 1; $attempt -le $maxInstallAttempts; $attempt++) {
-            try {
-              & $installer -b $binDir -Tag v2.74.0
-              if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
-                throw "chezmoi installer exited with code $LASTEXITCODE."
-              }
-            } catch {
-              Write-Warning "chezmoi install attempt $attempt failed: $_"
-            }
-
-            if (Test-Path -LiteralPath $chezmoi -PathType Leaf) {
-              try {
-                & $chezmoi --version | Out-Null
-                if ($LASTEXITCODE -eq 0) {
-                  $installed = $true
-                  break
-                }
-              } catch {
-                Write-Warning "chezmoi binary check after attempt $attempt failed: $_"
-              }
-            }
-
-            if ($attempt -lt $maxInstallAttempts) {
-              $delay = [Math]::Min(30, 2 * $attempt)
-              Write-Warning "chezmoi is not installed yet; retrying in $delay seconds."
-              Start-Sleep -Seconds $delay
-            }
+          if (!(Test-Path -LiteralPath $chezmoi -PathType Leaf)) {
+            throw "chezmoi.exe was not found in $binDir."
           }
-          if (!$installed) {
-            throw "chezmoi was not installed after $maxInstallAttempts attempts."
+          & $chezmoi --version
+          if ($LASTEXITCODE -ne 0) {
+            throw "chezmoi version check failed with exit code $LASTEXITCODE."
           }
           $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Run configuration merge and environment tests
