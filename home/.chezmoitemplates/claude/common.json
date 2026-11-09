@@ -34,6 +34,7 @@
       "Glob",
       "Grep",
       "Bash(git push:*)",
+      "Bash(container:*)",
       "Bash(gh pr:*)",
       "Bash(gh release:*)",
       "Bash(gh issue:*)",
