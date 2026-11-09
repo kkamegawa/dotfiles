@@ -35,6 +35,7 @@
       "Grep",
       "Bash(git push:*)",
       "Bash(container:*)",
+      "Bash(wslc:*)",
       "Bash(gh pr:*)",
       "Bash(gh release:*)",
       "Bash(gh issue:*)",
