@@ -123,5 +123,4 @@ url = "https://learn.microsoft.com/api/mcp"
 enabled = true
 max_concurrent_threads_per_session = 10
 default_subagent_model = "gpt-6-luna"
-default_subagent_reasoning_effort = "medium"
-custom_agents = ["architect", "pr_explorer", "docs_researcher", "Explorer", "reviewer","test-runner"]
+default_subagent_reasoning_effort = "high"
