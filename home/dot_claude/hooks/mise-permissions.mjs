@@ -159,10 +159,9 @@ function discoverBins(misePath, home) {
       fail('mise ls contains an invalid tool entry.');
     }
     for (const record of records) {
-      if (!record || typeof record.version !== 'string' || typeof record.installed !== 'boolean') {
+      if (!record || typeof record.version !== 'string') {
         fail(`mise ls contains an invalid installed-version record for ${name}.`);
       }
-      if (!record.installed) continue;
       if (!record.version || /[\0\r\n\t ]/.test(record.version)) {
         fail(`mise ls contains an unsupported version selector for ${name}.`);
       }

@@ -55,6 +55,55 @@ class MisePermissionsTestCase(unittest.TestCase):
             check=False,
         )
 
+    def write_fake_mise(self):
+        fake_mise = self.temp / "mise-fake"
+        fake_mise.write_text(
+            "#!/bin/sh\n"
+            "printf '%s\\n' '=== call ===' \"$@\" >> \"$MISE_LOG\"\n"
+            "if [ \"$3\" = \"ls\" ]; then\n"
+            "  printf '%s' \"$MISE_LS_JSON\"\n"
+            "elif [ \"$3\" = \"bin-paths\" ] && [ \"$5\" = \"--\" ]; then\n"
+            "  if [ \"$MISE_FAIL_VERSIONED\" = \"1\" ]; then echo 'fixture failure' >&2; exit 23; fi\n"
+            "  printf '%s' \"$MISE_VERSIONED_JSON\"\n"
+            "elif [ \"$3\" = \"bin-paths\" ]; then\n"
+            "  printf '%s' \"$MISE_ACTIVE_JSON\"\n"
+            "else\n"
+            "  echo \"unexpected fake mise arguments: $*\" >&2\n"
+            "  exit 24\n"
+            "fi\n",
+            encoding="utf-8",
+        )
+        fake_mise.chmod(0o755)
+        return fake_mise
+
+    def run_discover(self, mise_path, *, ls_json, active_json, versioned_json, fail_versioned=False):
+        return subprocess.run(
+            [NODE, str(HELPER), "--discover", str(self.settings_path), str(self.ownership_path), str(mise_path)],
+            text=True,
+            capture_output=True,
+            env={
+                **os.environ,
+                "HOME": str(self.home),
+                "MISE_SHIMS_DIR": str(self.home / ".local" / "share" / "mise" / "shims"),
+                "MISE_LOG": str(self.temp / "mise-calls.log"),
+                "MISE_LS_JSON": json.dumps(ls_json),
+                "MISE_ACTIVE_JSON": json.dumps(active_json),
+                "MISE_VERSIONED_JSON": json.dumps(versioned_json),
+                "MISE_FAIL_VERSIONED": "1" if fail_versioned else "0",
+            },
+            check=False,
+        )
+
+    def read_mise_calls(self):
+        log_path = self.temp / "mise-calls.log"
+        if not log_path.exists():
+            return []
+        return [
+            block.strip().splitlines()
+            for block in log_path.read_text(encoding="utf-8").split("=== call ===\n")
+            if block.strip()
+        ]
+
     def read_settings(self):
         return json.loads(self.settings_path.read_text(encoding="utf-8"))
 
@@ -246,6 +295,119 @@ class MisePermissionsTestCase(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.settings_path.read_bytes(), settings_before)
         self.assertEqual(self.ownership_path.read_bytes(), ownership_before)
+
+    @unittest.skipIf(IS_WINDOWS, "production discovery uses a POSIX fake mise executable and symlink")
+    def test_discover_uses_official_inventory_shape_tracks_versions_and_preserves_files_on_failure(self):
+        az_v1 = self.executable("az", "1.0.0")
+        az_v2 = self.executable("az", "2.0.0")
+        gh_v3 = self.executable("gh", "3.0.0")
+        self.write_settings(
+            {"permissions": {"allow": ["Bash(az account show)", "Bash(gh pr:*)"]}}
+        )
+        fake_mise = self.write_fake_mise()
+        shims_dir = self.home / ".local" / "share" / "mise" / "shims"
+        shims_dir.mkdir(parents=True)
+        shim_az = shims_dir / "az"
+        shim_az.symlink_to(fake_mise)
+
+        inventory_all = {
+            "azure:cli": [
+                {
+                    "version": "1.0.0",
+                    "install_path": str(az_v1.parent.parent),
+                    "source": {"type": "mise.toml", "path": str(self.home / ".config" / "mise.toml")},
+                },
+                {
+                    "version": "2.0.0",
+                    "install_path": str(az_v2.parent.parent),
+                    "source": {"type": "mise.toml", "path": str(self.home / ".config" / "mise.toml")},
+                },
+            ],
+            "github:cli": [
+                {
+                    "version": "3.0.0",
+                    "install_path": str(gh_v3.parent.parent),
+                    "source": {"type": "mise.toml", "path": str(self.home / ".config" / "mise.toml")},
+                }
+            ],
+        }
+        inventory_current = {
+            "azure:cli": [inventory_all["azure:cli"][1]],
+            "github:cli": inventory_all["github:cli"],
+        }
+        active_bins = [self.bin_record("az", az_v2), self.bin_record("gh", gh_v3)]
+        all_versioned_bins = [
+            self.bin_record("az", az_v1),
+            self.bin_record("az", az_v2),
+            self.bin_record("gh", gh_v3),
+        ]
+        current_versioned_bins = [self.bin_record("az", az_v2), self.bin_record("gh", gh_v3)]
+
+        first = self.run_discover(
+            fake_mise,
+            ls_json=inventory_all,
+            active_json=active_bins,
+            versioned_json=all_versioned_bins,
+        )
+
+        self.assertEqual(first.returncode, 0, first.stderr)
+        first_rules = self.read_settings()["permissions"]["allow"]
+        for executable in (az_v1, az_v2):
+            self.assertIn(f"Bash({self.rule_path(executable)} account show)", first_rules)
+        self.assertIn(f"Bash({self.rule_path(gh_v3)} pr:*)", first_rules)
+        self.assertIn(f"Bash({self.rule_path(shim_az)} account show)", first_rules)
+        self.assertEqual(
+            self.read_mise_calls(),
+            [
+                ["-C", str(self.home), "ls", "--installed", "--json"],
+                ["-C", str(self.home), "bin-paths", "--json"],
+                [
+                    "-C",
+                    str(self.home),
+                    "bin-paths",
+                    "--json",
+                    "--",
+                    "azure:cli@1.0.0",
+                    "azure:cli@2.0.0",
+                    "github:cli@3.0.0",
+                ],
+            ],
+        )
+
+        updated = self.run_discover(
+            fake_mise,
+            ls_json=inventory_current,
+            active_json=active_bins,
+            versioned_json=current_versioned_bins,
+        )
+        self.assertEqual(updated.returncode, 0, updated.stderr)
+        updated_rules = self.read_settings()["permissions"]["allow"]
+        self.assertNotIn(f"Bash({self.rule_path(az_v1)} account show)", updated_rules)
+        self.assertIn(f"Bash({self.rule_path(az_v2)} account show)", updated_rules)
+        self.assertIn(f"Bash({self.rule_path(shim_az)} account show)", updated_rules)
+
+        settings_before_failure = self.settings_path.read_bytes()
+        ownership_before_failure = self.ownership_path.read_bytes()
+        failed = self.run_discover(
+            fake_mise,
+            ls_json={
+                "azure:cli": [
+                    {
+                        "version": "4.0.0",
+                        "install_path": "/unused",
+                        "source": {"type": "mise.toml", "path": str(self.home / ".config" / "mise.toml")},
+                    }
+                ]
+            },
+            active_json=[self.bin_record("az", az_v2)],
+            versioned_json=[],
+            fail_versioned=True,
+        )
+        self.assertNotEqual(failed.returncode, 0)
+        self.assertIn("exit code 23", failed.stderr)
+        self.assertIn("fixture failure", failed.stderr)
+        self.assertEqual(self.settings_path.read_bytes(), settings_before_failure)
+        self.assertEqual(self.ownership_path.read_bytes(), ownership_before_failure)
 
 
 if __name__ == "__main__":
