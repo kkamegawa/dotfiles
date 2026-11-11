@@ -71,6 +71,22 @@ if is_macos; then
   echo "==> Upgrading dotnet without pruning retained SDKs..."
   mise_global upgrade --global --no-prune dotnet
 
+  claude_settings="$HOME/.claude/settings.json"
+  claude_permissions_helper="$HOME/.claude/hooks/mise-permissions.mjs"
+  if [ -f "$claude_settings" ] && [ -f "$claude_permissions_helper" ]; then
+    state_home=${XDG_STATE_HOME:-"$HOME/.local/state"}
+    case "$state_home" in
+      /*) ;;
+      *) echo "XDG_STATE_HOME must be an absolute path: $state_home" >&2; exit 1 ;;
+    esac
+    echo "==> Updating Claude Code permissions for installed mise executables..."
+    mise_path=$(command -v mise)
+    mise_global exec -- node "$claude_permissions_helper" --discover \
+      "$claude_settings" \
+      "$state_home/dotfiles/claude-mise-permissions.json" \
+      "$mise_path"
+  fi
+
   dotnet_root="$HOME/.local/share/mise/dotnet-root"
   dotnet_host=$(mise_global which dotnet)
   case "$dotnet_host" in
