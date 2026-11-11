@@ -43,6 +43,7 @@
 {{ end }}
 
 {{ if ne .chezmoi.os "darwin" }}
+.claude/hooks/mise-permissions.mjs
 .local/bin/gsed
 .local/bin/dotfiles-dotnet10
 .local/share/dotfiles/dotnet10-runner/global.json
