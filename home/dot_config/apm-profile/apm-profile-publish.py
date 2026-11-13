@@ -14,6 +14,10 @@ from pathlib import Path
 from typing import Any
 
 
+# APM のプラグイン/マーケットプレース登録。リポジトリ単位の設定でユーザープロファイルには反映しない。
+IGNORED_GITHUB_ITEMS = {"copilot"}
+
+
 class PublishError(Exception):
     pass
 
@@ -168,6 +172,9 @@ def staged_files(root: Path) -> tuple[dict[Path, bytes], dict[str, Any] | None]:
         if not base.exists():
             continue
         for item in base.iterdir():
+            if top == ".github" and item.name in IGNORED_GITHUB_ITEMS:
+                print(f"警告: 反映対象外の APM 成果物を無視します: {item.relative_to(root)}", file=sys.stderr)
+                continue
             if item.name not in handled:
                 raise PublishError(f"未対応の APM 成果物です: {item.relative_to(root)}")
             if top == ".codex":
