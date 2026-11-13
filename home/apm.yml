@@ -11,7 +11,5 @@ dependencies:
     - microsoft/win-dev-skills
     - dotnet/skills
     - microsoft/skills
-    - dotnet/skills
     - microsoft/azure-sql-database-container
     - Azure/azure-functions-skills
-    - microsoft/win-dev-skills
