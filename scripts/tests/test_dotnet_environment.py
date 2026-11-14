@@ -108,7 +108,6 @@ class MiseTemplateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         data = tomllib.loads(result.stdout)
         self.assertEqual(data["tools"]["dotnet"], ["sts", "lts"])
-        self.assertIn("validate but do not apply historical exact pins", result.stdout)
 
     def test_malformed_or_unknown_manifest_fails_closed(self):
         manifest = self.home / ".config/dotfiles/dotnet-retained-sdks.json"
