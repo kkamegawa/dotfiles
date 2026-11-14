@@ -2,8 +2,9 @@
 
 - 状態: 設計・実装完了。移行は CI ではなくユーザーが実行
 - 日付: 2026-10-26
+- 最終更新: 2026-11-14（Issue #128）
 - 範囲: macOS の SDK 管理、CLI/IDE/エージェント環境、保守、切り戻し
-- 実装 Issue: 親 Issue #83、子 Issue #84-#86。
+- 実装 Issue: 親 Issue #83、子 Issue #84-#86。最新チャネルへの更新は Issue #128。
 - English: [macOS .NET SDK management](macos-dotnet-management.md)
 
 ## 目的と範囲
@@ -27,11 +28,11 @@ Windows と Linux の SDK 管理は変更しません。移行はユーザーが
 
 ## mise の設定と SDK 保持
 
-macOS では `[tools]` の `dotnet = ["10", "8"]`、既存の `[settings]` の共有ルート `dotnet.dotnet_root` と `dotnet.isolated = false` を使用します。削除するパッケージ宣言は `brew-cask:dotnet-sdk` だけです。TOML テーブルを重複作成せず、他 OS や無関係な cask の管理者は変更しません。
+macOS では `[tools]` の `dotnet = ["sts", "lts"]` で、各サポート区分の最新 SDK を管理します。2026-11-14 時点では .NET 11 STS（SDK 11.0.100）と .NET 10 LTS（SDK 10.0.404）です。既存の `[settings]` にある共有ルート `dotnet.dotnet_root` と `dotnet.isolated = false` も維持します。削除するパッケージ宣言は `brew-cask:dotnet-sdk` だけです。TOML テーブルを重複作成せず、他 OS や無関係な cask の管理者は変更しません。
 
-チャンネルは対応する主要バージョンを指定しますが、プロジェクトが必要とする全パッチ SDK を保持するものではありません。完全バージョンは端末ローカルで秘密を含まない `~/.config/dotfiles/dotnet-retained-sdks.json` に保存し、mise 宣言へ反映します。利用状況の調査が終わるまで、既存の 10.0.401 と 8.0.404 を保持します。今後必要となった完全バージョンも同じ manifest に追加します。.NET 8 のサポートは 2026-11-10 に終了します。SDK チャンネルを残してもサポート期間は延長されず、移行時にプロジェクトを暗黙のうちに更新しません。
+`sts` と `lts` チャネルは、それぞれ最新の安定サポートバージョンを追跡します。古い .NET 8 / .NET 10 SDK は保持しません。chezmoi が過去の SDK を再導入しないよう、端末ローカルで秘密を含まない `~/.config/dotfiles/dotnet-retained-sdks.json` は空にします。現在の macOS では各チャネルの最新版だけを保持します。.NET 8 のサポートは 2026-11-10 に終了しました。SDK の削除は .NET 8 を対象とするプロジェクトをアップグレードするものではありません。今回の対象は SDK のバージョンディレクトリのみで、runtime と `~/.dotnet/tools` は別に維持します。
 
-このリポジトリの設定には mise 2026.10.17 以降を使います。macOS での通常更新は `mise upgrade --global --no-prune dotnet` とし、`--bump` や通常運用での `mise prune` は使いません。更新フックは SDK の導入後に global tool を更新し、失敗時に旧システム SDKへフォールバックしません。bootstrap package apply は宣言から外れたパッケージを削除しません。SDK cask の削除は独立した明示的な最終化操作です。
+このリポジトリの設定には mise 2026.10.17 以降を使います。macOS での通常更新は `mise upgrade --global --prune dotnet` の後に `mise prune --tools dotnet` を実行し、各チャネルの最新版 SDK を導入して、要求されなくなった SDK を削除します。`--bump` は使いません。更新フックは SDK の導入後に prune と global tool の更新を行い、失敗時に旧システム SDKへフォールバックしません。bootstrap package apply は宣言から外れたパッケージを削除しません。SDK cask の削除は独立した明示的な最終化操作です。
 
 シェルプロファイルは冪等性ガードより前、`mise activate` より前に安定した .NET 環境を初期化します。PowerShell も同じ規則にします。`.zshenv`、`.zprofile`、`.zshrc` から複数回読み込まれても重複させず、macOS の `path_helper` より後に管理パスが優先されることを確認します。macOS で global tool を更新するのはシェルフックだけにし、PowerShell は tool 処理前に return します。初回セットアップでは SDK を導入してから通常の tool 更新フックが動きます。
 
@@ -67,10 +68,10 @@ Bash スクリプトが実装本体であり、PowerShell 7 スクリプトは�
 bash scripts/migrate-dotnet-macos.sh plan \
   --state-dir "$HOME/.local/state/dotfiles-dotnet-migration" \
   --project /absolute/path/to/project \
-  --sdk 10.0.401 --sdk 8.0.404
+  --sdk 10.0.404 --sdk 11.0.100
 ```
 
-関係する repository ごとに `--project` を、調査で見つかった完全 SDK ごとに `--sdk` を指定します。inventory は選択した project root / solution 以下のネストした `global.json` と祖先の policy を読み、rollback 用にインストール済み `dotnet-sdk` cask が報告する正確な SDK バージョンを保存します。state directory と project root は絶対パスにします。変更案を確認してから、`prepare`、`switch`、`verify`、`finalize` を個別に順番どおり実行します。IDE の確認を手動で終えた後だけ `--ide-checks-confirmed` を付けます。問題があれば `rollback` で記録済みの設定と登録を戻します。
+関係する repository ごとに `--project` を、調査で見つかった完全 SDK ごとに `--sdk` を指定します。例の SDK は 2026-11-14 時点での .NET 10 / 11 の最新版です。inventory は選択した project root / solution 以下のネストした `global.json` と祖先の policy を読み、rollback 用にインストール済み `dotnet-sdk` cask が報告する正確な SDK バージョンを保存します。state directory と project root は絶対パスにします。変更案を確認してから、`prepare`、`switch`、`verify`、`finalize` を個別に順番どおり実行します。IDE の確認を手動で終えた後だけ `--ide-checks-confirmed` を付けます。問題があれば `rollback` で記録済みの設定と登録を戻します。
 
 スクリプトは phase checkpoint を保存し、同時実行を防ぐ lock を使い、再開時に基準状態を再検証します。バックアップと一覧はユーザー所有の private state directory に保存し、資格情報や全環境変数をログに出しません。hook を無効にして承認対象ファイルだけを反映し、全体の chezmoi apply、無関係なパッケージ更新、`mise prune`、`--zap`、システム全体への SDK 導入は行いません。特権操作は対象アーキテクチャの登録ファイルに限定します。登録変更とパッケージ削除はユーザーが実行します。
 
@@ -92,7 +93,7 @@ bash scripts/migrate-dotnet-macos.sh plan \
   -Phase plan `
   -StateDirectory "$HOME/.local/state/dotfiles-dotnet-migration" `
   -Project @('/absolute/path/to/project') `
-  -Sdk @('10.0.401', '8.0.404')
+  -Sdk @('10.0.404', '11.0.100')
 ```
 
 PowerShell では配列引数として複数 project と SDK を渡します。wrapper は同じ phase と引数を Bash に渡し、その終了コードを返します。
@@ -118,6 +119,10 @@ PowerShell では配列引数として複数 project と SDK を渡します。w
 | `<VSCODE_DOTNET_REFERENCE>` | C# 拡張 runtime と project SDK の違い |
 | `<RIDER_TOOLSET_REFERENCE>` | solution ごとの CLI 選択と SDK download 設定 |
 | `<DOTNET_SUPPORT_POLICY_REFERENCE>` | .NET 8 のサポート期間 |
+| [mise .NET](https://mise.jdx.dev/lang/dotnet.html) | 最新 .NET `lts` / `sts` チャネルと共有 SDK root（2026-11-14 確認） |
+| [mise upgrade](https://mise.jdx.dev/cli/upgrade.html) | バージョン範囲の更新と、置き換えられた SDK を削除する `--prune`（2026-11-14 確認） |
+| [.NET 10 ダウンロード](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) | 最新 LTS SDK（2026-11-14 時点で 10.0.404） |
+| [.NET 11 ダウンロード](https://dotnet.microsoft.com/en-us/download/dotnet/11.0) | 最新 STS SDK（2026-11-14 時点で 11.0.100） |
 | `<CODEX_ENVIRONMENT_REFERENCE>` | 非ログイン実行環境の明示設定 |
 | `<CLAUDE_ENVIRONMENT_REFERENCE>` | 子プロセス環境の設定 |
 
@@ -126,3 +131,4 @@ PowerShell では配列引数として複数 project と SDK を渡します。w
 | 日付 | 以前の判断 | 現在の判断 | 理由 | 承認 |
 |---|---|---|---|---|
 | 2026-10-26 | Homebrew 管理 SDK と継承環境 | macOS mise 共有 root、shell/agent/IDE の明示的な管理、ユーザー実行の切り戻し可能な移行 | SDK 選択と runtime 探索を揃え、project 方針を維持する | ユーザーが設計を承認。1 台での移行をユーザーが最終化し、CI 外で確認 |
+| 2026-11-14 | .NET 10 / 8 チャンネルと過去 SDK の固定を維持し、置き換え後の SDK を残す | STS / LTS チャネルの最新版 SDK だけを保持し、通常更新時に置き換え済み SDK と未要求 SDK を削除 | .NET 11 STS の公開と、最新版だけを使いたいというユーザーの依頼 | この会話でユーザーが承認。Issue #128 で実装を追跡 |

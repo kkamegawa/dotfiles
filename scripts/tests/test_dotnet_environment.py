@@ -68,7 +68,7 @@ class MiseTemplateTest(unittest.TestCase):
         result = self.render_mise_config()
         self.assertEqual(result.returncode, 0, result.stderr)
         data = tomllib.loads(result.stdout)
-        self.assertEqual(data["tools"]["dotnet"], ["10", "8"])
+        self.assertEqual(data["tools"]["dotnet"], ["sts", "lts"])
         self.assertEqual(
             data["settings"]["dotnet"]["dotnet_root"],
             (self.home / ".local/share/mise/dotnet-root").as_posix(),
@@ -87,7 +87,7 @@ class MiseTemplateTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 data = tomllib.loads(result.stdout)
                 if os_name == "darwin":
-                    self.assertEqual(data["tools"]["dotnet"], ["10", "8"])
+                    self.assertEqual(data["tools"]["dotnet"], ["sts", "lts"])
                     self.assertEqual(
                         data["settings"]["dotnet"]["dotnet_root"],
                         (self.home / ".local/share/mise/dotnet-root").as_posix(),
@@ -107,7 +107,7 @@ class MiseTemplateTest(unittest.TestCase):
         result = self.render_mise_config()
         self.assertEqual(result.returncode, 0, result.stderr)
         data = tomllib.loads(result.stdout)
-        self.assertEqual(data["tools"]["dotnet"], ["10", "8", "10.0.401", "8.0.404"])
+        self.assertEqual(data["tools"]["dotnet"], ["sts", "lts", "10.0.401", "8.0.404"])
 
     def test_malformed_or_unknown_manifest_fails_closed(self):
         manifest = self.home / ".config/dotfiles/dotnet-retained-sdks.json"
@@ -238,8 +238,9 @@ class MiseHookContractTest(unittest.TestCase):
         hook = (REPO / "home/run_after_20-mise-upgrade.sh").read_text(encoding="utf-8")
         required = [
             "mise_global install",
+            "mise_global upgrade --global --prune dotnet",
+            "mise_global prune --tools dotnet",
             "mise_global upgrade --global --exclude dotnet",
-            "mise_global upgrade --global --no-prune dotnet",
             "mise_global bootstrap packages apply",
             "update_dotnet_global_tools \"$dotnet_host\"",
         ]

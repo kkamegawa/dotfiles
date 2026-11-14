@@ -115,7 +115,7 @@ npm = "latest"
 python = ['3.13', '3.11', '3.12', '3.14']
 "npm:@vscode/vsce" = "latest"
 {{ if eq .chezmoi.os "darwin" }}
-{{- $dotnetVersions := list "10" "8" -}}
+{{- $dotnetVersions := list "sts" "lts" -}}
 {{- $pinFile := printf "%s/.config/dotfiles/dotnet-retained-sdks.json" .chezmoi.homeDir -}}
 {{- if stat $pinFile -}}
 {{- $pins := include $pinFile | fromJson -}}

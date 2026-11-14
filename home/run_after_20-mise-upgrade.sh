@@ -66,10 +66,12 @@ if is_macos; then
 
   echo "==> Installing configured mise tools from the global config..."
   mise_global install
+  echo "==> Upgrading dotnet and pruning replaced SDKs..."
+  mise_global upgrade --global --prune dotnet
+  echo "==> Pruning dotnet SDKs no longer requested by the global config..."
+  mise_global prune --tools dotnet
   echo "==> Upgrading global mise tools except dotnet..."
   mise_global upgrade --global --exclude dotnet
-  echo "==> Upgrading dotnet without pruning retained SDKs..."
-  mise_global upgrade --global --no-prune dotnet
 
   claude_settings="$HOME/.claude/settings.json"
   claude_permissions_helper="$HOME/.claude/hooks/mise-permissions.mjs"
