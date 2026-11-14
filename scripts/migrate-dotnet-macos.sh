@@ -1,5 +1,8 @@
 #!/bin/bash
 # User-run, resumable macOS .NET SDK migration to the shared mise root.
+# Legacy migration contract: prepare retains the original .NET 10/.NET 8 channels
+# and exact SDKs discovered from projects and existing installations. The routine
+# latest STS/LTS updater is maintained separately in run_after_20-mise-upgrade.sh.
 # Sourceable by isolated repository tests; sourcing never runs the migration.
 set -u
 
@@ -1073,10 +1076,12 @@ migration_usage() {
   cat <<'EOF'
 Usage: bash scripts/migrate-dotnet-macos.sh [plan|prepare|switch|verify|finalize|rollback] --state-dir ABSOLUTE_PATH [--project ABSOLUTE_ROOT_OR_SOLUTION]... [--sdk X.Y.Z]... [--ide-checks-confirmed]
 
-Default phase is plan (read-only). Each mutation requires an explicit phase.
-Pass every project root/solution and additional exact SDK version to retain.
-Prepare backs up approved files, downloads/verifies the old vendor package, and
-installs SDKs. Switch applies only allowlisted targets and architecture registration.
+This is the one-time .NET 10/.NET 8 migration workflow, not the latest-only
+STS/LTS routine updater. Default phase is plan (read-only). Each mutation requires
+an explicit phase. Pass every project root/solution and additional exact SDK
+version to retain. Prepare backs up approved files, downloads/verifies the old
+vendor package, and installs the .NET 10/.NET 8 channels plus exact SDKs found in
+the selected projects and existing installations. Switch applies only allowlisted targets and architecture registration.
 Verify runs selected project builds and prints manual GUI checks. Finalize removes
 only the dotnet-sdk cask after explicit attestation. Rollback checks hashes and
 restores the old runtime selection without deleting additive SDKs.

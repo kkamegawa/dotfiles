@@ -97,7 +97,7 @@ class MiseTemplateTest(unittest.TestCase):
                     self.assertNotIn("dotnet", data["tools"])
                     self.assertNotIn("dotnet", data["settings"])
 
-    def test_retained_sdk_manifest_is_merged_into_dotnet_tool_list(self):
+    def test_retained_sdk_manifest_is_ignored_under_latest_channel_policy(self):
         manifest = self.home / ".config/dotfiles/dotnet-retained-sdks.json"
         manifest.parent.mkdir(parents=True)
         manifest.write_text(
@@ -107,7 +107,8 @@ class MiseTemplateTest(unittest.TestCase):
         result = self.render_mise_config()
         self.assertEqual(result.returncode, 0, result.stderr)
         data = tomllib.loads(result.stdout)
-        self.assertEqual(data["tools"]["dotnet"], ["sts", "lts", "10.0.401", "8.0.404"])
+        self.assertEqual(data["tools"]["dotnet"], ["sts", "lts"])
+        self.assertIn("validate but do not apply historical exact pins", result.stdout)
 
     def test_malformed_or_unknown_manifest_fails_closed(self):
         manifest = self.home / ".config/dotfiles/dotnet-retained-sdks.json"
@@ -236,16 +237,35 @@ class Dotnet10RunnerTest(unittest.TestCase):
 class MiseHookContractTest(unittest.TestCase):
     def test_macos_hook_installs_sdk_before_the_single_tool_update(self):
         hook = (REPO / "home/run_after_20-mise-upgrade.sh").read_text(encoding="utf-8")
+        macos_start = hook.index("if is_macos; then")
+        macos_end = hook.index("\nelse\n", macos_start)
+        macos_branch = hook[macos_start:macos_end]
         required = [
             "mise_global install",
             "mise_global upgrade --global --prune dotnet",
             "mise_global prune --tools dotnet",
             "mise_global upgrade --global --exclude dotnet",
+            'claude_permissions_helper="$HOME/.claude/hooks/mise-permissions.mjs"',
+            'dotnet_host=$(mise_global which dotnet)',
+            'case "$dotnet_host" in',
+            '[ -x "$dotnet_host" ]',
+            'prune_dotnet_runtimes "$dotnet_root" "$dotnet_root/sdk"',
+            'prune_dotnet_runtimes "$HOME/.dotnet" "$dotnet_root/sdk"',
             "mise_global bootstrap packages apply",
             "update_dotnet_global_tools \"$dotnet_host\"",
         ]
-        offsets = [hook.index(command) for command in required]
+        offsets = [macos_branch.index(command) for command in required]
         self.assertEqual(offsets, sorted(offsets))
+        self.assertIn("prune_dotnet_runtimes", macos_branch)
+        self.assertNotIn("prune_dotnet_runtimes ", hook[macos_end:])
+        self.assertIn('prune_dotnet_runtimes "$HOME/.dotnet" "$dotnet_root/sdk"', macos_branch)
+        self.assertIn('prune_dotnet_runtimes "$dotnet_root" "$dotnet_root/sdk"', macos_branch)
+        self.assertIn('for runtime_parent in "$runtime_root"/shared/* "$runtime_root"/host/fxr', hook)
+        self.assertIn('rm -rf "$runtime_dir"', hook)
+        self.assertIn('DOTFILES_DOTNET_RUNTIME_PRUNE_DRY_RUN=1', hook)
+        self.assertIn('Keeping runtime $runtime_dir (latest for SDK major $runtime_major)', hook)
+        self.assertIn('Usage: $0 --prune-dotnet-runtimes [--apply]', hook)
+        self.assertIn('tool_dir="$HOME/.dotnet/tools"', hook)
         managed_block = re.search(r"managed_tools='(.*?)'", hook, re.DOTALL).group(1)
         shell_tools = set(managed_block.splitlines())
         ps_hook = (REPO / "home/run_after_20-mise-upgrade.ps1").read_text(encoding="utf-8")

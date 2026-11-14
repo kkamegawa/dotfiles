@@ -30,9 +30,9 @@ Windows と Linux の SDK 管理は変更しません。移行はユーザーが
 
 macOS では `[tools]` の `dotnet = ["sts", "lts"]` で、各サポート区分の最新 SDK を管理します。2026-11-14 時点では .NET 11 STS（SDK 11.0.100）と .NET 10 LTS（SDK 10.0.404）です。既存の `[settings]` にある共有ルート `dotnet.dotnet_root` と `dotnet.isolated = false` も維持します。削除するパッケージ宣言は `brew-cask:dotnet-sdk` だけです。TOML テーブルを重複作成せず、他 OS や無関係な cask の管理者は変更しません。
 
-`sts` と `lts` チャネルは、それぞれ最新の安定サポートバージョンを追跡します。古い .NET 8 / .NET 10 SDK は保持しません。chezmoi が過去の SDK を再導入しないよう、端末ローカルで秘密を含まない `~/.config/dotfiles/dotnet-retained-sdks.json` は空にします。現在の macOS では各チャネルの最新版だけを保持します。.NET 8 のサポートは 2026-11-10 に終了しました。SDK の削除は .NET 8 を対象とするプロジェクトをアップグレードするものではありません。今回の対象は SDK のバージョンディレクトリのみで、runtime と `~/.dotnet/tools` は別に維持します。
+`sts` と `lts` チャネルは、それぞれ最新の安定サポートバージョンを追跡します。古い .NET 8 / .NET 10 SDK は保持しません。chezmoi が過去の SDK を再導入しないよう、端末ローカルで秘密を含まない `~/.config/dotfiles/dotnet-retained-sdks.json` は空にします。現在の macOS では各チャネルの最新版だけを保持します。各インストール済み SDK major に対し、runtime の `Microsoft.NETCore.App` / `Microsoft.AspNetCore.App` と `host/fxr` は最新版だけを残し、SDK がなくなった major の runtime は管理対象 root と legacy な `~/.dotnet` root から削除します。`~/.dotnet/tools` は維持します。.NET 8 のサポートは 2026-11-10 に終了しました。SDK と runtime の削除は .NET 8 を対象とするプロジェクトをアップグレードするものではありません。IDE 専用 runtime と Rider 内蔵 runtime は今回の対象外です。
 
-このリポジトリの設定には mise 2026.10.17 以降を使います。macOS での通常更新は `mise upgrade --global --prune dotnet` の後に `mise prune --tools dotnet` を実行し、各チャネルの最新版 SDK を導入して、要求されなくなった SDK を削除します。`--bump` は使いません。更新フックは SDK の導入後に prune と global tool の更新を行い、失敗時に旧システム SDKへフォールバックしません。bootstrap package apply は宣言から外れたパッケージを削除しません。SDK cask の削除は独立した明示的な最終化操作です。
+このリポジトリの設定には mise 2026.10.17 以降を使います。macOS での通常更新は `mise upgrade --global --prune dotnet` の後に `mise prune --tools dotnet` を実行し、各チャネルの最新版 SDK を導入して、要求されなくなった SDK を削除します。その後、更新 hook は古い共有 runtime と hostfxr を削除し、インストール済み SDK major ごとの最新 runtime patch と `~/.dotnet/tools` を維持します。`--bump` は使いません。更新フックは SDK の導入後に prune と global tool の更新を行い、失敗時に旧システム SDKへフォールバックしません。bootstrap package apply は宣言から外れたパッケージを削除しません。SDK cask の削除は独立した明示的な最終化操作です。
 
 シェルプロファイルは冪等性ガードより前、`mise activate` より前に安定した .NET 環境を初期化します。PowerShell も同じ規則にします。`.zshenv`、`.zprofile`、`.zshrc` から複数回読み込まれても重複させず、macOS の `path_helper` より後に管理パスが優先されることを確認します。macOS で global tool を更新するのはシェルフックだけにし、PowerShell は tool 処理前に return します。初回セットアップでは SDK を導入してから通常の tool 更新フックが動きます。
 
@@ -84,7 +84,7 @@ bash scripts/migrate-dotnet-macos.sh plan \
 | `finalize` | 明示 attestation 後に旧 SDK cask だけを削除し、重要確認を再実行 | consumer が動作し登録先が共有 root |
 | `rollback` | 必要なら旧 runtime を戻してから、登録とバックアップ済みファイルを復元 | 旧選択が動き、登録が存在しない root を指さない |
 
-移行では旧 `~/.dotnet` や共有 root 内の古い runtime を削除しません。rollback point を明示的に廃止するまでバックアップと installer を保持します。元の cask を削除した後に SDK ファイルを復元しても Homebrew の管理情報は復元されません。別途管理を再登録する必要があれば報告します。
+移行スクリプト自体は旧 `~/.dotnet` や runtime ディレクトリを削除しません。SDK 切り替え後、通常の macOS updater が上記の runtime 保持方針を適用し、`~/.dotnet/tools` は維持します。rollback point を明示的に廃止するまで移行バックアップと installer を保持します。元の cask を削除した後に SDK ファイルを復元しても Homebrew の管理情報は復元されません。別途管理を再登録する必要があれば報告します。
 
 ### PowerShell 入口
 
@@ -132,3 +132,4 @@ PowerShell では配列引数として複数 project と SDK を渡します。w
 |---|---|---|---|---|
 | 2026-10-26 | Homebrew 管理 SDK と継承環境 | macOS mise 共有 root、shell/agent/IDE の明示的な管理、ユーザー実行の切り戻し可能な移行 | SDK 選択と runtime 探索を揃え、project 方針を維持する | ユーザーが設計を承認。1 台での移行をユーザーが最終化し、CI 外で確認 |
 | 2026-11-14 | .NET 10 / 8 チャンネルと過去 SDK の固定を維持し、置き換え後の SDK を残す | STS / LTS チャネルの最新版 SDK だけを保持し、通常更新時に置き換え済み SDK と未要求 SDK を削除 | .NET 11 STS の公開と、最新版だけを使いたいというユーザーの依頼 | この会話でユーザーが承認。Issue #128 で実装を追跡 |
+| 2026-11-14 | 共有 runtime と hostfxr の全バージョンを保持 | SDK がある各 major の最新 runtime patch だけを残し、古い patch と SDK がない major の runtime を管理対象 root / legacy user root から削除。`~/.dotnet/tools` は維持 | ユーザーが古い SDK とともに古い runtime も削除するよう依頼 | この会話でユーザーが承認。Issue #128 と PR #129 で実装を追跡 |
