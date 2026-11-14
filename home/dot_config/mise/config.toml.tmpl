@@ -115,7 +115,8 @@ npm = "latest"
 python = ['3.13', '3.11', '3.12', '3.14']
 "npm:@vscode/vsce" = "latest"
 {{ if eq .chezmoi.os "darwin" }}
-{{- $dotnetVersions := list "10" "8" -}}
+{{/* Keep only the latest STS/LTS channels; validate but do not apply historical exact pins. */}}
+{{- $dotnetVersions := list "sts" "lts" -}}
 {{- $pinFile := printf "%s/.config/dotfiles/dotnet-retained-sdks.json" .chezmoi.homeDir -}}
 {{- if stat $pinFile -}}
 {{- $pins := include $pinFile | fromJson -}}
@@ -127,7 +128,6 @@ python = ['3.13', '3.11', '3.12', '3.14']
 {{- range $version := $pins.versions -}}
 {{- if not (kindIs "string" $version) -}}{{ fail "Retained SDK version must be a string" }}{{- end -}}
 {{- if not (regexMatch "^[0-9]+[.][0-9]+[.][0-9]+$" $version) -}}{{ fail "Retained SDK must use a complete stable version" }}{{- end -}}
-{{- $dotnetVersions = append $dotnetVersions $version -}}
 {{- end -}}
 {{- end -}}
 dotnet = {{ $dotnetVersions | uniq | toJson }}
