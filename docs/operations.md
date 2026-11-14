@@ -89,7 +89,7 @@ curl -fsSL https://chatgpt.com/codex/install.sh | sh
 
 macOS は mise の組み込み機能で共有 SDK を管理し、global tool の更新は `run_after_20-mise-upgrade.sh` だけが担当します。SDK の導入・更新が成功してからツールを処理します。PowerShell の更新フックは直接呼び出した場合も Windows 限定です。Linux はシェル版が担当します。
 
-macOS の dotnet は `mise upgrade --global --no-prune dotnet` で別途更新し、`--bump` と自動 prune は使いません。プロジェクトが必要とする完全 SDK バージョンはローカルの保持リストからグローバル宣言へ反映します。DOTNET_CLI_HOME が異なっても保守先は既存の `~/.dotnet/tools` を明示します。macOS の Git はネイティブ Cask の GCM を使い、重複する dotnet tool は残しますが自動更新しません。
+macOS の .NET SDK は `mise upgrade --global --prune dotnet` と `mise prune --tools dotnet` で更新・整理します。mise は最新の STS / LTS チャネルを管理し、更新 hook は各インストール済み SDK major の最新 runtime patch だけを残して旧 runtime を整理します。`--bump` は使いません。`~/.dotnet/tools` は維持し、DOTNET_CLI_HOME が異なっても既存 tool の保守先を明示します。macOS の Git はネイティブ Cask の GCM を使い、重複する dotnet tool は残しますが自動更新しません。
 
 初回セットアップ・日常更新ともに SDK の導入を global tool より先に行います。bootstrap apply は宣言から外した導入済みパッケージを削除せず、旧 SDK Cask はユーザーの明示的な移行終了操作だけで削除します。移行フェーズ、.NET 10 task、登録、切り戻し、検証は [macOS .NET 管理](macos-dotnet-management_ja.md) を参照してください。移行は chezmoi の自動フックには登録しません。
 

@@ -30,7 +30,7 @@ Windows と Linux の SDK 管理は変更しません。移行はユーザーが
 
 macOS では `[tools]` の `dotnet = ["sts", "lts"]` で、各サポート区分の最新 SDK を管理します。2026-11-14 時点では .NET 11 STS（SDK 11.0.100）と .NET 10 LTS（SDK 10.0.404）です。既存の `[settings]` にある共有ルート `dotnet.dotnet_root` と `dotnet.isolated = false` も維持します。削除するパッケージ宣言は `brew-cask:dotnet-sdk` だけです。TOML テーブルを重複作成せず、他 OS や無関係な cask の管理者は変更しません。
 
-`sts` と `lts` チャネルは、それぞれ最新の安定サポートバージョンを追跡します。古い .NET 8 / .NET 10 SDK は保持しません。chezmoi が過去の SDK を再導入しないよう、端末ローカルで秘密を含まない `~/.config/dotfiles/dotnet-retained-sdks.json` は空にします。現在の macOS では各チャネルの最新版だけを保持します。各インストール済み SDK major に対し、runtime の `Microsoft.NETCore.App` / `Microsoft.AspNetCore.App` と `host/fxr` は最新版だけを残し、SDK がなくなった major の runtime は管理対象 root と legacy な `~/.dotnet` root から削除します。`~/.dotnet/tools` は維持します。.NET 8 のサポートは 2026-11-10 に終了しました。SDK と runtime の削除は .NET 8 を対象とするプロジェクトをアップグレードするものではありません。IDE 専用 runtime と Rider 内蔵 runtime は今回の対象外です。
+`sts` と `lts` チャネルは、それぞれ最新の安定サポートバージョンを追跡します。古い .NET 8 / .NET 10 SDK は保持しません。template は旧形式の端末ローカル `~/.config/dotfiles/dotnet-retained-sdks.json` を検証しますが、最新版のみの方針ではバージョン値を無視するため、既存 pin から古い SDK が再導入されることはありません。現在の macOS では各チャネルの最新版だけを保持します。各インストール済み SDK major に対し、runtime の `Microsoft.NETCore.App` / `Microsoft.AspNetCore.App` と `host/fxr` は最新版だけを残し、SDK がなくなった major の runtime は管理対象 root と legacy な `~/.dotnet` root から削除します。`~/.dotnet/tools` は維持します。.NET 8 のサポートは 2026-11-10 に終了しました。SDK と runtime の削除は .NET 8 を対象とするプロジェクトをアップグレードするものではありません。IDE 専用 runtime と Rider 内蔵 runtime は今回の対象外です。
 
 このリポジトリの設定には mise 2026.10.17 以降を使います。macOS での通常更新は `mise upgrade --global --prune dotnet` の後に `mise prune --tools dotnet` を実行し、各チャネルの最新版 SDK を導入して、要求されなくなった SDK を削除します。その後、更新 hook は古い共有 runtime と hostfxr を削除し、インストール済み SDK major ごとの最新 runtime patch と `~/.dotnet/tools` を維持します。`--bump` は使いません。更新フックは SDK の導入後に prune と global tool の更新を行い、失敗時に旧システム SDKへフォールバックしません。bootstrap package apply は宣言から外れたパッケージを削除しません。SDK cask の削除は独立した明示的な最終化操作です。
 
@@ -60,18 +60,18 @@ Finder/Dock 起動の apphost はプロファイルの環境変数を継承し�
 
 macOS の Git は native GCM パッケージの絶対パスを使います。重複する dotnet global tool はインストール状態を維持しますが、自動更新は停止します。Git helper の設定と資格情報を要求しない version コマンドで確認します。credential を取得したり表示したりしません。
 
-## ユーザーが実行する移行スクリプト
+## ユーザーが実行する初回 SDK 移行スクリプト
 
-Bash スクリプトが実装本体であり、PowerShell 7 スクリプトは引数と終了コードを維持して呼び出す wrapper です。両方とも macOS 以外では停止します。phase を省略した場合は読み取り専用の `plan` を実行します。
+Bash スクリプトが実装本体であり、PowerShell 7 スクリプトは引数と終了コードを維持して呼び出す wrapper です。両方とも macOS 以外では停止します。これは Homebrew から mise への初回移行手順です。継続的な SDK 更新では上記の STS / LTS 方針を使います。phase を省略した場合は読み取り専用の `plan` を実行します。
 
 ```sh
 bash scripts/migrate-dotnet-macos.sh plan \
   --state-dir "$HOME/.local/state/dotfiles-dotnet-migration" \
   --project /absolute/path/to/project \
-  --sdk 10.0.404 --sdk 11.0.100
+  --sdk 10.0.401 --sdk 8.0.404
 ```
 
-関係する repository ごとに `--project` を、調査で見つかった完全 SDK ごとに `--sdk` を指定します。例の SDK は 2026-11-14 時点での .NET 10 / 11 の最新版です。inventory は選択した project root / solution 以下のネストした `global.json` と祖先の policy を読み、rollback 用にインストール済み `dotnet-sdk` cask が報告する正確な SDK バージョンを保存します。state directory と project root は絶対パスにします。変更案を確認してから、`prepare`、`switch`、`verify`、`finalize` を個別に順番どおり実行します。IDE の確認を手動で終えた後だけ `--ide-checks-confirmed` を付けます。問題があれば `rollback` で記録済みの設定と登録を戻します。
+関係する repository ごとに `--project` を、調査で見つかった完全 SDK ごとに `--sdk` を指定します。この SDK 例は移行スクリプトの当初の .NET 10 / 8 ベースラインであり、現在の STS / LTS チャネル設定ではありません。inventory は選択した project root / solution 以下のネストした `global.json` と祖先の policy を読み、rollback 用にインストール済み `dotnet-sdk` cask が報告する正確な SDK バージョンを保存します。state directory と project root は絶対パスにします。変更案を確認してから、`prepare`、`switch`、`verify`、`finalize` を個別に順番どおり実行します。IDE の確認を手動で終えた後だけ `--ide-checks-confirmed` を付けます。問題があれば `rollback` で記録済みの設定と登録を戻します。
 
 スクリプトは phase checkpoint を保存し、同時実行を防ぐ lock を使い、再開時に基準状態を再検証します。バックアップと一覧はユーザー所有の private state directory に保存し、資格情報や全環境変数をログに出しません。hook を無効にして承認対象ファイルだけを反映し、全体の chezmoi apply、無関係なパッケージ更新、`mise prune`、`--zap`、システム全体への SDK 導入は行いません。特権操作は対象アーキテクチャの登録ファイルに限定します。登録変更とパッケージ削除はユーザーが実行します。
 
@@ -93,7 +93,7 @@ bash scripts/migrate-dotnet-macos.sh plan \
   -Phase plan `
   -StateDirectory "$HOME/.local/state/dotfiles-dotnet-migration" `
   -Project @('/absolute/path/to/project') `
-  -Sdk @('10.0.404', '11.0.100')
+  -Sdk @('10.0.401', '8.0.404')
 ```
 
 PowerShell では配列引数として複数 project と SDK を渡します。wrapper は同じ phase と引数を Bash に渡し、その終了コードを返します。

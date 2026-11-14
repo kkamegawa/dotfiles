@@ -30,7 +30,7 @@ Do not set `MSBuildSDKsPath` or global `DOTNET_HOST_PATH`. `mise activate` owns 
 
 On macOS, configure `dotnet = ["sts", "lts"]` under `[tools]` to track the latest SDK in each supported channel. On 2026-11-14, these resolve to .NET 11 STS (SDK 11.0.100) and .NET 10 LTS (SDK 10.0.404). Keep `dotnet.dotnet_root` pointed at the shared root and `dotnet.isolated = false` under the existing `[settings]` table. Remove only the `brew-cask:dotnet-sdk` declaration. Do not create duplicate TOML tables. Other platforms and unrelated casks retain their existing owners.
 
-The `sts` and `lts` channels follow the newest stable supported release of each support type. Do not retain historical .NET 8 or .NET 10 SDK patches by default. Keep the local, non-secret `~/.config/dotfiles/dotnet-retained-sdks.json` manifest empty so chezmoi does not re-add old SDKs. The current macOS installation therefore keeps only the latest SDK from each channel. For each installed SDK major, runtime cleanup keeps only the newest installed patch of `Microsoft.NETCore.App`, `Microsoft.AspNetCore.App`, and `host/fxr`; runtime versions for SDK majors that are no longer installed are removed from the managed root and the legacy `~/.dotnet` root. Keep `~/.dotnet/tools`. .NET 8 support ended on 2026-11-10; removing its SDK and runtimes does not upgrade projects that still target .NET 8. IDE-private runtimes and Rider's bundled runtime remain outside this cleanup.
+The `sts` and `lts` channels follow the newest stable supported release of each support type. Do not retain historical .NET 8 or .NET 10 SDK patches by default. The template validates the legacy local `~/.config/dotfiles/dotnet-retained-sdks.json` manifest but ignores its version entries under this latest-only policy, so existing pins cannot re-add old SDKs. The current macOS installation therefore keeps only the latest SDK from each channel. For each installed SDK major, runtime cleanup keeps only the newest installed patch of `Microsoft.NETCore.App`, `Microsoft.AspNetCore.App`, and `host/fxr`; runtime versions for SDK majors that are no longer installed are removed from the managed root and the legacy `~/.dotnet` root. Keep `~/.dotnet/tools`. .NET 8 support ended on 2026-11-10; removing its SDK and runtimes does not upgrade projects that still target .NET 8. IDE-private runtimes and Rider's bundled runtime remain outside this cleanup.
 
 Use mise 2026.10.17 or later for this repository configuration. Routine macOS updates use `mise upgrade --global --prune dotnet`, followed by `mise prune --tools dotnet`, to install the latest configured SDKs and remove SDK versions that are no longer requested. The macOS hook then removes outdated shared runtime and hostfxr directories, preserving the newest runtime patch for each installed SDK major and retaining `~/.dotnet/tools`. Do not use `--bump`. The updater installs the SDK before pruning or updating global tools and does not fall back to the old system SDK on failure. Bootstrap package apply does not uninstall undeclared packages; removal of the SDK cask is a separate, explicit finalization action.
 
@@ -60,18 +60,18 @@ GUI-launched apphosts may not inherit profile variables. The architecture-specif
 
 On macOS, Git uses the native GCM package's absolute executable. Keep the duplicate dotnet global tool installed but stop updating it automatically. Verify the configured helper and a harmless version command; do not request or print credentials.
 
-## User-run migration script
+## User-run initial SDK migration script
 
-The Bash script is the implementation; the PowerShell 7 script is its argument- and exit-code-preserving wrapper. Both refuse non-macOS execution. Each phase is explicit except that omitting a phase runs the read-only `plan` phase.
+The Bash script is the implementation; the PowerShell 7 script is its argument- and exit-code-preserving wrapper. Both refuse non-macOS execution. This is the original Homebrew-to-mise migration procedure; ongoing SDK updates use the STS/LTS policy above. Each phase is explicit except that omitting a phase runs the read-only `plan` phase.
 
 ```sh
 bash scripts/migrate-dotnet-macos.sh plan \
   --state-dir "$HOME/.local/state/dotfiles-dotnet-migration" \
   --project /absolute/path/to/project \
-  --sdk 10.0.404 --sdk 11.0.100
+  --sdk 10.0.401 --sdk 8.0.404
 ```
 
-Repeat `--project` for every relevant repository and `--sdk` for every exact SDK requirement discovered during inventory. The example versions are the latest .NET 10 and .NET 11 SDKs as of 2026-11-14. The inventory reads ancestor and nested `global.json` policies under each selected project root or solution, and archives the exact SDK version reported by the installed `dotnet-sdk` cask for rollback. Use an absolute state directory and project roots. Review the proposed changes before running a mutating phase. Run `prepare`, `switch`, `verify`, and `finalize` explicitly and in order. Add `--ide-checks-confirmed` only after manually completing the IDE checks. Use `rollback` to restore the recorded prior configuration and registration if needed.
+Repeat `--project` for every relevant repository and `--sdk` for every exact SDK requirement discovered during inventory. These versions match the migration script's original .NET 10/.NET 8 baseline; they are not the current STS/LTS channel configuration. The inventory reads ancestor and nested `global.json` policies under each selected project root or solution, and archives the exact SDK version reported by the installed `dotnet-sdk` cask for rollback. Use an absolute state directory and project roots. Review the proposed changes before running a mutating phase. Run `prepare`, `switch`, `verify`, and `finalize` explicitly and in order. Add `--ide-checks-confirmed` only after manually completing the IDE checks. Use `rollback` to restore the recorded prior configuration and registration if needed.
 
 The script maintains phase checkpoints, locks against concurrent runs, and validates the baseline before resuming. It uses a private state directory for backups and inventories; it must not log credentials or dump the full process environment. It deploys only the approved target files with hooks excluded and does not run a whole-tree chezmoi apply, unrelated package upgrades, `mise prune`, `--zap`, or system-wide SDK installation. The privileged registration helper is limited to the expected architecture-specific registration file. The user runs that operation and any package uninstall.
 
@@ -93,7 +93,7 @@ The migration script itself does not remove the old `~/.dotnet` installation or 
   -Phase plan `
   -StateDirectory "$HOME/.local/state/dotfiles-dotnet-migration" `
   -Project @('/absolute/path/to/project') `
-  -Sdk @('10.0.404', '11.0.100')
+  -Sdk @('10.0.401', '8.0.404')
 ```
 
 Repeat `-Project` and `-Sdk` as required. The PowerShell wrapper forwards the same phase and inputs to the Bash implementation and returns its exit code.
