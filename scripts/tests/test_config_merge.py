@@ -79,6 +79,52 @@ class CodexMergeTest(MergeTestCase):
         self.assertNotIn("node_repl", data.get("mcp_servers", {}))
         self.assertNotIn("plugins", data)
 
+    def test_review_server_uses_only_resolved_executables_and_managed_settings(self):
+        bin_dir = self.tmp / "bin"
+        bin_dir.mkdir()
+        suffix = ".exe" if IS_WINDOWS else ""
+        node = bin_dir / f"node{suffix}"
+        claude = bin_dir / f"claude{suffix}"
+        for executable in (node, claude):
+            executable.touch(mode=0o755)
+        override = json.dumps({"chezmoi": {"homeDir": str(self.dest)}})
+        target = self.write(
+            self.REL,
+            '[mcp_servers.claude_review]\nurl = "stale-transport"\n'
+            '[mcp_servers.claude_review.env]\nSTALE = "remove"\n'
+            '[mcp_servers.another]\ncommand = "keep"\n',
+        )
+        command = [
+            CHEZMOI, "--source", str(REPO), "--destination", str(self.dest),
+            "--persistent-state", str(self.tmp / "state.boltdb"), "--config", str(self.config),
+            "--override-data", override, "--no-tty", "apply", "--exclude", "scripts", str(target),
+        ]
+        env = {**os.environ, "PATH": str(bin_dir)}
+
+        for available in (True, False):
+            with self.subTest(claude_available=available):
+                if not available:
+                    claude.unlink()
+                result = subprocess.run(command, env=env, capture_output=True, text=True, encoding="utf-8")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                servers = self.load()["mcp_servers"]
+                review = servers["claude_review"]
+                self.assertEqual(Path(review["command"]), node)
+                self.assertEqual(Path(review["cwd"]), self.dest)
+                self.assertEqual(
+                    [Path(arg) for arg in review["args"]],
+                    [self.dest / ".local/share/dotfiles/claude-review/server.mjs"],
+                )
+                self.assertIs(review["enabled"], available)
+                self.assertEqual(review["enabled_tools"], ["review_diff"])
+                self.assertEqual(review["env_vars"], ["DOTFILES_CODEX_FROM_CLAUDE"])
+                self.assertEqual(review["tool_timeout_sec"], 270)
+                self.assertNotIn("url", review)
+                self.assertEqual(review["env"]["DISABLE_AUTOUPDATER"], "1")
+                self.assertEqual(review["env"]["DOTFILES_REVIEW_CLAUDE"], str(claude) if available else "")
+                self.assertNotIn("STALE", review["env"])
+                self.assertEqual(servers["another"]["command"], "keep")
+
     def test_app_owned_keys_survive_and_managed_keys_win(self):
         target = self.write(
             self.REL,
@@ -317,7 +363,7 @@ class ClaudeMergeTest(MergeTestCase):
         data = self.load()
         self.assertEqual(data["env"]["CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"], "60")
         self.assertEqual(data["statusLine"]["args"], [f"{CLAUDE_HOME}/hooks/statusline.mjs"])
-        self.assertNotIn("enabledPlugins", data)
+        self.assertIs(data["enabledPlugins"]["codex@openai-codex"], True)
 
     def test_macos_environment_is_managed_without_dropping_other_env(self):
         self.apply(self.dest / self.REL)
@@ -381,7 +427,7 @@ class ClaudeMergeTest(MergeTestCase):
         self.assertEqual(data["model"], "opusplan")
         self.assertEqual(data["env"]["APP_OWNED_VALUE"], "preserve")
         self.assertEqual(data["env"]["DOTNET_CLI_HOME"], "/app/cache")
-        self.assertEqual(data["enabledPlugins"], {"x@inline": True})
+        self.assertEqual(data["enabledPlugins"], {"codex@openai-codex": True, "x@inline": True})
         self.assertIn("Bash(make:*)", data["permissions"]["allow"])
         self.assertIn("Bash(git status:*)", data["permissions"]["allow"])
         self.assertIn("Bash(local-deny)", data["permissions"]["deny"])

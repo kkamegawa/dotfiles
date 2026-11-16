@@ -1,0 +1,37 @@
+{{- /* Resolve local executables before rendering the review-only MCP server. */ -}}
+{{- $nodeName := "node" -}}
+{{- $claudeName := "claude" -}}
+{{- if eq .chezmoi.os "windows" -}}
+{{- $nodeName = "node.exe" -}}
+{{- $claudeName = "claude.exe" -}}
+{{- end -}}
+{{- $node := lookPath $nodeName -}}
+{{- if contains "/shims/" ($node | replace "\\" "/") -}}
+{{- $node = "" -}}
+{{- end -}}
+{{- $mise := lookPath "mise" -}}
+{{- if $mise -}}
+{{- if exec $mise "-C" .chezmoi.homeDir "which" "--tool" "node@lts" "node" -}}
+{{- $node = output $mise "-C" .chezmoi.homeDir "which" "--tool" "node@lts" "node" | trim -}}
+{{- end -}}
+{{- end -}}
+{{- $claude := lookPath $claudeName -}}
+{{- if not $claude -}}
+{{- $localClaude := joinPath .chezmoi.homeDir ".local" "bin" $claudeName -}}
+{{- if isExecutable $localClaude -}}{{- $claude = $localClaude -}}{{- end -}}
+{{- end -}}
+{{- $script := joinPath .chezmoi.destDir ".local" "share" "dotfiles" "claude-review" "server.mjs" -}}
+
+[mcp_servers.claude_review]
+command = {{ $node | default $nodeName | quote }}
+args = [{{ $script | quote }}]
+cwd = {{ .chezmoi.homeDir | quote }}
+enabled = {{ if and (osIsAbs $node) (osIsAbs $claude) }}true{{ else }}false{{ end }}
+enabled_tools = ["review_diff"]
+env_vars = ["DOTFILES_CODEX_FROM_CLAUDE"]
+required = false
+tool_timeout_sec = 270
+
+[mcp_servers.claude_review.env]
+DOTFILES_REVIEW_CLAUDE = {{ $claude | quote }}
+DISABLE_AUTOUPDATER = "1"

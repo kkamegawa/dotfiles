@@ -67,9 +67,11 @@ macOS のリポジトリ所有 C# フックは .NET 10 ラッパーの絶対パ�
 | `approval_policy`、`approvals_reviewer`、`default_permissions`、`allow_login_shell`、`model`、`model_reasoning_effort`、`web_search` | `mcp_servers.node_repl` とその `env`（`BROWSER_USE_*`、`NODE_REPL_*`、`CODEX_*`、`SKY_*`） |
 | `notify`（macOS のみ） | `marketplaces.*` |
 | `permissions.*`、`features.*`、`shell_environment_policy.*`、`windows.sandbox`（Windows のみ） | `plugins.*` |
-| `agents.*`、`desktop.*`、`mcp_servers.learn_mcp` | `projects.*` |
+| `agents.*`、`desktop.*`、`mcp_servers.learn_mcp`、`mcp_servers.claude_review`（`review_diff` のみ） | `projects.*` |
 
 Codex に和集合パスはなく、配列はすべて置換です。
+
+`mcp_servers.claude_review` の起動コマンド、引数、環境変数、許可ツールはリポジトリが一体として管理します。`mcp_servers.node_repl` とその `env`（`BROWSER_USE_*`、`NODE_REPL_*`、`CODEX_*`、`SKY_*`）は引き続きアプリ所有です。
 
 ### Claude Code（`settings.json`）
 
@@ -100,6 +102,18 @@ MCP サーバー名はツール名に含まれる（`permissions.allow` の `mcp
 
 除外されたコマンドは sandbox の制限なしで動きます。`git commit` や `git status` などローカルだけの操作は対象外です。force push は Codex では確認を求め、Claude Code では拒否されます。
 
+## 相互レビュー
+
+`claude_review` Codex MCP サーバーは、差分と任意の関連コンテキストだけを受け取り、ワークツリーは読み取りません。ランチャーは Claude Code を一時作業ディレクトリで起動し、`--safe-mode`、セッション保存なし、ツールなし、厳格な MCP 設定、Sonnet・medium、1ターン、JSON 出力を指定します。入力全体は128 KiB、レビューは240秒に制限します。Claude CLI の起動エラーや成功以外の JSON 結果はツールエラーとして返します。
+
+Codex では `claude_review.review_diff` ツールを使うよう依頼し、対象差分とレビューに必要なソースコンテキストだけを渡します。実行ファイルの絶対パスは chezmoi が設定を生成するときに解決します。Node と Claude CLI の絶対パスを解決できない場合、サーバーは無効になります。公式プラグインが起動した Codex からレビューが入れ子にならないよう、`DOTFILES_CODEX_FROM_CLAUDE` マーカーを使います。
+
+初回は Claude Code の `/plugin` 画面で公式 `codex@openai-codex` プラグインをユーザースコープにインストールします。以前に無効化していた場合は同じ画面で有効にします。chezmoi で `~/.codex/config.toml`、`~/.claude/settings.json`、`~/.local/share/dotfiles/claude-review/server.mjs` を適用し、両方のクライアントを再起動します。`enabledPlugins` にキーがない場合、プラグインの有無にかかわらず apply は `true` を既定値として設定します。明示的な `false` は維持します。プラグインが有効で、有効なユーザースコープの導入済みコピーを確認できた場合、その版の `scripts` ディレクトリを `permissions.additionalDirectories` に追加し、作業ディレクトリから companion コマンドを実行できるようにします。`Edit(<scripts-path>/**)` の完全一致 deny でこのディレクトリの編集を防ぎます。Unix では同じディレクトリを `sandbox.filesystem.denyWrite` にも追加します。
+
+完了を待つ場合は `/codex:review --wait`、バックグラウンドで実行する場合は `/codex:review --background` を使います。バックグラウンドジョブは `/codex:status`、`/codex:result`、`/codex:cancel` で操作します。公式プラグインを更新した後は、同じ3つの対象に chezmoi apply を再実行して古い sandbox 例外を置換し、Claude Code を再起動します。版付きディレクトリ権限と shell 例外は、プラグイン更新時または無効化時に削除して置き換え、無関係な既存設定は保持します。Unix の例外は導入済みプラグイン版の `codex-companion.mjs` に対する review、status、result、cancel コマンドだけに一致します。Windows では shell 例外を追加しませんが、scripts ディレクトリの `permissions.additionalDirectories` と完全一致の `Edit` deny は適用します。Windows では公式プラグインのレビューとジョブ操作に Windows ネイティブの Git Bash を使います。
+
+有効なユーザースコープのプラグイン導入が確認できない場合、apply は版付きプラグインディレクトリの権限や shell 例外を追加しません。プラグイン有効設定の既定値は `true` のままなので、後からプラグインを導入して apply すると、確認済みの導入先に対応する例外が追加されます。プラグインのインストールと更新はリポジトリでは管理しないため、Claude Code のプラグイン画面から行います。
+
 ## 運用
 
 - 共通設定を追加・変更する: 断片を編集し、`chezmoi diff` と `chezmoi apply` を実行します。
@@ -123,7 +137,7 @@ chezmoi apply ~/.codex/config.toml ~/.claude/settings.json
 
 ## 検証
 
-`scripts/tests` は、一時的な chezmoi のソース・宛先・状態にフィクスチャを置いてテンプレートを適用し、次を確認します: 管理キーの適用、アプリ所有キーの保持、和集合と置換の挙動、フックの所有権、2回目の apply での冪等性、不正な入力で失敗してもファイルが変わらないこと。`lint.yml` が Linux・Windows・macOS で実行し、隔離した移行・ラッパーのテストも含めます。
+`scripts/tests` は、一時的な chezmoi のソース・宛先・状態にフィクスチャを置いてテンプレートを適用し、次を確認します: 管理キーの適用、アプリ所有キーの保持、和集合と置換の挙動、フックの所有権、2回目の apply での冪等性、不正な入力で失敗してもファイルが変わらないこと。相互レビューのテストでは、プラグインの明示的な無効化、未導入時の設定、旧版 sandbox 例外の除去、およびモック Claude CLI に対する MCP の制限・入出力・エラー処理を確認します。`lint.yml` が Linux・Windows・macOS で実行し、隔離した移行・ラッパーのテストも含めます。
 
 ## .NET の判断変更履歴
 
@@ -148,3 +162,4 @@ chezmoi apply ~/.codex/config.toml ~/.claude/settings.json
 |---|---|---|---|---|
 | 2026-11-01 | Codex と Claude の設定所有権を記録し、エージェント指示では Bash と PowerShell 7 の両方を要求 | 共通の chezmoi 指示から Codex、Claude Code、Copilot CLI 向けの個人エージェントを生成し、Copilot の APM 管理リンク外に配置 | 各ツールのネイティブ形式と既存 APM 所有権を守りつつ、依頼されたツール間でクロスプラットフォームのスクリプト規則を共有する | 会話で実装計画と文書差分を承認 |
 | 2026-11-03 | APM の skills と agents を `~/.config/apm/` からのリンクで共有 | APM の出力を候補フォルダーで検証してから `~/.agents/skills`、`~/.claude/`、Copilot のユーザーフォルダーへ実コピーし、`~/.github/agents` も実フォルダー化 | 各アプリのユーザープロファイルへ安全に配置し、chezmoi の更新時にマーケットプレースを更新する | 会話で計画・構成を承認 |
+| 2026-11-16 | Codex と Claude Code の間でレビュー情報を安全に渡せなかった | レビュー専用 Codex MCP サーバーを追加し、公式 Codex プラグインを既定で有効にして、確認済みのユーザースコープ導入先から sandbox 例外を生成 | 明示された差分とコンテキストだけを渡し、ツール権限を制限し、入れ子レビューを防ぎ、プラグイン更新時に古い sandbox 例外を置換する | 実装計画は会話で承認済み |
