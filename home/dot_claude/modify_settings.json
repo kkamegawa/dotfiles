@@ -1,7 +1,9 @@
 {{- /* chezmoi:modify-template */ -}}
 {{- /*
   Merge the repository-managed Claude Code settings into the existing settings.json.
-  Unmanaged keys (enabledPlugins, hooks injected by other tools, ...) are kept.
+  Unmanaged keys (plugins other than the Codex review plugin, hooks injected by
+  other tools, ...) are kept. The Codex review plugin defaults to enabled when
+  its setting is absent, while an explicit enabledPlugins choice is preserved.
   See docs/ai-tool-config.md.
 */ -}}
 {{- $claudeHome := (includeTemplate "claude/paths" . | fromJson).claudeHome -}}
@@ -9,13 +11,64 @@
 {{- if .chezmoi.stdin -}}
 {{- $current = .chezmoi.stdin | fromJson -}}
 {{- end -}}
-{{- $union := list "permissions.allow" "permissions.ask" "permissions.deny" "permissions.additionalDirectories" "sandbox.network.allowedDomains" "sandbox.filesystem.allowRead" "sandbox.filesystem.allowWrite" "sandbox.excludedCommands" -}}
+{{- $union := list "permissions.allow" "permissions.ask" "permissions.deny" "permissions.additionalDirectories" "sandbox.network.allowedDomains" "sandbox.filesystem.allowRead" "sandbox.filesystem.allowWrite" "sandbox.filesystem.denyWrite" "sandbox.excludedCommands" -}}
+
+{{- /* Refresh exactly the plugin paths and Bash exceptions owned by this template. */ -}}
+{{- $destination := .chezmoi.destDir | toString | replace "\\" "/" | regexQuoteMeta -}}
+{{- $scriptsPattern := printf `%s/\.claude/plugins/cache/openai-codex/codex/[0-9A-Za-z.+-]+/scripts` $destination -}}
+{{- $permissions := get $current "permissions" | default (dict) -}}
+{{- $sandbox := get $current "sandbox" | default (dict) -}}
+{{- $filesystem := get $sandbox "filesystem" | default (dict) -}}
+{{- range list
+  (dict "dst" $permissions "key" "additionalDirectories" "pattern" (printf `^%s$` $scriptsPattern))
+  (dict "dst" $permissions "key" "deny" "pattern" (printf `^Edit\(//?%s/\*\*\)$` $scriptsPattern))
+  (dict "dst" $filesystem "key" "denyWrite" "pattern" (printf `^%s$` $scriptsPattern))
+  (dict "dst" $sandbox "key" "excludedCommands" "pattern" (printf `^node "%s/codex-companion\.mjs" (review|status|result|cancel) \*$` $scriptsPattern))
+-}}
+  {{- $entries := get .dst .key -}}
+  {{- if kindIs "slice" $entries -}}
+    {{- $kept := list -}}
+    {{- $pattern := .pattern -}}
+    {{- range $entries -}}
+      {{- if or (not (kindIs "string" .)) (not (regexMatch $pattern .)) -}}
+        {{- $kept = append $kept . -}}
+      {{- end -}}
+    {{- end -}}
+    {{- $_ := set .dst .key $kept -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* Default the plugin choice and retain an explicit true or false. */ -}}
+{{- $enabledPlugins := get $current "enabledPlugins" | default (dict) -}}
+{{- if not (hasKey $enabledPlugins "codex@openai-codex") -}}
+  {{- $_ := set $enabledPlugins "codex@openai-codex" true -}}
+{{- end -}}
+{{- $_ := set $current "enabledPlugins" $enabledPlugins -}}
+
+{{- $managed := includeTemplate "claude/common.json" . | fromJson -}}
 
 {{- /* Combine the common fragment with the OS overlay. */ -}}
 {{- $overlay := "claude/unix.json" -}}
 {{- if eq .chezmoi.os "windows" -}}{{- $overlay = "claude/windows.json" -}}{{- end -}}
-{{- $managed := includeTemplate "claude/common.json" . | fromJson -}}
 {{- $managed = includeTemplate "merge/deep" (dict "dst" $managed "src" (includeTemplate $overlay . | fromJson) "union" $union "path" "") | fromJson -}}
+{{- if get $enabledPlugins "codex@openai-codex" -}}
+  {{- $scripts := includeTemplate "claude/review-settings" . -}}
+  {{- if $scripts -}}
+    {{- /* The command permission check also requires the script to be in a working directory. */ -}}
+    {{- $_ := set $managed.permissions "additionalDirectories" (append (get $managed.permissions "additionalDirectories" | default (list)) $scripts) -}}
+    {{- $absolutePrefix := "/" -}}
+    {{- if not (hasPrefix "/" $scripts) -}}{{- $absolutePrefix = "//" -}}{{- end -}}
+    {{- $_ := set $managed.permissions "deny" (append $managed.permissions.deny (printf "Edit(%s%s/**)" $absolutePrefix $scripts)) -}}
+    {{- if ne .chezmoi.os "windows" -}}
+      {{- $_ := set $managed.sandbox.filesystem "denyWrite" (list $scripts) -}}
+      {{- $excluded := $managed.sandbox.excludedCommands -}}
+      {{- range list "review" "status" "result" "cancel" -}}
+        {{- $excluded = append $excluded (printf `node "%s/codex-companion.mjs" %s *` $scripts .) -}}
+      {{- end -}}
+      {{- $_ := set $managed.sandbox "excludedCommands" $excluded -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
 
 {{- /* Hook entries that run repository hook scripts are repository-owned: drop them and re-add. */ -}}
 {{- $owned := printf "%s/hooks/" $claudeHome -}}

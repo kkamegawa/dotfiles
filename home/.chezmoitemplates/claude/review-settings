@@ -1,0 +1,32 @@
+{{- /* Resolve the scripts directory of the installed user-scope Codex plugin. */ -}}
+{{- $home := .chezmoi.destDir | toString | replace "\\" "/" -}}
+{{- $claudeHome := printf "%s/.claude" $home -}}
+{{- $manifestPath := printf "%s/plugins/installed_plugins.json" $claudeHome -}}
+{{- $scripts := "" -}}
+{{- /* The companion command quotes its path in shell double quotes. */ -}}
+{{- if not (regexMatch "[\"$`\\r\\n*?\\[\\]]" $home) -}}
+{{- $manifestFile := lstat $manifestPath -}}
+{{- if and $manifestFile (eq $manifestFile.type "file") -}}
+  {{- $manifest := include $manifestPath | fromJson -}}
+  {{- $plugins := get $manifest "plugins" | default (dict) -}}
+  {{- $entries := get $plugins "codex@openai-codex" | default (list) -}}
+  {{- $userEntry := dict -}}
+  {{- range $entry := $entries -}}
+    {{- if and (kindIs "map" $entry) (eq (get $entry "scope") "user") -}}
+      {{- $userEntry = $entry -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $installPath := get $userEntry "installPath" | default "" | replace "\\" "/" -}}
+  {{- $version := get $userEntry "version" | default "" -}}
+  {{- $cacheRoot := printf "%s/plugins/cache/openai-codex/codex/" $claudeHome -}}
+  {{- $versionPattern := `^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*))?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$` -}}
+  {{- if and (regexMatch $versionPattern $version) (eq $installPath (printf "%s%s" $cacheRoot $version)) -}}
+    {{- $scriptPath := printf "%s/scripts/codex-companion.mjs" $installPath -}}
+    {{- $scriptFile := lstat $scriptPath -}}
+    {{- if and $scriptFile (eq $scriptFile.type "file") -}}
+      {{- $scripts = printf "%s/scripts" $installPath -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $scripts -}}

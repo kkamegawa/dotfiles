@@ -14,6 +14,7 @@
   "advisorModel": "opus",
   "effortLevel": "medium",
   "env": {
+    "DOTFILES_CODEX_FROM_CLAUDE": "1",
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
     "CLAUDE_CODE_THRIFTY_SONIC": "0"{{ if eq .chezmoi.os "darwin" }},
     "DOTNET_ROOT": {{ $dotnetRoot | toJson }},

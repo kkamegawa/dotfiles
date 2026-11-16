@@ -27,4 +27,7 @@
 {{- $_ := set $managedEnvironment "PATH" (join ":" $pathEntries) -}}
 {{- end -}}
 {{- $current = mergeOverwrite $current $managed -}}
+{{- /* The launcher, transport, and environment of this server are managed together. */ -}}
+{{- $review := includeTemplate "codex/claude-review.toml" . | fromToml -}}
+{{- $_ := set $current.mcp_servers "claude_review" $review.mcp_servers.claude_review -}}
 {{- includeTemplate "ai-hooks/merge" (dict "current" $current "client" "codex" "chezmoi" .chezmoi) | fromJson | toToml -}}
