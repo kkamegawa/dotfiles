@@ -27,7 +27,7 @@ class ClaudeReviewMcpTest(unittest.TestCase):
             """#!/usr/bin/env node
 import fs from 'node:fs';
 const input = fs.readFileSync(0, 'utf8');
-fs.writeFileSync(process.env.STUB_CAPTURE, JSON.stringify({ args: process.argv.slice(2), input }));
+fs.writeFileSync(process.env.STUB_CAPTURE, JSON.stringify({ args: process.argv.slice(2), input, pid: process.pid }));
 if (process.env.STUB_MODE === 'wait') {
   process.on('SIGTERM', () => process.exit(143));
   setInterval(() => {}, 1000);
@@ -256,6 +256,57 @@ if (process.env.STUB_MODE === 'wait') {
         self.assertGreaterEqual(elapsed, 1.3)
         self.assertTrue(result["result"]["isError"])
         self.assertIn("cancelled", result["result"]["content"][0]["text"])
+
+    @unittest.skipIf(os.name == "nt", "Windows cannot launch the shebang-based Claude stub")
+    def test_timeout_force_kills_cli_and_returns_sanitized_error(self):
+        self.stop_server()
+        timer_override = self.root / "short-review-timeout.mjs"
+        timer_override.write_text(
+            """import path from 'node:path';
+import process from 'node:process';
+if (path.resolve(process.argv[1]) === path.resolve(process.env.DOTFILES_TEST_REVIEW_SERVER)) {
+  const nativeSetTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = (callback, delay, ...args) => nativeSetTimeout(
+    callback,
+    delay === Number(process.env.DOTFILES_TEST_REVIEW_TIMEOUT_MS)
+      ? Number(process.env.DOTFILES_TEST_REVIEW_SHORT_MS)
+      : delay,
+    ...args,
+  );
+}
+""",
+            encoding="utf-8",
+        )
+        env = os.environ.copy()
+        env["DOTFILES_REVIEW_CLAUDE"] = str(self.stub)
+        env["STUB_CAPTURE"] = str(self.capture)
+        env["STUB_MODE"] = "ignore-term"
+        env["DOTFILES_TEST_REVIEW_SERVER"] = str(SERVER)
+        env["DOTFILES_TEST_REVIEW_TIMEOUT_MS"] = "240000"
+        env["DOTFILES_TEST_REVIEW_SHORT_MS"] = "750"
+        env["NODE_OPTIONS"] = f"--import={timer_override.as_uri()}"
+        self.start_server(env)
+        self.write({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
+        self.read()
+        self.write({"jsonrpc": "2.0", "method": "notifications/initialized"})
+        self.write({
+            "jsonrpc": "2.0", "id": 2, "method": "tools/call",
+            "params": {"name": "review_diff", "arguments": {"diff": "private-timeout-fixture"}},
+        })
+        deadline = time.monotonic() + 5
+        while not self.capture.exists() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertTrue(self.capture.exists(), "Claude stub was not started")
+
+        result = self.read(timeout=5)
+        error = result["result"]["content"][0]["text"]
+        self.assertTrue(result["result"]["isError"])
+        self.assertIn("240-second time limit", error)
+        self.assertNotIn("private-timeout-fixture", error)
+
+        child_pid = json.loads(self.capture.read_text(encoding="utf-8"))["pid"]
+        with self.assertRaises(ProcessLookupError):
+            os.kill(child_pid, 0)
 
 
 if __name__ == "__main__":
