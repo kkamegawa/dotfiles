@@ -10,6 +10,7 @@ dependencies:
     - microsoft/azure-skills
     - microsoft/win-dev-skills
     - dotnet/skills
-    - microsoft/skills
+    # 壊れたシンボリックリンクにより apm 0.36.1 で取得失敗するため一時的に除外
+    # - microsoft/skills
     - microsoft/azure-sql-database-container
     - Azure/azure-functions-skills
