@@ -487,13 +487,19 @@ class ClaudeMergeTest(MergeTestCase):
         self.apply(self.dest / self.REL)
         permissions = self.load()["permissions"]
         if IS_WINDOWS:
-            self.assertIn("Bash(Get-Command:*)", permissions["allow"])
+            # The PowerShell tool needs PowerShell(...) rules; Bash(...) rules do not apply to it.
+            self.assertIn("PowerShell(Get-Command *)", permissions["allow"])
+            self.assertIn("PowerShell(git status *)", permissions["allow"])
+            self.assertNotIn("Bash(Get-Command:*)", permissions["allow"])
             self.assertIn("Bash(curl:*)", permissions["deny"])
+            self.assertIn("PowerShell(curl *)", permissions["deny"])
+            self.assertIn("PowerShell(git push --force *)", permissions["deny"])
             self.assertNotIn("Bash(ls:*)", permissions["allow"])
         else:
             self.assertIn("Bash(ls:*)", permissions["allow"])
             self.assertNotIn("Bash(curl:*)", permissions["deny"])
-            self.assertNotIn("Bash(Get-Command:*)", permissions["allow"])
+            self.assertNotIn("PowerShell(Get-Command *)", permissions["allow"])
+            self.assertNotIn("PowerShell(curl *)", permissions["deny"])
 
 
 if __name__ == "__main__":

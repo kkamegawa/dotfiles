@@ -78,12 +78,14 @@ Codex に和集合パスはなく、配列はすべて置換です。
 | 管理（リポジトリ） | ローカル |
 | --- | --- |
 | `model`、`advisorModel`、`effortLevel`、`env`、`language`、`cleanupPeriodDays`、`subagentPromptCacheTtl`、`attribution`、通知フラグ、`enableWorkflows` | `enabledPlugins` |
-| `permissions`、`sandbox`、`statusLine`、`extraKnownMarketplaces` | リポジトリ所有でないフックエントリ |
+| `permissions`、`sandbox`、`autoMode`、`statusLine`、`extraKnownMarketplaces` | リポジトリ所有でないフックエントリ |
 | リポジトリのフックスクリプトに対する `hooks` エントリ | アプリが追加するその他のキー |
 
 和集合パス: `permissions.allow`、`permissions.ask`、`permissions.deny`、`permissions.additionalDirectories`、`sandbox.network.allowedDomains`、`sandbox.filesystem.allowWrite`、`sandbox.excludedCommands`、および各 `hooks.<event>` 配列。
 
-OS の差分は overlay にあります。Windows overlay は `permissions.allow` に PowerShell の読み取りコマンドを使い、`curl` / `wget` を拒否します。Unix overlay は POSIX の同等コマンドを使います。フックのパスは `.chezmoi.homeDir` から組み立て、バックスラッシュをスラッシュに置換します。
+`autoMode` は auto モードの分類器が読む自然言語のルールです（`environment`、`allow`）。各配列は先頭に `"$defaults"` を置いて組み込みルールを残し、リポジトリ側のエントリを後ろに追加します。配列は和集合ではなく置換で、`~/.claude/settings.json` の `autoMode` はリポジトリが所有します。プロジェクトの `.claude/settings*.json` の `autoMode` は Claude Code が読み込みません。`environment` には信頼する GitHub owner（`kkamegawa`、`tfsugjp`）、信頼するパッケージレジストリ、ローカル開発サーバーを書きます。`allow` にはプロジェクトのビルド・テスト・整形・復元・実行、作業フォルダー外の読み取り（秘密情報を除く）、現在のリポジトリの feature branch への通常の push を書きます。`permissions.allow` の許可ルールは自然言語ではなく権限ルール構文で書き、この 2 つを混同しません。
+
+OS の差分は overlay にあります。Windows overlay は `permissions.allow` に PowerShell ツール向けの `PowerShell(...)` ルールを使い、同じ範囲を `permissions.deny` にも写して `curl` / `wget` と破壊的な git 操作を拒否します。ネイティブ Windows では Claude Code の sandbox が使えない（`/sandbox` は macOS、Linux、WSL2 のみ対応）ため、`sandbox.*` は Windows では効かず、許可リストと `autoMode` が承認頻度を決めます。`Bash(...)` ルールは PowerShell ツールには適用されません。Unix overlay は POSIX の同等コマンドを使います。フックのパスは `.chezmoi.homeDir` から組み立て、バックスラッシュをスラッシュに置換します。
 
 Windows overlay は、ユーザープロファイル内の NuGet global packages（`~/.nuget/packages`）、.NET global tools（`~/.dotnet/tools`）、NuGet HTTP cache（`~/AppData/Local/NuGet/v3-cache`）を `permissions.additionalDirectories` に追加します。既存の Visual Studio / Codex for Visual Studio のログと `VSExtensions` に加え、Visual Studio インスタンスごとの `Settings` と `Extensions` を chezmoi の `glob` で apply 時に展開します。Visual Studio の新しいインスタンスをインストールした後は、もう一度 apply してください。`additionalDirectories` は書き込みも許可するため、これらの開発データへの書き込み権限が加わります。Microsoftの資料: [NuGet global packages と HTTP cache](https://learn.microsoft.com/nuget/consume-packages/managing-the-global-packages-and-cache-folders)、[.NET global tools の保存場所](https://learn.microsoft.com/dotnet/core/tools/dotnet-tool-install#installation-locations)、[Visual Studio ユーザー設定](https://learn.microsoft.com/visualstudio/ide/personalizing-the-visual-studio-ide?view=visualstudio)、[ユーザー単位の Visual Studio 拡張機能](https://learn.microsoft.com/visualstudio/ide/finding-and-using-visual-studio-extensions?view=visualstudio#manage-extensions)。確認日: 2026-11-02。
 

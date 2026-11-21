@@ -70,6 +70,13 @@ wildcard for all MCP tools. If a client exposes a differently named tool or
 uses a field other than `tool_input.command`, it is not covered without adapting
 the registration and payload validation.
 
+Each Windows script imports `Microsoft.PowerShell.Utility` explicitly before it uses
+`ConvertFrom-Json`. Implicit module auto-loading searches the module paths for the command and
+can take 10 to 25 seconds on a host where file opens are slowed by security scanning, which
+exceeds the 10-second hook timeout. The explicit import resolves the module by name and
+finishes in about one second on the same host. Keep the import ahead of any cmdlet that
+is not in `Microsoft.PowerShell.Core`.
+
 The original `guard.mjs` remains a separate hook with its original logic.
 Other user-owned hooks survive the merge; repository-owned entries are
 recreated without accumulating duplicates on repeated apply. Existing permission
