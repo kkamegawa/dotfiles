@@ -23,7 +23,7 @@
   },
   "permissions": {
     "defaultMode": "auto",
-    "blockReadsOutsideWorkingDirectories": false{{ if eq .chezmoi.os "darwin" }},
+    "blockReadsOutsideWorkingDirectories": true{{ if eq .chezmoi.os "darwin" }},
     "additionalDirectories": [
       "~/.local/share/mise",
       "~/.config/mise",
@@ -105,8 +105,6 @@
       "Read(./secrets/**)",
       "Read(~/.ssh/**)",
       "Read(~/.aws/**)",
-      "Read(~/.azure/**)",
-      "Read(~/.config/gh/**)",
       "Edit(~/.claude/settings.json)",
       "Bash(rm -rf:*)",
       "Bash(rm -r:*)",
