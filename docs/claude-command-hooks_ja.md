@@ -65,6 +65,12 @@ if ($LASTEXITCODE -ne 0) { throw "chezmoi apply failed" }
   コマンドが `tool_input.command` 以外に入るクライアントには、登録・検証の
   調整が必要です。
 
+Windows の各スクリプトは、`ConvertFrom-Json` を使う前に `Microsoft.PowerShell.Utility` を
+明示的にインポートします。暗黙のモジュール自動読み込みはモジュールパスからコマンドを探索するため、
+セキュリティスキャンでファイルを開く処理が遅いホストでは 10〜25 秒かかり、フックのタイムアウト
+（10 秒）を超えます。明示的なインポートはモジュールを名前で解決し、同じホストで約 1 秒で終わります。
+`Microsoft.PowerShell.Core` にない cmdlet を使う前に、必ずこのインポートを置いてください。
+
 既存の `guard.mjs` は変更せず独立したフックとして残します。ユーザー管理の
 無関係なフックは保持し、管理対象のフックは再作成するため、繰り返し適用しても
 重複しません。permissions の allow/ask/deny のマージ動作は維持されます。

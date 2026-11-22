@@ -120,6 +120,20 @@
       "Bash(printenv:*)"
     ]
   },
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "Trusted GitHub owners: kkamegawa and tfsugjp. Pull request, issue, branch and release operations on their repositories are routine.",
+      "Trusted package registries: nuget.org, npmjs.org, pypi.org, and the Azure DevOps and GitHub package feeds of the trusted owners.",
+      "Local development servers on localhost, 127.0.0.1 and ::1 are trusted."
+    ],
+    "allow": [
+      "$defaults",
+      "Build, test, format, restore and run commands for the project in the current working directory.",
+      "Read-only inspection of files outside the project, except credential and secret stores.",
+      "Non-force git push of a feature branch of the current repository to its own remote."
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {

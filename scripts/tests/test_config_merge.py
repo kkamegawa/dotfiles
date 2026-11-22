@@ -487,13 +487,44 @@ class ClaudeMergeTest(MergeTestCase):
         self.apply(self.dest / self.REL)
         permissions = self.load()["permissions"]
         if IS_WINDOWS:
-            self.assertIn("Bash(Get-Command:*)", permissions["allow"])
+            # The PowerShell tool needs PowerShell(...) rules; Bash(...) rules do not apply to it.
+            self.assertIn("PowerShell(Get-Command *)", permissions["allow"])
+            self.assertIn("PowerShell(git status *)", permissions["allow"])
+            self.assertNotIn("Bash(Get-Command:*)", permissions["allow"])
             self.assertIn("Bash(curl:*)", permissions["deny"])
+            self.assertIn("PowerShell(curl *)", permissions["deny"])
+            # Force options are denied before and after the remote and refspec, and as a + refspec.
+            for rule in (
+                "PowerShell(git push --force*)",
+                "PowerShell(git push * --force*)",
+                "PowerShell(git push * -f)",
+                "PowerShell(git push * +*)",
+                "PowerShell(Remove-Item -r*)",
+                "PowerShell(Remove-Item * -r*)",
+                "PowerShell(Get-ChildItem *Env:*)",
+            ):
+                self.assertIn(rule, permissions["deny"])
+            # Mutating or path-reading commands are left to the classifier, not allowed up front.
+            for rule in (
+                "PowerShell(Get-Content *)",
+                "PowerShell(git branch *)",
+                "PowerShell(git stash *)",
+                "PowerShell(git switch *)",
+                "PowerShell(gh pr *)",
+            ):
+                self.assertNotIn(rule, permissions["allow"])
+            self.assertIs(permissions["blockReadsOutsideWorkingDirectories"], False)
+            self.assertIn("Read(~/.azure/**)", permissions["deny"])
+            self.assertIn("Read(//**/.env)", permissions["deny"])
             self.assertNotIn("Bash(ls:*)", permissions["allow"])
         else:
             self.assertIn("Bash(ls:*)", permissions["allow"])
             self.assertNotIn("Bash(curl:*)", permissions["deny"])
-            self.assertNotIn("Bash(Get-Command:*)", permissions["allow"])
+            self.assertNotIn("PowerShell(Get-Command *)", permissions["allow"])
+            self.assertNotIn("PowerShell(curl *)", permissions["deny"])
+            # The sandbox covers these platforms, so the outside-working-directory read block stays on.
+            self.assertIs(permissions["blockReadsOutsideWorkingDirectories"], True)
+            self.assertNotIn("Read(~/.azure/**)", permissions["deny"])
 
 
 if __name__ == "__main__":

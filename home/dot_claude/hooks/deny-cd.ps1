@@ -4,6 +4,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 try {
+    # Implicit module autoload is very slow here (10-25 s); import explicitly
+    # before any non-Core cmdlet such as ConvertFrom-Json.
+    Import-Module Microsoft.PowerShell.Utility -ErrorAction Stop
     $reader = [System.IO.StreamReader]::new([Console]::OpenStandardInput(), [System.Text.UTF8Encoding]::new($false))
     $payload = $reader.ReadToEnd()
     # Reject comments/trailing commas too, consistently with the Unix entrypoint.
