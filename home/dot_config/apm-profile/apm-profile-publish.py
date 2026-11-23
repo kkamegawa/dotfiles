@@ -14,8 +14,10 @@ from pathlib import Path
 from typing import Any
 
 
-# APM のプラグイン/マーケットプレース登録。リポジトリ単位の設定でユーザープロファイルには反映しない。
-IGNORED_GITHUB_ITEMS = {"copilot"}
+# Sections of the APM-generated settings.json files that are merged key by key into the user settings.
+SETTINGS_SECTIONS = ("extraKnownMarketplaces", "enabledPlugins")
+# Relative marketplace path APM writes for the native plugin tree; rewritten to the user profile.
+PLUGINS_RELATIVE = "./.agents/plugins"
 
 
 class PublishError(Exception):
@@ -36,12 +38,12 @@ def read_json(path: Path, default: Any) -> Any:
 
 
 def require_safe_tree(path: Path) -> None:
-    if not path.exists():
+    if not path.exists() and not is_reparse(path):
         return
-    if path.is_symlink() or not path.is_dir():
+    if is_reparse(path) or not path.is_dir():
         raise PublishError(f"実フォルダーが必要です: {path}")
     for item in path.rglob("*"):
-        if item.is_symlink():
+        if is_reparse(item):
             raise PublishError(f"APM 出力にシンボリックリンクが含まれるため、反映を中止します: {item}")
 
 
@@ -113,8 +115,45 @@ def import_legacy_tree(source: Path, destinations: list[Path], forced_destinatio
     return imported
 
 
-def staged_files(root: Path) -> tuple[dict[Path, bytes], dict[str, Any] | None]:
-    """宛先別ファイルと、任意の Copilot MCP サーバーマップを返す。"""
+def rewrite_marketplace_paths(value: Any, home: Path) -> Any:
+    """Return a copy of a marketplace entry with the relative plugin path made absolute."""
+    if not isinstance(value, dict) or not isinstance(value.get("source"), dict):
+        raise PublishError(f"マーケットプレース登録の形式が正しくありません: {value!r}")
+    result = json.loads(json.dumps(value))
+    source = result["source"]
+    if source.get("source") == "directory":
+        # Only the exact plugin tree published by this script may be registered.
+        if source.get("path") != PLUGINS_RELATIVE:
+            raise PublishError(f"未対応のマーケットプレース path です: {source.get('path')!r}")
+        source["path"] = str(home / ".agents/plugins")
+    elif "path" in source:
+        raise PublishError(f"directory 以外のマーケットプレースに path は指定できません: {source.get('path')!r}")
+    return result
+
+
+def read_settings_source(path: Path, home: Path) -> dict[str, dict[str, Any]]:
+    """Read an APM-generated settings.json and return the supported sections with absolute paths."""
+    if is_reparse(path) or not path.is_file():
+        raise PublishError(f"{path.name} の形式には対応していません: {path}")
+    config = read_json(path, {})
+    if not isinstance(config, dict):
+        raise PublishError(f"APM 設定 {path} はオブジェクトである必要があります")
+    unknown = sorted(set(config) - set(SETTINGS_SECTIONS))
+    if unknown:
+        raise PublishError(f"未対応の APM 設定キーがあります: {path}: {', '.join(unknown)}")
+    result: dict[str, dict[str, Any]] = {}
+    for section in SETTINGS_SECTIONS:
+        values = config.get(section, {})
+        if not isinstance(values, dict):
+            raise PublishError(f"APM 設定 {path} の {section} はオブジェクトである必要があります")
+        if section == "extraKnownMarketplaces":
+            values = {name: rewrite_marketplace_paths(value, home) for name, value in values.items()}
+        result[section] = values
+    return result
+
+
+def staged_files(root: Path) -> tuple[dict[Path, bytes], dict[str, Any] | None, dict[Path, dict[str, dict[str, Any]]]]:
+    """宛先別ファイル、任意の Copilot MCP サーバーマップ、宛先別の設定マージ内容を返す。"""
     root_allowed = {"apm.yml", "apm.lock.yaml", "apm_modules", ".gitignore", ".apm-local", ".agents", ".claude", ".github", ".codex"}
     for item in root.iterdir():
         if item.name not in root_allowed:
@@ -126,8 +165,10 @@ def staged_files(root: Path) -> tuple[dict[Path, bytes], dict[str, Any] | None]:
 
     output: dict[Path, bytes] = {}
     mcp: dict[str, Any] | None = None
+    settings: dict[Path, dict[str, dict[str, Any]]] = {}
     maps = {
         Path(".agents/skills"): [Path.home() / ".agents/skills"],
+        Path(".agents/plugins"): [Path.home() / ".agents/plugins"],
         Path(".claude/skills"): [Path.home() / ".claude/skills"],
         Path(".claude/agents"): [Path.home() / ".claude/agents"],
         Path(".claude/rules"): [Path.home() / ".claude/rules"],
@@ -165,30 +206,117 @@ def staged_files(root: Path) -> tuple[dict[Path, bytes], dict[str, Any] | None]:
             raise PublishError(".github/copilot-instructions.md の形式には対応していません")
         output[Path.home() / ".copilot/copilot-instructions.md"] = generated_instructions.read_bytes()
 
-    # 対応済みのツリーと MCP 出力以外は反映せず、エラーにする。
-    handled = {"skills", "agents", "rules", "commands", "instructions", "hooks", "mcp.json", "copilot-instructions.md"}
-    for top in (".agents", ".claude", ".github", ".codex"):
+    # Native plugin registration: merge the generated settings into the user settings of each tool.
+    claude_settings = root / ".claude/settings.json"
+    if claude_settings.exists() or is_reparse(claude_settings):
+        settings[Path.home() / ".claude/settings.json"] = read_settings_source(claude_settings, Path.home())
+    copilot_dir = root / ".github/copilot"
+    if copilot_dir.exists() or is_reparse(copilot_dir):
+        require_safe_tree(copilot_dir)
+        for item in copilot_dir.iterdir():
+            if item.name != "settings.json":
+                raise PublishError(f"未対応の APM 成果物です: {item.relative_to(root)}")
+        copilot_settings = copilot_dir / "settings.json"
+        if copilot_settings.exists():
+            settings[Path.home() / ".copilot/settings.json"] = read_settings_source(copilot_settings, Path.home())
+
+    # 対応済みのツリー・設定・MCP 出力以外は反映せず、エラーにする。
+    allowed = {
+        ".agents": {"skills", "plugins"},
+        ".claude": {"skills", "agents", "rules", "commands", "settings.json"},
+        ".github": {"agents", "instructions", "hooks", "mcp.json", "copilot-instructions.md", "copilot"},
+        ".codex": set(),
+    }
+    for top, names in allowed.items():
         base = root / top
         if not base.exists():
             continue
         for item in base.iterdir():
-            if top == ".github" and item.name in IGNORED_GITHUB_ITEMS:
-                print(f"警告: 反映対象外の APM 成果物を無視します: {item.relative_to(root)}", file=sys.stderr)
-                continue
-            if item.name not in handled:
-                raise PublishError(f"未対応の APM 成果物です: {item.relative_to(root)}")
             if top == ".codex":
                 raise PublishError(f"Codex 成果物の反映先が未定義です: {item.relative_to(root)}")
-            if top == ".github" and item.name == "mcp.json":
-                continue
-            if top == ".github" and item.name in handled:
-                continue
-            if top == ".claude" and item.name in {"skills", "agents", "rules", "commands"}:
-                continue
-            if top == ".agents" and item.name == "skills":
-                continue
-            raise PublishError(f"未対応の APM 成果物です: {item.relative_to(root)}")
-    return output, mcp
+            if item.name not in names:
+                raise PublishError(f"未対応の APM 成果物です: {item.relative_to(root)}")
+    return output, mcp, settings
+
+
+def make_dirs(path: Path, created: list[Path]) -> None:
+    """Create a folder and remember which levels this run created, outermost first."""
+    missing: list[Path] = []
+    current = path
+    while not current.exists() and not is_reparse(current):
+        missing.append(current)
+        current = current.parent
+    path.mkdir(parents=True, exist_ok=True)
+    created.extend(reversed(missing))
+
+
+def prune_empty_plugin_dirs(dest: Path, home: Path) -> None:
+    """Remove empty folders left under ~/.agents/plugins after a managed file was deleted."""
+    plugin_root = home / ".agents/plugins"
+    current = dest.parent
+    while current == plugin_root or plugin_root in current.parents:
+        try:
+            current.rmdir()
+        except OSError:
+            break
+        current = current.parent
+
+
+def ensure_profile_path_not_linked(dest: Path, home: Path) -> None:
+    """Reject a profile path that is, or is reached through, a link below the home folder."""
+    parent = dest.parent
+    while parent != home and home in parent.parents:
+        if is_reparse(parent):
+            raise PublishError(f"リンクを経由するため設定の書き込みを中止します: {parent}")
+        parent = parent.parent
+    if is_reparse(dest):
+        raise PublishError(f"設定ファイルがリンクのため書き込みを中止します: {dest}")
+
+
+def merge_settings(
+    dest: Path,
+    desired: dict[str, dict[str, Any]] | None,
+    old: dict[str, dict[str, Any]],
+    home: Path,
+) -> tuple[bytes | None, dict[str, dict[str, Any]]]:
+    """Merge the owned keys into a user settings file.
+
+    Returns the new file content (None when nothing has to change) and the ledger entry
+    describing the keys that are now owned. Keys not recorded in the ledger are never touched.
+    """
+    ensure_profile_path_not_linked(dest, home)
+    existing = read_json(dest, {})
+    if not isinstance(existing, dict):
+        raise PublishError(f"{dest} はオブジェクトである必要があります")
+    owned: dict[str, dict[str, Any]] = {}
+    changed = False
+    for section in SETTINGS_SECTIONS:
+        old_values = old.get(section, {})
+        new_values = desired[section] if desired is not None else {}
+        current = existing.get(section)
+        if current is not None and not isinstance(current, dict):
+            raise PublishError(f"{dest} の {section} はオブジェクトである必要があります")
+        for name, old_value in old_values.items():
+            if current is not None and name in current and current[name] != old_value:
+                raise PublishError(f"APM 管理の設定キーが編集されているため上書きを中止します: {dest}: {section}.{name}")
+            if name not in new_values and current is not None and name in current:
+                del current[name]
+                changed = True
+        for name, value in new_values.items():
+            if name not in old_values and current is not None and name in current:
+                raise PublishError(f"所有権のない設定キーと名前が重複しています: {dest}: {section}.{name}")
+            if current is None:
+                current = {}
+                existing[section] = current
+            if current.get(name) != value or name not in current:
+                current[name] = value
+                changed = True
+        if current is not None and not current and old_values and section in existing:
+            del existing[section]
+        owned[section] = dict(new_values)
+    if not changed:
+        return None, owned
+    return (json.dumps(existing, ensure_ascii=False, indent=2) + "\n").encode("utf-8"), owned
 
 
 def main() -> int:
@@ -202,10 +330,17 @@ def main() -> int:
     state.mkdir(parents=True, exist_ok=True)
 
     try:
-        files, mcp = staged_files(candidate)
-        ledger = read_json(ledger_path, {"files": {}, "mcpServers": {}})
+        files, mcp, settings = staged_files(candidate)
+        ledger = read_json(ledger_path, {"files": {}, "mcpServers": {}, "settings": {}})
         if not isinstance(ledger, dict) or not isinstance(ledger.get("files"), dict) or not isinstance(ledger.get("mcpServers"), dict):
             raise PublishError("APM プロファイルの所有台帳の形式が正しくありません")
+        # Ledgers written before native plugin support have no "settings" key.
+        old_settings = ledger.get("settings", {})
+        if not isinstance(old_settings, dict) or any(
+            not isinstance(entry, dict) or any(not isinstance(entry.get(s, {}), dict) for s in SETTINGS_SECTIONS)
+            for entry in old_settings.values()
+        ):
+            raise PublishError("APM プロファイルの所有台帳の settings の形式が正しくありません")
 
         old_file_owners: dict[str, str] = ledger["files"]
         new_file_owners: dict[str, str] = {}
@@ -301,6 +436,28 @@ def main() -> int:
                 servers.pop(name, None)
             planned[copilot_mcp] = (json.dumps(existing, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
+        # Merge the plugin registration keys into the user settings files through the same ledger.
+        new_settings_owned: dict[str, dict[str, dict[str, Any]]] = {}
+        settings_dests: dict[str, Path] = {}
+        for rel in old_settings:
+            dest = Path(rel)
+            if not dest.is_absolute() or home not in dest.parents:
+                raise PublishError(f"所有台帳のパスがユーザープロファイル外を指しています: {rel}")
+            settings_dests[rel] = dest
+        for dest in settings:
+            settings_dests[str(dest)] = dest
+        for rel, dest in settings_dests.items():
+            desired = settings.get(dest)
+            old_entry = old_settings.get(rel, {})
+            if desired is None and not any(old_entry.get(s) for s in SETTINGS_SECTIONS):
+                continue
+            content, owned = merge_settings(dest, desired, old_entry, home)
+            if content is not None:
+                planned[dest] = content
+            if desired is not None:
+                new_settings_owned[rel] = owned
+        settings_key_count = sum(len(values) for entry in new_settings_owned.values() for values in entry.values())
+
         # 宛先に触れる前にすべての出力とバックアップを準備する。
         tx = Path(tempfile.mkdtemp(prefix="apm-publish-", dir=state))
         backups: dict[Path, bytes | None] = {}
@@ -312,9 +469,10 @@ def main() -> int:
                     staged.parent.mkdir(parents=True, exist_ok=True)
                     staged.write_bytes(content)
 
-            ledger_new = {"files": new_file_owners, "mcpServers": {name: mcp[name] for name in sorted(new_servers)} if mcp is not None else {}}
+            ledger_new = {"files": new_file_owners, "mcpServers": {name: mcp[name] for name in sorted(new_servers)} if mcp is not None else {}, "settings": new_settings_owned}
             ledger_backup = ledger_path.read_bytes() if ledger_path.exists() else None
             applied: list[Path] = []
+            created_dirs: list[Path] = []
             materialized: list[tuple[Path, Path]] = []
             try:
                 for link, target in legacy_links.items():
@@ -323,13 +481,17 @@ def main() -> int:
                     materialized.append((link, backup_link))
                     link.mkdir(parents=True, exist_ok=True)
                 for dest, content in planned.items():
-                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    make_dirs(dest.parent, created_dirs)
                     if content is None:
                         dest.unlink(missing_ok=True)
                     else:
                         temp = dest.with_name(dest.name + ".apm-tmp")
-                        temp.write_bytes(content)
-                        os.replace(temp, dest)
+                        try:
+                            temp.write_bytes(content)
+                            os.replace(temp, dest)
+                        except Exception:
+                            temp.unlink(missing_ok=True)
+                            raise
                     applied.append(dest)
                 temp_ledger = ledger_path.with_name(ledger_path.name + ".apm-tmp")
                 temp_ledger.write_text(json.dumps(ledger_new, indent=2) + "\n", encoding="utf-8")
@@ -342,6 +504,11 @@ def main() -> int:
                     else:
                         dest.parent.mkdir(parents=True, exist_ok=True)
                         dest.write_bytes(previous)
+                for created in reversed(created_dirs):
+                    try:
+                        created.rmdir()
+                    except OSError:
+                        pass
                 for link, backup_link in reversed(materialized):
                     shutil.rmtree(link, ignore_errors=True)
                     os.replace(backup_link, link)
@@ -350,6 +517,9 @@ def main() -> int:
                 else:
                     ledger_path.write_bytes(ledger_backup)
                 raise
+            for dest, content in planned.items():
+                if content is None:
+                    prune_empty_plugin_dirs(dest, home)
             for _, backup_link in materialized:
                 try:
                     if backup_link.is_symlink():
@@ -360,7 +530,12 @@ def main() -> int:
                     print(f"警告: 反映後の旧リンクバックアップを削除できませんでした: {backup_link}: {exc}", file=sys.stderr)
         finally:
             shutil.rmtree(tx, ignore_errors=True)
-        print(f"==> APM 管理ファイル {len(files)} 件、Copilot MCP サーバー {len(new_servers)} 件を反映しました")
+        plugin_root = home / ".agents/plugins"
+        plugin_count = len({dest.relative_to(plugin_root).parts[0] for dest in files if plugin_root in dest.parents and not dest.relative_to(plugin_root).parts[0].startswith(".")})
+        print(
+            f"==> APM 管理ファイル {len(files)} 件(プラグイン {plugin_count} 件)、Copilot MCP サーバー {len(new_servers)} 件、"
+            f"設定キー {settings_key_count} 件を反映しました"
+        )
         return 0
     except (OSError, PublishError) as exc:
         print(f"==> APM プロファイルの反映に失敗しました: {exc}", file=sys.stderr)

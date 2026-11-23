@@ -112,7 +112,9 @@ PostCompact と UserPromptSubmit は .NET 10 のファイルベースプログ�
 - Copilot の MCP サーバーは `~/.copilot/mcp-config.json` のサーバー名単位で統合し、所有台帳により APM 管理分だけを更新
 - 既存のリンクは処理成功後に実フォルダーへ移行する。候補作成や検証に失敗した場合は既存プロファイルを変更せず、未対応の出力・所有権のないファイルとの競合・不明なリンクがある場合は反映を中止
 - 候補ルートに APM が作成する `.apm-local/` のインストール識別情報は検証後に反映対象から除外する。許可するのは `.gitignore` と `installation` のみで、未知の項目があれば反映を中止する。
-- APM が Copilot へのプラグイン登録で作成する `.github/copilot` は、リポジトリ単位の設定のため反映せず、警告を出して無視する。それ以外の未対応の出力は従来どおり反映を中止する。
+- APM がマーケットプレース依存から出力するネイティブプラグイン（候補ルートの `.agents/plugins/`）は `~/.agents/plugins/` へ実ファイルとしてコピーし、所有台帳でハッシュ管理する。
+- 候補の `.claude/settings.json` と `.github/copilot/settings.json` は、`~/.claude/settings.json` と `~/.copilot/settings.json` の `extraKnownMarketplaces` と `enabledPlugins` にキー単位で統合する。マーケットプレースの `source.path`（`./.agents/plugins`）は `~/.agents/plugins` の絶対パスへ書き換え、所有台帳に記録したキーだけを更新・削除する。これらのキーは chezmoi の `modify_settings.json` が管理しないため、`chezmoi apply` で消えない。
+- 上記以外の未対応の出力は従来どおり反映を中止する。
 
 ### GitHub Actions（仕様変更ウォッチ）
 
