@@ -145,7 +145,7 @@ git log --show-signature -1
 - Copilot のエージェント、指示、フック、カスタム指示、MCP サーバー設定: `~/.copilot/`
 - Visual Studio との互換用エージェント: `~/.github/agents`（シンボリックリンクではなく実ファイル）
 
-Copilot の MCP サーバーは `~/.copilot/mcp-config.json` の `mcpServers` に名前単位で統合し、APM が所有する項目だけを更新します。APM の取得に失敗した場合は、既存のユーザープロファイルを変更しません。反映先の競合や未対応の出力がある場合は処理を中止し、既存ファイルを自動削除しません。
+Copilot の MCP サーバーは `~/.copilot/mcp-config.json` の `mcpServers` に名前単位で統合し、APM が所有する項目だけを更新します。ネイティブプラグインは `~/.agents/plugins` へコピーし、`~/.claude/settings.json` と `~/.copilot/settings.json` の `extraKnownMarketplaces`・`enabledPlugins` へ絶対パスで登録します。反映後は新しいセッションを開始するか、Claude で `/reload-plugins` を実行してください。APM の取得に失敗した場合は、既存のユーザープロファイルを変更しません。反映先の競合や未対応の出力がある場合は処理を中止し、既存ファイルを自動削除しません。
 
 ---
 

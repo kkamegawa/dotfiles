@@ -408,7 +408,10 @@ class ClaudeMergeTest(MergeTestCase):
                 {
                     "model": "sonnet",
                     "env": {"APP_OWNED_VALUE": "preserve", "DOTNET_CLI_HOME": "/app/cache"},
-                    "enabledPlugins": {"x@inline": True},
+                    "enabledPlugins": {"x@inline": True, "azure@apm-p-0ce338d3": True},
+                    "extraKnownMarketplaces": {
+                        "apm-p-0ce338d3": {"source": {"source": "directory", "path": "/tmp/apm-plugins"}},
+                    },
                     "permissions": {
                         "allow": ["Bash(make:*)"],
                         "deny": ["Bash(local-deny)"],
@@ -427,7 +430,16 @@ class ClaudeMergeTest(MergeTestCase):
         self.assertEqual(data["model"], "opusplan")
         self.assertEqual(data["env"]["APP_OWNED_VALUE"], "preserve")
         self.assertEqual(data["env"]["DOTNET_CLI_HOME"], "/app/cache")
-        self.assertEqual(data["enabledPlugins"], {"codex@openai-codex": True, "x@inline": True})
+        self.assertEqual(
+            data["enabledPlugins"],
+            {"codex@openai-codex": True, "x@inline": True, "azure@apm-p-0ce338d3": True},
+        )
+        # Marketplace registrations written by the APM publisher are not managed by chezmoi and must survive.
+        self.assertEqual(
+            data["extraKnownMarketplaces"]["apm-p-0ce338d3"],
+            {"source": {"source": "directory", "path": "/tmp/apm-plugins"}},
+        )
+        self.assertIn("openai-codex", data["extraKnownMarketplaces"])
         self.assertIn("Bash(make:*)", data["permissions"]["allow"])
         self.assertIn("Bash(git status:*)", data["permissions"]["allow"])
         self.assertIn("Bash(local-deny)", data["permissions"]["deny"])

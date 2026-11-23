@@ -137,7 +137,7 @@ APM CLI、マニフェスト、Python が見つからない場合、フックは
 
 ### 「未対応の APM 成果物です」で反映が中止される
 
-APM が新しい種類の成果物を出力すると、フックは安全のため反映を中止します。`.github/copilot`（Copilot へのプラグイン登録）は反映対象外のため、警告を出して無視されます。それ以外のパスが表示された場合は、`home/dot_config/apm-profile/apm-profile-publish.py` の対応を追加するか、issue を作成してください。
+APM が新しい種類の成果物を出力すると、フックは安全のため反映を中止します。ネイティブプラグイン（`.agents/plugins`）と、`.claude/settings.json`・`.github/copilot/settings.json` の `extraKnownMarketplaces` と `enabledPlugins` は反映対象です。それ以外のパスや設定キーが表示された場合は、`home/dot_config/apm-profile/apm-profile-publish.py` の対応を追加するか、issue を作成してください。
 
 ### APM の反映が競合で中止される
 
