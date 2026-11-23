@@ -25,18 +25,59 @@ $candidates = @(
   @(Get-Command $miseShimPython -CommandType Application -ErrorAction SilentlyContinue)
   @(Get-Command py -All -CommandType Application -ErrorAction SilentlyContinue)
 )
+
+# 候補の --version をタイムアウト付きで実行する。標準入力は即座に閉じる。
+# Store スタブや mise shim は、入力待ちや Store 起動待ちで無期限にブロックすることがあるため、
+# 通常の呼び出し (& ...) ではなく、期限を超えたらプロセスツリーごと終了させる。
+function Test-PythonCandidate {
+  param(
+    [Parameter(Mandatory = $true)] [string] $Path,
+    [Parameter(Mandatory = $true)] [string[]] $Arguments,
+    [int] $TimeoutSeconds = 15
+  )
+
+  # Windows PowerShell 5.1 (.NET Framework) でも動くよう、ArgumentList は使わず Arguments 文字列を組み立てる。
+  $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+  $startInfo.FileName = $Path
+  $startInfo.Arguments = ($Arguments | ForEach-Object { '"' + ($_ -replace '"', '\"') + '"' }) -join ' '
+  $startInfo.UseShellExecute = $false
+  $startInfo.CreateNoWindow = $true
+  $startInfo.RedirectStandardInput = $true
+  $startInfo.RedirectStandardOutput = $true
+  $startInfo.RedirectStandardError = $true
+
+  $process = $null
+  try {
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $startInfo
+    [void]$process.Start()
+    $process.StandardInput.Close()
+    # ReadToEnd は孫プロセスがパイプを握っていると EOF が来ず戻らないため、1 行だけ読む。
+    $stdoutTask = $process.StandardOutput.ReadLineAsync()
+    $stderrTask = $process.StandardError.ReadLineAsync()
+    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+      & taskkill.exe /PID $process.Id /T /F *> $null
+      Write-Warning "Python 候補 '$Path' が $TimeoutSeconds 秒以内に応答しなかったため、次の候補へ進みます。"
+      return $false
+    }
+    $output = ''
+    foreach ($task in @($stdoutTask, $stderrTask)) {
+      if ($task.Wait(5000) -and $task.Result) { $output += $task.Result + "`n" }
+    }
+    return ($process.ExitCode -eq 0 -and $output -match '^\s*Python\s+\d+\.\d+')
+  } catch {
+    return $false
+  } finally {
+    if ($process) { $process.Dispose() }
+  }
+}
+
 foreach ($group in $candidates) {
   foreach ($cmd in $group) {
     # WindowsApps には動作する Store 版 Python や py.exe のエイリアスもあるため、パスでは除外せず、
-    # 起動して "Python X.Y" が返るかで判定する。起動自体に失敗した候補は次へ進む。
+    # 起動して "Python X.Y" が返るかで判定する。起動失敗やタイムアウトした候補は次へ進む。
     $versionArgs = if ($cmd.Name -in 'py.exe', 'py') { @('-3', '--version') } else { @('--version') }
-    try {
-      $versionOutput = (& $cmd.Source @versionArgs 2>&1 | Out-String)
-      $probeExit = $LASTEXITCODE
-    } catch {
-      continue
-    }
-    if ($probeExit -eq 0 -and $versionOutput -match '^\s*Python\s+\d+\.\d+') { $python = $cmd; break }
+    if (Test-PythonCandidate -Path $cmd.Source -Arguments $versionArgs) { $python = $cmd; break }
   }
   if ($python) { break }
 }
