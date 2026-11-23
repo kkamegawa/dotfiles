@@ -15,12 +15,27 @@ if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
   Write-Warning "$manifest がないため、APM プロファイル更新をスキップします。"
   exit 0
 }
-$python = Get-Command python -ErrorAction SilentlyContinue
-if (-not $python) {
-  $python = Get-Command py -ErrorAction SilentlyContinue
+# Microsoft Store の python.exe スタブ (WindowsApps) は実体がなく、実行すると終了コード 9009 で失敗する。
+# 実際にバージョン取得できる Python のみ採用する。
+# PATH に mise の shims がない (または WindowsApps より後ろにある) 場合に備え、shims を明示的に探す。
+$python = $null
+$miseShimPython = Join-Path $(if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { Join-Path $HOME 'AppData/Local' }) 'mise/shims/python.exe'
+$candidates = @(
+  @(Get-Command python -All -CommandType Application -ErrorAction SilentlyContinue)
+  @(Get-Command $miseShimPython -CommandType Application -ErrorAction SilentlyContinue)
+  @(Get-Command py -All -CommandType Application -ErrorAction SilentlyContinue)
+)
+foreach ($group in $candidates) {
+  foreach ($cmd in $group) {
+    if ($cmd.Source -like '*\Microsoft\WindowsApps\*') { continue }
+    $versionArgs = if ($cmd.Name -in 'py.exe', 'py') { @('-3', '--version') } else { @('--version') }
+    & $cmd.Source @versionArgs *> $null
+    if ($LASTEXITCODE -eq 0) { $python = $cmd; break }
+  }
+  if ($python) { break }
 }
 if (-not $python) {
-  Write-Warning 'PATH に Python がないため、APM プロファイル更新をスキップします。'
+  Write-Warning '利用可能な Python (PATH / mise shims) がないため、APM プロファイル更新をスキップします。'
   exit 0
 }
 
