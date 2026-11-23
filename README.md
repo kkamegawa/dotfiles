@@ -69,7 +69,12 @@ chezmoi apply "$HOME/.config/git/dotfiles.gitconfig"
 
 ヘッドレス環境で GPG を設定済みの場合は、`secretservice` を `gpg` に置き換えます。Git HTTPS と GitHub CLI は認証を別々に管理するため、`gh` にも個別にサインインしてください。
 
-## レポジトリ構成
+> [!NOTE]
+> `secretservice` は Linux 専用です。Windows の `~/.gitconfig` に設定すると、Git Credential Manager が認証情報を保存・取得できず、`git push` のたびに認証を求められます。Windows では `wincredman` を使うか、設定を削除して既定値に戻してください。
+>
+> ```powershell
+> git config --global credential.credentialStore wincredman
+> ```
 
 Claude Code・Codex・Copilot CLI の日本語最終応答チェックは
 [任意導入用フックテンプレート](docs/ai-response-hooks_ja.md)を参照してください。
