@@ -164,6 +164,8 @@ def staged_files(root: Path) -> tuple[dict[Path, bytes], dict[str, Any] | None, 
     validate_apm_local_identity(root / ".apm-local")
 
     output: dict[Path, bytes] = {}
+    # Execute bits (st_mode & 0o111) of the staged source files, restored when publishing.
+    modes: dict[Path, int] = {}
     mcp: dict[str, Any] | None = None
     settings: dict[Path, dict[str, dict[str, Any]]] = {}
     maps = {
@@ -189,6 +191,7 @@ def staged_files(root: Path) -> tuple[dict[Path, bytes], dict[str, Any] | None, 
             tail = file.relative_to(src)
             for destination in destinations:
                 output[destination / tail] = file.read_bytes()
+                modes[destination / tail] = file.stat().st_mode & 0o111
 
     # APM の Copilot 用 MCP 出力はサーバー名単位でユーザー設定へ統合する。
     mcp_source = root / ".github/mcp.json"
@@ -236,7 +239,42 @@ def staged_files(root: Path) -> tuple[dict[Path, bytes], dict[str, Any] | None, 
                 raise PublishError(f"Codex 成果物の反映先が未定義です: {item.relative_to(root)}")
             if item.name not in names:
                 raise PublishError(f"未対応の APM 成果物です: {item.relative_to(root)}")
-    return output, mcp, settings
+    return output, mcp, settings, modes
+
+
+def validate_profile_path(rel: str, home: Path, resolve: bool = False) -> Path:
+    """Validate a ledger path: absolute, no '..' elements and inside the home folder."""
+    dest = Path(rel)
+    if not dest.is_absolute() or ".." in dest.parts or home not in dest.parents:
+        raise PublishError(f"所有台帳のパスがユーザープロファイル外を指しています: {rel}")
+    if resolve:
+        try:
+            resolved = dest.resolve(strict=False)
+            resolved_home = home.resolve(strict=False)
+        except (OSError, RuntimeError) as exc:
+            raise PublishError(f"所有台帳のパスを解決できません: {rel}: {exc}") from exc
+        if resolved_home not in resolved.parents:
+            raise PublishError(f"所有台帳のパスがユーザープロファイル外を指しています: {rel}")
+    return dest
+
+
+def file_mode(path: Path) -> int | None:
+    return path.stat().st_mode & 0o777 if path.is_file() else None
+
+
+def write_with_mode(dest: Path, content: bytes, mode: int) -> None:
+    """Write through a temp file created with restrictive permissions, then replace the destination."""
+    temp = dest.with_name(dest.name + ".apm-tmp")
+    try:
+        fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(content)
+        if os.name != "nt":
+            os.chmod(temp, mode)
+        os.replace(temp, dest)
+    except Exception:
+        temp.unlink(missing_ok=True)
+        raise
 
 
 def make_dirs(path: Path, created: list[Path]) -> None:
@@ -330,7 +368,7 @@ def main() -> int:
     state.mkdir(parents=True, exist_ok=True)
 
     try:
-        files, mcp, settings = staged_files(candidate)
+        files, mcp, settings, exec_bits = staged_files(candidate)
         ledger = read_json(ledger_path, {"files": {}, "mcpServers": {}, "settings": {}})
         if not isinstance(ledger, dict) or not isinstance(ledger.get("files"), dict) or not isinstance(ledger.get("mcpServers"), dict):
             raise PublishError("APM プロファイルの所有台帳の形式が正しくありません")
@@ -355,9 +393,7 @@ def main() -> int:
 
         # 現在の内容が記録済みハッシュと一致する古いファイルだけを削除する。
         for rel, old_hash in old_file_owners.items():
-            dest = Path(rel)
-            if not dest.is_absolute() or home not in dest.parents:
-                raise PublishError(f"所有台帳のパスがユーザープロファイル外を指しています: {rel}")
+            dest = validate_profile_path(rel, home)
             ancestor = dest.parent
             while ancestor != home and home in ancestor.parents:
                 if is_reparse(ancestor) and ancestor not in legacy_links:
@@ -440,10 +476,7 @@ def main() -> int:
         new_settings_owned: dict[str, dict[str, dict[str, Any]]] = {}
         settings_dests: dict[str, Path] = {}
         for rel in old_settings:
-            dest = Path(rel)
-            if not dest.is_absolute() or home not in dest.parents:
-                raise PublishError(f"所有台帳のパスがユーザープロファイル外を指しています: {rel}")
-            settings_dests[rel] = dest
+            settings_dests[rel] = validate_profile_path(rel, home, resolve=True)
         for dest in settings:
             settings_dests[str(dest)] = dest
         for rel, dest in settings_dests.items():
@@ -461,9 +494,21 @@ def main() -> int:
         # 宛先に触れる前にすべての出力とバックアップを準備する。
         tx = Path(tempfile.mkdtemp(prefix="apm-publish-", dir=state))
         backups: dict[Path, bytes | None] = {}
+        backup_modes: dict[Path, int | None] = {}
+        final_modes: dict[Path, int] = {}
         try:
             for index, (dest, content) in enumerate(planned.items()):
                 backups[dest] = dest.read_bytes() if dest.is_file() else None
+                backup_modes[dest] = file_mode(dest)
+                if content is not None:
+                    previous_mode = backup_modes[dest]
+                    if dest in files:
+                        # Managed files keep the source execute bits; other bits follow the existing file.
+                        base = (previous_mode & ~0o111) if previous_mode is not None else 0o644
+                        final_modes[dest] = base | exec_bits.get(dest, 0)
+                    else:
+                        # User settings keep their permissions; new ones are private by default.
+                        final_modes[dest] = previous_mode if previous_mode is not None else 0o600
                 if content is not None:
                     staged = tx / str(index)
                     staged.parent.mkdir(parents=True, exist_ok=True)
@@ -485,13 +530,7 @@ def main() -> int:
                     if content is None:
                         dest.unlink(missing_ok=True)
                     else:
-                        temp = dest.with_name(dest.name + ".apm-tmp")
-                        try:
-                            temp.write_bytes(content)
-                            os.replace(temp, dest)
-                        except Exception:
-                            temp.unlink(missing_ok=True)
-                            raise
+                        write_with_mode(dest, content, final_modes[dest])
                     applied.append(dest)
                 temp_ledger = ledger_path.with_name(ledger_path.name + ".apm-tmp")
                 temp_ledger.write_text(json.dumps(ledger_new, indent=2) + "\n", encoding="utf-8")
@@ -504,6 +543,8 @@ def main() -> int:
                     else:
                         dest.parent.mkdir(parents=True, exist_ok=True)
                         dest.write_bytes(previous)
+                        if os.name != "nt" and backup_modes[dest] is not None:
+                            os.chmod(dest, backup_modes[dest])
                 for created in reversed(created_dirs):
                     try:
                         created.rmdir()

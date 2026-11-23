@@ -83,7 +83,7 @@ class PublishTestBase(unittest.TestCase):
 class StagedFilesTest(PublishTestBase):
     def test_github_copilot_settings_are_merged_not_ignored(self):
         self.write_json(".github/copilot/settings.json", candidate_settings("azure"))
-        files, mcp, settings = publish.staged_files(self.root)
+        files, mcp, settings, _ = publish.staged_files(self.root)
         self.assertEqual(list(files), [self.home / ".claude/skills/x/SKILL.md"])
         self.assertIsNone(mcp)
         sections = settings[self.home / ".copilot/settings.json"]
@@ -95,7 +95,7 @@ class StagedFilesTest(PublishTestBase):
 
     def test_plugins_are_staged_under_home_agents_plugins(self):
         self.add_plugins("azure")
-        files, _, settings = publish.staged_files(self.root)
+        files, _, settings, _ = publish.staged_files(self.root)
         self.assertIn(self.home / ".agents/plugins/.claude-plugin/marketplace.json", files)
         self.assertIn(self.home / ".agents/plugins/azure/.claude-plugin/plugin.json", files)
         self.assertEqual(set(settings), {self.home / ".claude/settings.json", self.home / ".copilot/settings.json"})
@@ -293,6 +293,93 @@ class PublishPluginsTest(PublishTestBase):
         self.assertEqual(code, 1)
         self.assertEqual(outside.read_text(encoding="utf-8"), "{}")
 
+    def test_ledger_paths_with_dotdot_abort(self):
+        self.add_plugins("azure")
+        self.state.mkdir()
+        outside = self.scratch / "outside.json"
+        outside.write_text("{}", encoding="utf-8")
+        sneaky = str(self.home / ".." / "outside.json")
+        cases = {
+            "settings": {"files": {}, "mcpServers": {}, "settings": {sneaky: {"enabledPlugins": {"a@b": True}}}},
+            "files": {"files": {sneaky: publish.digest(b"{}")}, "mcpServers": {}, "settings": {}},
+        }
+        for label, ledger in cases.items():
+            with self.subTest(label=label):
+                (self.state / "ownership.json").write_text(json.dumps(ledger), encoding="utf-8")
+                code, _, _ = self.run_main()
+                self.assertEqual(code, 1)
+                self.assertEqual(outside.read_text(encoding="utf-8"), "{}")
+
+
+@unittest.skipIf(os.name == "nt", "POSIX permission bits are not meaningful on Windows")
+class PermissionTest(PublishTestBase):
+    def test_existing_settings_mode_is_kept_and_new_settings_are_private(self):
+        self.add_plugins("azure")
+        claude = self.home / ".claude/settings.json"
+        claude.parent.mkdir(parents=True)
+        claude.write_text("{}", encoding="utf-8")
+        os.chmod(claude, 0o640)
+        code, _, err = self.run_main()
+        self.assertEqual(code, 0, err)
+        self.assertEqual(claude.stat().st_mode & 0o777, 0o640)
+        self.assertEqual((self.home / ".copilot/settings.json").stat().st_mode & 0o777, 0o600)
+
+    def test_mode_is_restored_on_rollback(self):
+        self.add_plugins("azure")
+        claude = self.home / ".claude/settings.json"
+        claude.parent.mkdir(parents=True)
+        claude.write_text("{}", encoding="utf-8")
+        os.chmod(claude, 0o600)
+        real_replace = os.replace
+
+        def failing_replace(src, dst, *args, **kwargs):
+            if Path(dst).parent.name == ".copilot":
+                raise OSError("simulated failure")
+            return real_replace(src, dst, *args, **kwargs)
+
+        with mock.patch.object(publish.os, "replace", side_effect=failing_replace):
+            code, _, _ = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(claude.read_text(encoding="utf-8"), "{}")
+        self.assertEqual(claude.stat().st_mode & 0o777, 0o600)
+
+    def test_plugin_execute_bits_are_preserved_and_updates_apply(self):
+        self.add_plugins("azure")
+        script = self.write(".agents/plugins/azure/run.sh", "echo")
+        os.chmod(script, 0o755)
+        plain = self.write(".agents/plugins/azure/readme.md", "doc")
+        os.chmod(plain, 0o644)
+        self.assertEqual(self.run_main()[0], 0)
+        dest = self.home / ".agents/plugins/azure/run.sh"
+        self.assertEqual(dest.stat().st_mode & 0o777, 0o755)
+        self.assertEqual((self.home / ".agents/plugins/azure/readme.md").stat().st_mode & 0o111, 0)
+        # An execute-bit-only change on the source is applied on the next run.
+        os.chmod(script, 0o644)
+        os.chmod(plain, 0o755)
+        self.assertEqual(self.run_main()[0], 0)
+        self.assertEqual(dest.stat().st_mode & 0o111, 0)
+        self.assertEqual((self.home / ".agents/plugins/azure/readme.md").stat().st_mode & 0o111, 0o111)
+
+    def test_execute_bit_is_restored_when_a_deleted_file_is_rolled_back(self):
+        self.add_plugins("azure")
+        script = self.write(".agents/plugins/azure/run.sh", "echo")
+        os.chmod(script, 0o755)
+        self.assertEqual(self.run_main()[0], 0)
+        script.unlink()
+        real_replace = os.replace
+
+        def failing_replace(src, dst, *args, **kwargs):
+            if Path(dst).name == "ownership.json":
+                raise OSError("simulated failure")
+            return real_replace(src, dst, *args, **kwargs)
+
+        with mock.patch.object(publish.os, "replace", side_effect=failing_replace):
+            code, _, _ = self.run_main()
+        self.assertEqual(code, 1)
+        restored = self.home / ".agents/plugins/azure/run.sh"
+        self.assertEqual(restored.read_text(encoding="utf-8"), "echo")
+        self.assertEqual(restored.stat().st_mode & 0o777, 0o755)
+
 
 class MarketplacePathTest(PublishTestBase):
     def test_invalid_marketplace_sources_abort(self):
@@ -314,7 +401,7 @@ class MarketplacePathTest(PublishTestBase):
     def test_git_marketplace_without_path_is_kept(self):
         value = {"source": {"source": "git", "url": "placeholder"}}
         self.write_json(".claude/settings.json", {"extraKnownMarketplaces": {"m": value}})
-        _, _, settings = publish.staged_files(self.root)
+        _, _, settings, _ = publish.staged_files(self.root)
         self.assertEqual(settings[self.home / ".claude/settings.json"]["extraKnownMarketplaces"], {"m": value})
 
 
