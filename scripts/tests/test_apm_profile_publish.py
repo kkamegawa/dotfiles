@@ -360,6 +360,26 @@ class PermissionTest(PublishTestBase):
         self.assertEqual(dest.stat().st_mode & 0o111, 0)
         self.assertEqual((self.home / ".agents/plugins/azure/readme.md").stat().st_mode & 0o111, 0o111)
 
+    def test_legacy_link_import_keeps_execute_bits(self):
+        profile = self.scratch / "apm-profile"
+        agents = profile / "agents"
+        agents.mkdir(parents=True)
+        script = agents / "helper.sh"
+        script.write_text("echo", encoding="utf-8")
+        os.chmod(script, 0o755)
+        plain = agents / "note.md"
+        plain.write_text("doc", encoding="utf-8")
+        os.chmod(plain, 0o644)
+        (self.home / ".github").mkdir()
+        os.symlink(agents, self.home / ".github/agents", target_is_directory=True)
+        env = {"APM_AGENTS_DIR": str(agents), "APM_PROFILE_HOME": str(profile)}
+        with mock.patch.dict(os.environ, env):
+            code, _, err = self.run_main()
+        self.assertEqual(code, 0, err)
+        for base in (self.home / ".github/agents", self.home / ".copilot/agents"):
+            self.assertEqual((base / "helper.sh").stat().st_mode & 0o111, 0o111, base)
+            self.assertEqual((base / "note.md").stat().st_mode & 0o111, 0, base)
+
     def test_execute_bit_is_restored_when_a_deleted_file_is_rolled_back(self):
         self.add_plugins("azure")
         script = self.write(".agents/plugins/azure/run.sh", "echo")

@@ -100,7 +100,13 @@ def known_legacy_links(home: Path) -> dict[Path, Path]:
     return result
 
 
-def import_legacy_tree(source: Path, destinations: list[Path], forced_destinations: set[Path], files: dict[Path, bytes]) -> set[Path]:
+def import_legacy_tree(
+    source: Path,
+    destinations: list[Path],
+    forced_destinations: set[Path],
+    files: dict[Path, bytes],
+    exec_bits: dict[Path, int],
+) -> set[Path]:
     require_safe_tree(source)
     imported: set[Path] = set()
     for file in source.rglob("*"):
@@ -109,7 +115,10 @@ def import_legacy_tree(source: Path, destinations: list[Path], forced_destinatio
             data = file.read_bytes()
             for destination in destinations:
                 output = destination / tail
-                files.setdefault(output, data)
+                # An output already staged from the candidate wins, including its execute bits.
+                if output not in files:
+                    files[output] = data
+                    exec_bits[output] = file.stat().st_mode & 0o111
                 if destination in forced_destinations:
                     imported.add(output)
     return imported
@@ -387,9 +396,9 @@ def main() -> int:
         legacy_files: set[Path] = set()
         for link, source in legacy_links.items():
             if link == home / ".github/agents":
-                legacy_files |= import_legacy_tree(source, [home / ".github/agents", home / ".copilot/agents"], {home / ".github/agents"}, files)
+                legacy_files |= import_legacy_tree(source, [home / ".github/agents", home / ".copilot/agents"], {home / ".github/agents"}, files, exec_bits)
             elif link == home / ".copilot/skills":
-                legacy_files |= import_legacy_tree(source, [home / ".copilot/skills", home / ".agents/skills"], {home / ".copilot/skills"}, files)
+                legacy_files |= import_legacy_tree(source, [home / ".copilot/skills", home / ".agents/skills"], {home / ".copilot/skills"}, files, exec_bits)
 
         # 現在の内容が記録済みハッシュと一致する古いファイルだけを削除する。
         for rel, old_hash in old_file_owners.items():
